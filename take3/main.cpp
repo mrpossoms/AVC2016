@@ -9,6 +9,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <indicurses.h>
+
+#include "imu.h"
+
 #define LERP(start, end, p) ((start) * (1.0 - (p)) + (end) * (p))
 
 using namespace cv;
@@ -16,6 +20,9 @@ using namespace std;
 
 
 const int MAX_CORNERS = 400;
+int IMU_FD;
+pthread_t  IMU_THREAD;
+readings_t IMU_READING;
 
 Mat frame_grey, last_grey_frame, display_frame;
 unsigned int TOTAL_FRAMES = 0;
@@ -67,9 +74,6 @@ namespace {
 
 			/// Copy the source image
 
-			char buf[16] = {};
-			sprintf(buf, "Frames: %u", TOTAL_FRAMES++);
-
 			if(lastCorners.size()){
 				calcOpticalFlowPyrLK(
 					last_grey_frame,
@@ -82,6 +86,8 @@ namespace {
 			}
 
 			display_frame = frame.clone();
+
+			display_frame *= 0.1;
 
 			int r = 3;
 			for( int i = 0; i < corners.size(); i++ ){
@@ -104,6 +110,36 @@ namespace {
 				}
 			}
 
+
+			char buf[64] = {};
+			sprintf(buf, "Frames: %u", TOTAL_FRAMES++);
+			putText(
+				display_frame,
+				buf,
+				Point(10, 20),
+				FONT_HERSHEY_SIMPLEX,
+				0.5,
+				Scalar(255, 255, 255), 
+				1,
+				8
+			);
+
+			sprintf(buf, "acc = (%hd, %hd, %hd) ", 
+				IMU_READING.accLinear.v[0],
+				IMU_READING.accLinear.v[1],
+				IMU_READING.accLinear.v[2]
+			);
+			putText(
+				display_frame,
+				buf,
+				Point(10, 40),
+				FONT_HERSHEY_SIMPLEX,
+				0.5,
+				Scalar(255, 255, 255), 
+				1,
+				8
+			);
+
 			/// Apply corner detection
 			goodFeaturesToTrack(
 				frame_grey,
@@ -115,17 +151,6 @@ namespace {
 				blockSize,
 				useHarrisDetector,
 				k 
-			);
-
-			putText(
-				display_frame,
-				buf,
-				Point(10, 20),
-				FONT_HERSHEY_SIMPLEX,
-				0.5,
-				Scalar(255, 255, 255), 
-				1,
-				8
 			);
 
 			imshow(window_name, display_frame);
@@ -150,14 +175,110 @@ namespace {
 	}
 }
 
+long variance(int* data, int offset, int length)
+{
+	long var = 0;
+
+	if(offset - 10 < 0){
+		offset = length + (offset - 10);
+	}
+
+	for(int i = 10; i--;){
+		int j = (i + 1) % length;
+		int delta = data[i] - data[j];
+
+		var += delta * delta;		
+	}
+
+	return var;
+}
+
+int isOutOfSync(int* data, int offset, int length){
+	long var = 0;
+
+	if(offset - 10 < 0){
+		offset = length + (offset - 10);
+	}
+
+	for(int i = 10; i--;){
+		int j = (i + 1) % length;
+		int delta = data[i] - data[j];
+
+		var += delta * delta;		
+	}
+
+	if(var > 100){
+		return 1;
+	}
+
+	return 0;
+}
+
+void* imuHandler(void* param)
+{
+	const int samples = 50;
+	int i = 0;
+	imuSynch(IMU_FD);
+
+	int readings[3][samples] = {{},{},{}};
+	int origin[100];
+	int center = (IC_TERM_HEIGHT / 2) - 4;
+
+	for(int i = 100; i--; origin[i] = center)
+		bzero(readings[0], sizeof(int) * samples);
+
+	while(1){
+		long var = variance(readings[0], i, samples);
+
+		if(isOutOfSync(readings[0], i, samples)){
+			// bzero(readings[0], sizeof(int) * samples);
+			// bzero(readings[1], sizeof(int) * samples);
+			// bzero(readings[2], sizeof(int) * samples);
+			// imuSynch(IMU_FD);
+		}
+
+		IMU_READING = imuGetReadings(IMU_FD);
+		
+		const int scale = 500;
+
+		readings[0][i] = center + IMU_READING.accLinear.x / scale;
+		readings[1][i] = center + IMU_READING.accLinear.y / scale;
+		readings[2][i] = center + IMU_READING.accLinear.z / scale;
+
+		++i;
+		i %= samples;
+
+		int topLeft[2] = { 25, 2 };
+		int bottomRight[2] = { IC_TERM_WIDTH - 5, IC_TERM_HEIGHT - 2};
+		clear();
+		icLineGraph(topLeft, bottomRight, '-', origin, 100);
+		icLineGraph(topLeft, bottomRight, 'x', readings[0], samples);
+		icLineGraph(topLeft, bottomRight, 'y', readings[1], samples);
+		icLineGraph(topLeft, bottomRight, 'z', readings[2], samples);
+
+		char count[32] = {};
+		sprintf(count, "%d", var);
+		icText(2, 2, count);
+
+		icPresent();
+	}
+
+	return NULL;
+}
+
 int main(int ac, char** av) {
 
-	if (ac != 2) {
+	if (ac != 3) {
 		help(av);
 		return 1;
 	}
+
 	std::string arg = av[1];
 	VideoCapture capture(arg); //try to open string, this will attempt to open it as a video file or image sequence
+
+	IMU_FD = open(av[2], O_RDWR);
+
+	imuConfigSerial(IMU_FD, 9600);
 
 	if (!capture.isOpened()) //if this fails, try to open as a video camera, through the use of an integer param
 		capture.open(atoi(arg.c_str()));
@@ -171,6 +292,9 @@ int main(int ac, char** av) {
 
 	cout << "Width  " << (w = capture.get(CV_CAP_PROP_FRAME_WIDTH)) << "\n";
 	cout << "Height " << (h = capture.get(CV_CAP_PROP_FRAME_HEIGHT)) << "\n";
+
+	pthread_create(&IMU_THREAD, NULL, imuHandler, NULL);
+	icInit();
 
 	return process(capture);
 }

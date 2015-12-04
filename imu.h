@@ -8,6 +8,11 @@
 #include <stdio.h>
 #include <strings.h>
 
+//    _____                  
+//   |_   _|  _ _ __  ___ ___
+//     | || || | '_ \/ -_|_-<
+//     |_| \_, | .__/\___/__/
+//         |__/|_|           
 typedef union{
 	int16_t v[3];
 	struct{
@@ -16,7 +21,7 @@ typedef union{
 } vec3i16_t;
 
 typedef union{
-	float v[3],
+	float v[3];
 	struct{
 		float x, y, z;
 	};
@@ -29,19 +34,28 @@ typedef struct{
 } readings_t;
 
 typedef struct{
-	readings_t lastReadings;
-	vec3f_t    linearVel;
-	vec3f_t    angularVel;
-	time_t     lastTime;
-	readings_t calibrationMinMax[2];
+	readings_t     lastReadings;
+	vec3f_t        linearVel;
+	vec3f_t        angularVel;
+	struct timeval lastTime;
+	readings_t     calibrationMinMax[2];
+	int            isCalibrated;
 }imuState_t;
 
-int imuPerformCalibration(int fd_storage, int fd_imu);
+//     ___      _ _ _             _   _          
+//    / __|__ _| (_) |__ _ _ __ _| |_(_)___ _ _  
+//   | (__/ _` | | | '_ \ '_/ _` |  _| / _ \ ' \ 
+//    \___\__,_|_|_|_.__/_| \__,_|\__|_\___/_||_|
+//                                               
+int imuPerformCalibration(int fd_storage, int fd_imu, imuState_t* state);
 int imuLoadCalibrationProfile(int fd_storage, imuState_t* state);
 
-int imuConfigSerial(int fd, int baud);
-void imuSynch(int fd);
+//    ___       _          ___     _ _ _           
+//   |   \ __ _| |_ __ _  | _ \___| | (_)_ _  __ _ 
+//   | |) / _` |  _/ _` | |  _/ _ \ | | | ' \/ _` |
+//   |___/\__,_|\__\__,_| |_| \___/_|_|_|_||_\__, |
+//                                           |___/ 
+void imuUpdateState(int fd, imuState_t* state)
 readings_t imuGetReadings(int fd);
-int imuPerformCalibration(int fd_storage, int fd_imu, imuState_t* state)
 
 #endif

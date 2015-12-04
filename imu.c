@@ -1,13 +1,28 @@
 #include "imu.h"
 #include <fcntl.h>    // File control definitions 
-#include <termios.h>  // POSIX terminal control definitions 
 #include <sys/ioctl.h>
 #include <assert.h>
 #include <arpa/inet.h>
+#include <sys/time.h>
+
+#define ADDR_ACC_MAG 0x1D
+#define ADDR_GYRO    0x6B
+
+#define ACC_REG 0x28
+#define MAG_REG 0x08
+#define GYR_REG 0x28
+
+#define G 9.8
 
 static int32_t ACCEL_OFFSET[3];
 static int READINGS_COLLECTED;
 
+
+//     ___                      
+//    / __|___ _ __  _ __  ___  
+//   | (__/ _ \ '  \| '  \(_-<_ 
+//    \___\___/_|_|_|_|_|_/__(_)
+//                              
 static void endianSwapVec3(vec3i16_t* v)
 {
 	v->x = ntohs(v->x);
@@ -15,103 +30,53 @@ static void endianSwapVec3(vec3i16_t* v)
 	v->z = ntohs(v->z);
 }
 
-int imuConfigSerial(int fd, int baud)
+int requestBytes(int fd, uint8_t devAddr, uint8_t srcReg, void* dstBuf, size_t bytes)
 {
-	struct termios opts = {};
+	uint8_t commByte;
+	ioctl(fd, I2C_SLAVE, devAddr);
+	commByte = 0x80 | srcReg;
+	write(fd, &commByte, 1);
 
-	tcgetattr(fd, &opts);
-
-	cfsetispeed(&opts, baud);
-	cfsetospeed(&opts, baud);
-
-	// 8N1
-	opts.c_cflag = CS8;
-	// no flow control
-
-    // opts.c_cflag &= ~HUPCL; // disable hang-up-on-close to avoid reset
-	// turn on READ & ignore ctrl lines
-	opts.c_cflag = CREAD | CLOCAL;
-
-	// turn off s/w flow ctrl
-	opts.c_lflag = ICANON; // make raw
-	opts.c_oflag = 0; // make raw
-	opts.c_iflag = IGNPAR; // make raw
-
-	cfmakeraw(&opts);
-
-	// see: http://unixwiz.net/techtips/termios-vmin-vtime.html
-	opts.c_cc[VMIN]  = 0;
-	opts.c_cc[VTIME] = 0;
-
-	tcsetattr(fd, TCSANOW, &opts);
+	if(read(fd, dstBuf, bytes) != bytes){
+		return -1;
+	}
 
 	return 0;
 }
 
-void imuSynch(int fd)
-{
-	int synched = 0;
-	char buf[5] = {};
-
-	while(!synched){
-		tcflush(fd, TCIOFLUSH);
-		write(fd, "b", 1);
-		write(fd, "s", 1);
-		usleep(100000);
-
-
-		int matchingLetters = 0;
-		for(int tries = 128; tries--;){
-			char c = 'x';
-			read(fd, &c, 1);
-				
-			if("SYNCH"[matchingLetters] == c){
-				++matchingLetters;
-			}
-			else{
-				matchingLetters = 0;
-			}
-
-			if(matchingLetters == 5){
-				synched = 1;				
-				break;
-			}
-		}
-	}
-
-	struct termios opts = {};
-	tcgetattr(fd, &opts);
-	opts.c_cc[VMIN] = sizeof(readings_t);
-	tcsetattr(fd, TCSANOW, &opts);
-}
-
+//    ___       _          ___     _ _ _           
+//   |   \ __ _| |_ __ _  | _ \___| | (_)_ _  __ _ 
+//   | |) / _` |  _/ _` | |  _/ _ \ | | | ' \/ _` |
+//   |___/\__,_|\__\__,_| |_| \___/_|_|_|_||_\__, |
+//                                           |___/ 
 readings_t imuGetReadings(int fd)
 {
 	readings_t reading = {};
-	size_t bytes = read(fd, &reading, sizeof(readings_t));
 
-	// write(1, (void*)&reading, sizeof(reading_t));
+	requestBytes(fd, ADDR_ACC_MAG, ACC_REG, &reading.accLinear, sizeof(vec3i16_t));
+	requestBytes(fd, ADDR_ACC_MAG, GYR_REG, &reading.accRotational, sizeof(vec3i16_t));
+	requestBytes(fd, ADDR_ACC_MAG, MAG_REG, &reading.mag, sizeof(vec3i16_t));
 
 	endianSwapVec3(&reading.accLinear);
 	endianSwapVec3(&reading.accRotational);
 	endianSwapVec3(&reading.mag);
 
-	const int samples = 100;
-	if(READINGS_COLLECTED++ < samples){
-		ACCEL_OFFSET[0] += reading.accLinear.x;
-		ACCEL_OFFSET[1] += reading.accLinear.y;
-		ACCEL_OFFSET[2] += reading.accLinear.z;
-	}
-	else{
-		reading.accLinear.x -= ACCEL_OFFSET[0];
-		reading.accLinear.y -= ACCEL_OFFSET[1];
-		reading.accLinear.z -= ACCEL_OFFSET[2];
-	}
-	if(READINGS_COLLECTED == samples){
-		ACCEL_OFFSET[0] /= samples;
-		ACCEL_OFFSET[1] /= samples;
-		ACCEL_OFFSET[2] /= samples;
-	}
+	// const int samples = 100;
+	// if(READINGS_COLLECTED++ < samples){
+	// 	ACCEL_OFFSET[0] += reading.accLinear.x;
+	// 	ACCEL_OFFSET[1] += reading.accLinear.y;
+	// 	ACCEL_OFFSET[2] += reading.accLinear.z;
+	// }
+	// else{
+	// 	reading.accLinear.x -= ACCEL_OFFSET[0];
+	// 	reading.accLinear.y -= ACCEL_OFFSET[1];
+	// 	reading.accLinear.z -= ACCEL_OFFSET[2];
+	// }
+	// if(READINGS_COLLECTED == samples){
+	// 	ACCEL_OFFSET[0] /= samples;
+	// 	ACCEL_OFFSET[1] /= samples;
+	// 	ACCEL_OFFSET[2] /= samples;
+	// }
 
 	return reading;
 }
@@ -121,7 +86,7 @@ int16_t axisAcc(char axis, int isMax, int fd_imu)
 	printf(isMax ? "(+%c) [Press any key]\n" : "(-%c) [Press any key]\n", axis);
 
 	getchar();
-	readings = imuGetReadings(fd_imu);
+	readings_t readings = imuGetReadings(fd_imu);
 
 	switch(axis){
 		case 'X':
@@ -138,6 +103,56 @@ int16_t axisAcc(char axis, int isMax, int fd_imu)
 	return 0;
 }
 
+static float elapsedSeconds(imuState_t* state)
+{
+	// compute the elapsed time in seconds
+	struct timeval now;
+	gettimeofday(&now, NULL);
+	int64_t usElapsed = (now.tv_sec - state->lastTime.tv_sec) * 1000000 +
+	                    (now.tv_usec - state->lastTime.tv_usec);
+	state->lastTime = now;
+
+	return usElapsed / 1000000.0;	
+}
+
+void imuUpdateState(int fd, imuState_t* state)
+{
+	readings_t readings = state->lastReadings = imuGetReadings(fd);
+
+	// if we don't have a start time yet, don't bother to compute the velocities
+	if(state->lastTime.tv_usec){
+		float dt = elapsedSeconds(state);
+		vec3f_t acc;
+
+		if(state->isCalibrated){
+			vec3i16_t* accMin = &readings.calibrationMinMax[0].accLinear;
+			vec3i16_t* accMax = &readings.calibrationMinMax[1].accLinear;
+
+			// map the readings to the 1G calibration window that was obtained
+			// from the calibration profile
+			acc.x = G * readings.accLinear.x * 2 / (float)(accMax.x - accMin.x);
+			acc.y = G * readings.accLinear.y * 2 / (float)(accMax.y - accMin.y);
+			acc.z = G * readings.accLinear.z * 2 / (float)(accMax.z - accMin.z);
+		}
+		else{
+			// no calibration, just spit out the literal value
+			acc.x = readings.accLinear.x;
+			acc.y = readings.accLinear.y;
+			acc.z = readings.accLinear.z;	
+		}
+
+		// integrate
+		state->linearVel.x += acc.x * dt;
+		state->linearVel.y += acc.y * dt;
+		state->linearVel.z += acc.z * dt;
+	}
+}
+
+//     ___      _ _ _             _   _          
+//    / __|__ _| (_) |__ _ _ __ _| |_(_)___ _ _  
+//   | (__/ _` | | | '_ \ '_/ _` |  _| / _ \ ' \ 
+//    \___\__,_|_|_|_.__/_| \__,_|\__|_\___/_||_|
+//                                               
 int imuPerformCalibration(int fd_storage, int fd_imu, imuState_t* state)
 {
 	printf("Point each axis toward the center of the earth when prompted.\n");
@@ -160,27 +175,12 @@ int imuPerformCalibration(int fd_storage, int fd_imu, imuState_t* state)
 
 int imuLoadCalibrationProfile(int fd_storage, imuState_t* state)
 {
-	return !(read(fd_storage, &state->calibrationMinMax, sizeof(readings_t) * 2) == sizeof(readings_t) * 2);
-}
+	int isOk = read(fd_storage, &state->calibrationMinMax, sizeof(readings_t) * 2) == sizeof(readings_t) * 2;
 
-static float elapsedSeconds(imuState_t* state)
-{
-	// compute the elapsed time in seconds
-	struct timeval time;
-	gettimeofday(&time, NULL);
-	int64_t usElapsed = (time.tv_sec - state->lastTime.tv_sec) * 1000000 +
-	                    (time.tv_usec - state->lastTime.tv_usec);
-	return usElapsed / 1000000.0;	
-}
-
-void imuUpdateState(int fd, imuState_t* state)
-{
-	state->lastReadings = imuGetReadings(fd);
-
-	// if we don't have a start time yet, don't bother to compute the velocities
-	if(state->lastTime){
-		float dt = elapsedSeconds(state);
+	if(isOk){
+		state->isCalibrated = 1;
 	}
 
-	state->lastTime = time;
+	return 1;
 }
+
