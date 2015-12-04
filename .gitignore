@@ -21,6 +21,7 @@
 *.dylib
 
 # Executables
+*.bin
 *.exe
 *.out
 *.app
@@ -31,3 +32,6 @@ objectDetection
 
 # Debug files
 *.dSYM/
+
+*.DS_Store
+*.jpg

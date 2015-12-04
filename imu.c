@@ -1,42 +1,21 @@
-#include <stdio.h>
-#include <unistd.h>   // UNIX standard function definitions 
+#include "imu.h"
 #include <fcntl.h>    // File control definitions 
 #include <termios.h>  // POSIX terminal control definitions 
-#include <string.h>   // String function definitions 
-#include <inttypes.h>
 #include <sys/ioctl.h>
 #include <assert.h>
 #include <arpa/inet.h>
-#include <time.h>
 
-typedef union{
-	int16_t v[3];
-	struct{
-		int16_t x, y, z;
-	};
-} vec3_t;
+static int32_t ACCEL_OFFSET[3];
+static int READINGS_COLLECTED;
 
-typedef struct{
-	vec3_t accLinear;
-	vec3_t accRotational;
-	vec3_t mag;
-} readings_t;
-
-typedef struct{
-	float accLinear[3];
-	float accRotational[3];
-	float mag[3];
-	time_t begin;	
-} average_t;
-
-void endianSwapVec3(vec3_t* v)
+static void endianSwapVec3(vec3i16_t* v)
 {
 	v->x = ntohs(v->x);
 	v->y = ntohs(v->y);
 	v->z = ntohs(v->z);
 }
 
-int configSerial(int fd, int baud)
+int imuConfigSerial(int fd, int baud)
 {
 	struct termios opts = {};
 
@@ -69,23 +48,17 @@ int configSerial(int fd, int baud)
 	return 0;
 }
 
-void synch(int fd)
+void imuSynch(int fd)
 {
 	int synched = 0;
 	char buf[5] = {};
 
-	write(1, "Synching...", 11);
 	while(!synched){
-		// size_t bytes;
-		// while((bytes = read(fd, buf, 5)) > 0)
-		// {
-		// 	printf("bytes %zu\n", bytes);
-		// }
-
+		tcflush(fd, TCIOFLUSH);
 		write(fd, "b", 1);
-		usleep(100000);
 		write(fd, "s", 1);
 		usleep(100000);
+
 
 		int matchingLetters = 0;
 		for(int tries = 128; tries--;){
@@ -94,7 +67,6 @@ void synch(int fd)
 				
 			if("SYNCH"[matchingLetters] == c){
 				++matchingLetters;
-				write(1, &c, 1);
 			}
 			else{
 				matchingLetters = 0;
@@ -111,73 +83,104 @@ void synch(int fd)
 	tcgetattr(fd, &opts);
 	opts.c_cc[VMIN] = sizeof(readings_t);
 	tcsetattr(fd, TCSANOW, &opts);
-
-	printf("done!\n");
 }
 
-int main(int argc, char* argv[])
+readings_t imuGetReadings(int fd)
 {
-	if(argc < 2){
-		return 1;
+	readings_t reading = {};
+	size_t bytes = read(fd, &reading, sizeof(readings_t));
+
+	// write(1, (void*)&reading, sizeof(reading_t));
+
+	endianSwapVec3(&reading.accLinear);
+	endianSwapVec3(&reading.accRotational);
+	endianSwapVec3(&reading.mag);
+
+	const int samples = 100;
+	if(READINGS_COLLECTED++ < samples){
+		ACCEL_OFFSET[0] += reading.accLinear.x;
+		ACCEL_OFFSET[1] += reading.accLinear.y;
+		ACCEL_OFFSET[2] += reading.accLinear.z;
+	}
+	else{
+		reading.accLinear.x -= ACCEL_OFFSET[0];
+		reading.accLinear.y -= ACCEL_OFFSET[1];
+		reading.accLinear.z -= ACCEL_OFFSET[2];
+	}
+	if(READINGS_COLLECTED == samples){
+		ACCEL_OFFSET[0] /= samples;
+		ACCEL_OFFSET[1] /= samples;
+		ACCEL_OFFSET[2] /= samples;
 	}
 
-	int fd = open(argv[1], O_RDWR);
-	int sampFd = open("./samples.bin", O_WRONLY | O_CREAT);
+	return reading;
+}
 
-	configSerial(fd, 9600);
-	synch(fd);
+int16_t axisAcc(char axis, int isMax, int fd_imu)
+{
+	printf(isMax ? "(+%c) [Press any key]\n" : "(-%c) [Press any key]\n", axis);
 
-	// write(fd, "s", 1);
+	getchar();
+	readings = imuGetReadings(fd_imu);
 
-	average_t averageSamples = {
-		.begin = time(NULL),
-	};
-	int samples = 0;
-
-	while(1){
-		readings_t reading = {};
-		size_t bytes = read(fd, &reading, sizeof(readings_t));
-
-		// write(1, (void*)&reading, sizeof(reading_t));
-
-		endianSwapVec3(&reading.accLinear);
-		endianSwapVec3(&reading.accRotational);
-		endianSwapVec3(&reading.mag);
-
-		assert(bytes == sizeof(readings_t));
-
-		// record sample
-		averageSamples.accLinear[0] += reading.accLinear.x / 1000.0;
-		averageSamples.accLinear[1] += reading.accLinear.y / 1000.0;
-		averageSamples.accLinear[2] += reading.accLinear.z / 1000.0;
-
-		averageSamples.accRotational[0] += reading.accRotational.x / 1000.0;
-		averageSamples.accRotational[1] += reading.accRotational.y / 1000.0;
-		averageSamples.accRotational[2] += reading.accRotational.z / 1000.0;
-
-		averageSamples.mag[0] += reading.mag.x / 1000.0;
-		averageSamples.mag[1] += reading.mag.y / 1000.0;
-		averageSamples.mag[2] += reading.mag.z / 1000.0;
-
-		// have enough samples, store and start over
-		if(samples >= 1000){
-			// save this average
-			write(sampFd, &averageSamples, sizeof(average_t));
-
-			printf("acc = (%f, %f, %f) ", averageSamples.accLinear[0], averageSamples.accLinear[1], averageSamples.accLinear[2]);
-			printf("gyro = (%f, %f, %f) ", averageSamples.accRotational[0], averageSamples.accRotational[1], averageSamples.accRotational[2]);
-			printf("mag = (%f, %f, %f)\n", averageSamples.mag[0], averageSamples.mag[1], averageSamples.mag[2]);
-
-			samples = 0;
-			// reset all averages
-			bzero(&averageSamples, sizeof(average_t));
-			// record the new start time
-			averageSamples.begin = time(NULL);
-		}
-		else{
-			++samples;
-		}
+	switch(axis){
+		case 'X':
+		case 'x':
+			return readings.accLinear.x;
+		case 'Y':
+		case 'y':
+			return readings.accLinear.y;
+		case 'Z':
+		case 'z':
+			return readings.accLinear.z;
 	}
 
 	return 0;
+}
+
+int imuPerformCalibration(int fd_storage, int fd_imu, imuState_t* state)
+{
+	printf("Point each axis toward the center of the earth when prompted.\n");
+	printf("[Press any key to begin]\n");
+	getchar();
+
+	printf("Calibrating accelerometer\n");
+	state->calibrationMinMax[0].accLinear.x = axisAcc('x', 0, fd_imu);
+	state->calibrationMinMax[1].accLinear.x = axisAcc('x', 1, fd_imu);
+	state->calibrationMinMax[0].accLinear.y = axisAcc('y', 0, fd_imu);
+	state->calibrationMinMax[1].accLinear.y = axisAcc('y', 1, fd_imu);
+	state->calibrationMinMax[0].accLinear.z = axisAcc('z', 0, fd_imu);
+	state->calibrationMinMax[1].accLinear.z = axisAcc('z', 1, fd_imu); 
+
+	// store the results
+	write(fd_storage, &state->calibrationMinMax, sizeof(readings_t) * 2);
+
+	return 0;
+}
+
+int imuLoadCalibrationProfile(int fd_storage, imuState_t* state)
+{
+	return !(read(fd_storage, &state->calibrationMinMax, sizeof(readings_t) * 2) == sizeof(readings_t) * 2);
+}
+
+static float elapsedSeconds(imuState_t* state)
+{
+	// compute the elapsed time in seconds
+	struct timeval time;
+	gettimeofday(&time, NULL);
+	int64_t usElapsed = (time.tv_sec - state->lastTime.tv_sec) * 1000000 +
+	                    (time.tv_usec - state->lastTime.tv_usec);
+	return usElapsed / 1000000.0;	
+}
+
+void imuUpdateState(int fd, imuState_t* state)
+{
+	state->lastReadings = imuGetReadings(fd);
+
+	// if we don't have a start time yet, don't bother to compute the velocities
+	if(state->lastTime){
+		float dt = elapsedSeconds(state);
+	}
+
+	state->lastTime = time;
 }
