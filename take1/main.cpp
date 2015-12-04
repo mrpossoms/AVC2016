@@ -1,6 +1,8 @@
 
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/videoio/videoio.hpp>
+//#include <opencv2/imgcodecs.hpp>
+//#include <opencv2/videoio/videoio.hpp>
+
+#include <opencv2/video.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
@@ -117,7 +119,7 @@ namespace {
 		char filename[200];
 		string window_name = "video | q or esc to quit";
 		cout << "press space to save a picture. q or esc to quit" << endl;
-		namedWindow(window_name, WINDOW_KEEPRATIO); //resizable window;
+		namedWindow(window_name); //resizable window;
 		Mat frame, frameSmall;
 
 		for (;;) {
