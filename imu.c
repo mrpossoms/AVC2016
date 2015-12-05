@@ -1,9 +1,9 @@
 #include "imu.h"
 #include <fcntl.h>    // File control definitions 
 #include <sys/ioctl.h>
+#include <linux/i2c-dev.h>
 #include <assert.h>
 #include <arpa/inet.h>
-#include <sys/time.h>
 
 #define ADDR_ACC_MAG 0x1D
 #define ADDR_GYRO    0x6B
@@ -30,7 +30,20 @@ static void endianSwapVec3(vec3i16_t* v)
 	v->z = ntohs(v->z);
 }
 
-int requestBytes(int fd, uint8_t devAddr, uint8_t srcReg, void* dstBuf, size_t bytes)
+static int sendByte(int fd, uint8_t devAddr, uint8_t dstReg, uint8_t byte)
+{
+	uint8_t buf[] = { dstReg, byte };
+
+	ioctl(fd, I2C_SLAVE, devAddr);
+
+	printf("0x%02x -> 0x%02x @ 0x%02x\n", byte, devAddr, dstReg);
+
+	write(fd, buf, 2);
+
+	return 0;
+}
+
+static int requestBytes(int fd, uint8_t devAddr, uint8_t srcReg, void* dstBuf, size_t bytes)
 {
 	uint8_t commByte;
 	ioctl(fd, I2C_SLAVE, devAddr);
@@ -51,11 +64,26 @@ int requestBytes(int fd, uint8_t devAddr, uint8_t srcReg, void* dstBuf, size_t b
 //                                           |___/ 
 readings_t imuGetReadings(int fd)
 {
+	static int isSetup;
 	readings_t reading = {};
+	int res = 0;
+	
+	if(!isSetup){
+		printf("Setting up!\n");
+		sendByte(fd, ADDR_ACC_MAG, 0x20, 0x67);
+		sendByte(fd, ADDR_ACC_MAG, 0x21, 0x00);
+		sendByte(fd, ADDR_ACC_MAG, 0x26, 0x00);
+		sendByte(fd, ADDR_GYRO, 0x20, 0x0F);		
 
-	requestBytes(fd, ADDR_ACC_MAG, ACC_REG, &reading.accLinear, sizeof(vec3i16_t));
-	requestBytes(fd, ADDR_ACC_MAG, GYR_REG, &reading.accRotational, sizeof(vec3i16_t));
-	requestBytes(fd, ADDR_ACC_MAG, MAG_REG, &reading.mag, sizeof(vec3i16_t));
+		isSetup = 1;
+		usleep(100000);
+	}
+
+	res += requestBytes(fd, ADDR_ACC_MAG, ACC_REG, &reading.accLinear, sizeof(vec3i16_t));
+	res += requestBytes(fd, ADDR_ACC_MAG, GYR_REG, &reading.accRotational, sizeof(vec3i16_t));
+	res += requestBytes(fd, ADDR_ACC_MAG, MAG_REG, &reading.mag, sizeof(vec3i16_t));
+
+	assert(res == 0);
 
 	endianSwapVec3(&reading.accLinear);
 	endianSwapVec3(&reading.accRotational);
@@ -125,14 +153,14 @@ void imuUpdateState(int fd, imuState_t* state)
 		vec3f_t acc;
 
 		if(state->isCalibrated){
-			vec3i16_t* accMin = &readings.calibrationMinMax[0].accLinear;
-			vec3i16_t* accMax = &readings.calibrationMinMax[1].accLinear;
+			vec3i16_t* accMin = &state->calibrationMinMax[0].accLinear;
+			vec3i16_t* accMax = &state->calibrationMinMax[1].accLinear;
 
 			// map the readings to the 1G calibration window that was obtained
 			// from the calibration profile
-			acc.x = G * readings.accLinear.x * 2 / (float)(accMax.x - accMin.x);
-			acc.y = G * readings.accLinear.y * 2 / (float)(accMax.y - accMin.y);
-			acc.z = G * readings.accLinear.z * 2 / (float)(accMax.z - accMin.z);
+			acc.x = G * readings.accLinear.x * 2 / (float)(accMax->x - accMin->x);
+			acc.y = G * readings.accLinear.y * 2 / (float)(accMax->y - accMin->y);
+			acc.z = G * readings.accLinear.z * 2 / (float)(accMax->z - accMin->z);
 		}
 		else{
 			// no calibration, just spit out the literal value
