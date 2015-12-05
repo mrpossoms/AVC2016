@@ -1,4 +1,5 @@
 #include "imu.h"
+#include <time.h>
 
 typedef struct{
 	float accLinear[3];
@@ -16,8 +17,6 @@ int main(int argc, char* argv[])
 	int fd = open(argv[1], O_RDWR);
 	int sampFd = open("./samples.bin", O_WRONLY | O_CREAT);
 
-	imuConfigSerial(fd, 9600);
-	imuSynch(fd);
 
 	// write(fd, "s", 1);
 
