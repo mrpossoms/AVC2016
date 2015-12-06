@@ -25,6 +25,7 @@ static int READINGS_COLLECTED;
 //                              
 static void endianSwapVec3(vec3i16_t* v)
 {
+	return;
 	v->x = ntohs(v->x);
 	v->y = ntohs(v->y);
 	v->z = ntohs(v->z);
@@ -35,9 +36,6 @@ static int sendByte(int fd, uint8_t devAddr, uint8_t dstReg, uint8_t byte)
 	uint8_t buf[] = { dstReg, byte };
 
 	ioctl(fd, I2C_SLAVE, devAddr);
-
-	printf("0x%02x -> 0x%02x @ 0x%02x\n", byte, devAddr, dstReg);
-
 	write(fd, buf, 2);
 
 	return 0;
@@ -69,7 +67,6 @@ readings_t imuGetReadings(int fd)
 	int res = 0;
 	
 	if(!isSetup){
-		printf("Setting up!\n");
 		sendByte(fd, ADDR_ACC_MAG, 0x20, 0x67);
 		sendByte(fd, ADDR_ACC_MAG, 0x21, 0x00);
 		sendByte(fd, ADDR_ACC_MAG, 0x26, 0x00);
@@ -173,6 +170,9 @@ void imuUpdateState(int fd, imuState_t* state)
 		state->linearVel.x += acc.x * dt;
 		state->linearVel.y += acc.y * dt;
 		state->linearVel.z += acc.z * dt;
+	}
+	else{
+		elapsedSeconds(state);
 	}
 }
 

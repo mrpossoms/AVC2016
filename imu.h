@@ -42,6 +42,16 @@ typedef struct{
 	int            isCalibrated;
 }imuState_t;
 
+static inline void print_v3i16(vec3i16_t* v)
+{
+	printf("(%d, %d, %d)", v->x, v->y, v->z);
+}
+
+static inline void print_v3f(vec3f_t* v)
+{
+	printf("(%f, %f, %f)", v->x, v->y, v->z);
+}
+
 //     ___      _ _ _             _   _          
 //    / __|__ _| (_) |__ _ _ __ _| |_(_)___ _ _  
 //   | (__/ _` | | | '_ \ '_/ _` |  _| / _ \ ' \ 
