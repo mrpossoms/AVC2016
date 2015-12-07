@@ -33,6 +33,7 @@ int main(int argc, char* argv[])
 
 	// write(fd, "s", 1);
 	int samples = 0;
+	time_t start = time(NULL);
 
 	while(1){
 		imuUpdateState(fd, &IMU_STATE);
@@ -45,6 +46,11 @@ int main(int argc, char* argv[])
 		}
 		else{
 			++samples;
+		}
+
+		if(time(NULL) - start >= 1){
+			printf("Vel = (%f, %f, %f)\n", IMU_STATE.linearVel.x, IMU_STATE.linearVel.y, IMU_STATE.linearVel.z);
+			break;
 		}
 	}
 

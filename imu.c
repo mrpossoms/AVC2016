@@ -1,5 +1,6 @@
 #include "imu.h"
 #include <fcntl.h>    // File control definitions 
+#include <stdlib.h>
 #include <sys/ioctl.h>
 #include <assert.h>
 #include <arpa/inet.h>
@@ -99,6 +100,7 @@ readings_t imuGetReadings(int fd)
 	endianSwapVec3(&reading.accRotational);
 	endianSwapVec3(&reading.mag);
 
+/*
 	const int samples = 100;
 	if(READINGS_COLLECTED++ < samples){
 		ACCEL_OFFSET[0] += reading.accLinear.x;
@@ -115,6 +117,7 @@ readings_t imuGetReadings(int fd)
 		ACCEL_OFFSET[1] /= samples;
 		ACCEL_OFFSET[2] /= samples;
 	}
+*/
 
 	return reading;
 }
@@ -153,6 +156,34 @@ static float elapsedSeconds(imuState_t* state)
 	return usElapsed / 1000000.0;	
 }
 
+static int comp(const void* a, const void* b)
+{
+	return *((SMF_SAMP_TYPE*)a) - *((SMF_SAMP_TYPE*)b);
+}
+
+void smfUpdate(medianWindow_t* win, SMF_SAMP_TYPE samp)
+{
+	SMF_SAMP_TYPE *window = win->window;
+	window[win->nextSample++] = samp;
+
+	// round robin
+	win->nextSample %= WIN_SIZE;
+
+	// sort the window
+	qsort(window, WIN_SIZE, sizeof(SMF_SAMP_TYPE), comp);	
+
+	win->median = window[WIN_SIZE / 2];
+}
+
+static void filterReading(readings_t* readings, readingFilter_t* filters)
+{
+	for(int i = 3; i--;){
+		smfUpdate(filters->linAcc + i, readings->accLinear.v[i]);
+		smfUpdate(filters->rotAcc + i, readings->accRotational.v[i]);
+		smfUpdate(filters->mag + i,    readings->mag.v[i]);
+	}
+} 
+
 void imuUpdateState(int fd, imuState_t* state)
 {
 	readings_t readings = {};
@@ -160,6 +191,8 @@ void imuUpdateState(int fd, imuState_t* state)
 #ifdef __linux__
 	readings = state->lastReadings = imuGetReadings(fd);
 #endif
+
+	filterReading(&readings, &state->windows);
 
 	// if we don't have a start time yet, don't bother to compute the velocities
 	if(state->lastTime.tv_usec){
@@ -228,4 +261,3 @@ int imuLoadCalibrationProfile(int fd_storage, imuState_t* state)
 
 	return 1;
 }
-
