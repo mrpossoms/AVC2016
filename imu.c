@@ -87,6 +87,7 @@ readings_t imuGetReadings(int fd)
 	endianSwapVec3(&reading.accRotational);
 	endianSwapVec3(&reading.mag);
 
+/*
 	const int samples = 100;
 	if(READINGS_COLLECTED++ < samples){
 		ACCEL_OFFSET[0] += reading.accLinear.x;
@@ -103,6 +104,7 @@ readings_t imuGetReadings(int fd)
 		ACCEL_OFFSET[1] /= samples;
 		ACCEL_OFFSET[2] /= samples;
 	}
+*/
 
 	return reading;
 }
