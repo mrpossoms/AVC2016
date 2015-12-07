@@ -218,7 +218,6 @@ void* imuHandler(void* param)
 {
 	const int samples = 50;
 	int i = 0;
-	imuSynch(IMU_FD);
 
 	int readings[3][samples] = {{},{},{}};
 	int origin[100];
@@ -293,7 +292,7 @@ int main(int ac, char** av) {
 	cout << "Width  " << (w = capture.get(CV_CAP_PROP_FRAME_WIDTH)) << "\n";
 	cout << "Height " << (h = capture.get(CV_CAP_PROP_FRAME_HEIGHT)) << "\n";
 
-	pthread_create(&IMU_THREAD, NULL, imuHandler, NULL);
+//	pthread_create(&IMU_THREAD, NULL, imuHandler, NULL);
 	icInit();
 
 	return process(capture);

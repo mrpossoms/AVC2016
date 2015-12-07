@@ -54,7 +54,7 @@ void* imuHandler(void* param)
 int main()
 {
 	CvCapture* cap = NULL;
-	IplImage *frame;
+	IplImage *frame, *frameGrey;
 
 	cap = cvCreateCameraCapture(0);	
 	assert(cap);
@@ -68,12 +68,18 @@ int main()
 	icInit();
 	pthread_create(&IMU_THREAD, NULL, imuHandler, NULL);
 
+	cvNamedWindow("AVC", CV_WINDOW_AUTOSIZE); //resizable window;
+
 	while(1){
 		frame = cvQueryFrame(cap);
 		
 		if(!frame) continue;
 
-		usleep(100);		
+		// convert the frame to black and white
+		cvCvtColor(frame, frameGrey, CV_BGR2GRAY);
+		cvPyrDown(frameGrey, frameGrey, CV_GAUSSIAN_5x5);
+
+		cvShowImage("AVC", frame);
 	}
 
 	cvReleaseCapture(&cap);

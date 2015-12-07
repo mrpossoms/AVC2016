@@ -54,7 +54,7 @@ static inline void print_v3f(vec3f_t* v)
 
 //     ___      _ _ _             _   _          
 //    / __|__ _| (_) |__ _ _ __ _| |_(_)___ _ _  
-//   | (__/ _` | | | '_ \ '_/ _` |  _| / _ \ ' \ 
+//   | (__/ _` | | | '_ \ '_/ _` |  _| / _ \ ' \
 //    \___\__,_|_|_|_.__/_| \__,_|\__|_\___/_||_|
 //                                               
 int imuPerformCalibration(int fd_storage, int fd_imu, imuState_t* state);
