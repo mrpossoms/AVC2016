@@ -23,10 +23,10 @@ void* imuHandler(void* param)
 
 	while(1){
 		IMU_READING = imuGetReadings(IMU_FD);
-		int topLeft[2] = { 5, IC_TERM_HEIGHT * 0.75 };
+		int topLeft[2] = { 5, 2 };
 		int bottomRight[2] = { IC_TERM_WIDTH - 5, IC_TERM_HEIGHT - 2};	
 		
-		int center = (topLeft[1] - bottomRight[1]) / 2;
+		int center = (bottomRight[1] - topLeft[1]) / 2;
 
 		const int scale = 500;
 
