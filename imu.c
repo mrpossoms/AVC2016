@@ -2,9 +2,12 @@
 #include <fcntl.h>    // File control definitions 
 #include <stdlib.h>
 #include <sys/ioctl.h>
-#include <linux/i2c-dev.h>
 #include <assert.h>
 #include <arpa/inet.h>
+
+#ifdef __linux__
+#include <linux/i2c-dev.h>
+#endif
 
 #define ADDR_ACC_MAG 0x1D
 #define ADDR_GYRO    0x6B
@@ -34,16 +37,25 @@ static void endianSwapVec3(vec3i16_t* v)
 
 static int sendByte(int fd, uint8_t devAddr, uint8_t dstReg, uint8_t byte)
 {
+#ifndef __linux__
+	return 1;
+#elif
+
 	uint8_t buf[] = { dstReg, byte };
 
 	ioctl(fd, I2C_SLAVE, devAddr);
 	write(fd, buf, 2);
 
 	return 0;
+#endif
 }
 
 static int requestBytes(int fd, uint8_t devAddr, uint8_t srcReg, void* dstBuf, size_t bytes)
 {
+#ifndef __linux__
+	return 1;
+#elif
+
 	uint8_t commByte;
 	ioctl(fd, I2C_SLAVE, devAddr);
 	commByte = 0x80 | srcReg;
@@ -54,6 +66,7 @@ static int requestBytes(int fd, uint8_t devAddr, uint8_t srcReg, void* dstBuf, s
 	}
 
 	return 0;
+#endif
 }
 
 //    ___       _          ___     _ _ _           
@@ -173,7 +186,11 @@ static void filterReading(readings_t* readings, readingFilter_t* filters)
 
 void imuUpdateState(int fd, imuState_t* state)
 {
-	readings_t readings = state->lastReadings = imuGetReadings(fd);
+	readings_t readings = {};
+
+#ifdef __linux__
+	readings = state->lastReadings = imuGetReadings(fd);
+#endif
 
 	filterReading(&readings, &state->windows);
 
@@ -211,7 +228,7 @@ void imuUpdateState(int fd, imuState_t* state)
 
 //     ___      _ _ _             _   _          
 //    / __|__ _| (_) |__ _ _ __ _| |_(_)___ _ _  
-//   | (__/ _` | | | '_ \ '_/ _` |  _| / _ \ ' \ 
+//   | (__/ _` | | | '_ \ '_/ _` |  _| / _ \ ' \
 //    \___\__,_|_|_|_.__/_| \__,_|\__|_\___/_||_|
 //                                               
 int imuPerformCalibration(int fd_storage, int fd_imu, imuState_t* state)
