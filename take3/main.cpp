@@ -20,9 +20,9 @@ using namespace std;
 
 
 const int MAX_CORNERS = 400;
-int IMU_FD;
-pthread_t  IMU_THREAD;
-readings_t IMU_READING;
+// int IMU_FD;
+// pthread_t  IMU_THREAD;
+// readings_t IMU_READING;
 
 Mat frame_grey, last_grey_frame, display_frame;
 unsigned int TOTAL_FRAMES = 0;
@@ -91,9 +91,19 @@ namespace {
 
 			int r = 3;
 			for( int i = 0; i < corners.size(); i++ ){
+					circle(
+						display_frame,
+						cvPoint(corners[i].x * 2, corners[i].y * 2),
+						3,
+						cvScalar(255, 0, 0, 255),
+						1,
+						8,
+						0
+					);
+
 				if(status[i]){
-					float dx = (corners[i].x - lastCorners[i].x) * 10;
-					float dy = (corners[i].y - lastCorners[i].y) * 10;
+					float dx = (corners[i].x - lastCorners[i].x) * 1;
+					float dy = (corners[i].y - lastCorners[i].y) * 1;
 					float depth = dx * dx + dy * dy;
 
 					depth = pow(depth, 64);
@@ -124,11 +134,6 @@ namespace {
 				8
 			);
 
-			sprintf(buf, "acc = (%hd, %hd, %hd) ", 
-				IMU_READING.accLinear.v[0],
-				IMU_READING.accLinear.v[1],
-				IMU_READING.accLinear.v[2]
-			);
 			putText(
 				display_frame,
 				buf,
@@ -214,56 +219,56 @@ int isOutOfSync(int* data, int offset, int length){
 	return 0;
 }
 
-void* imuHandler(void* param)
-{
-	const int samples = 50;
-	int i = 0;
+// void* imuHandler(void* param)
+// {
+// 	const int samples = 50;
+// 	int i = 0;
 
-	int readings[3][samples] = {{},{},{}};
-	int origin[100];
-	int center = (IC_TERM_HEIGHT / 2) - 4;
+// 	int readings[3][samples] = {{},{},{}};
+// 	int origin[100];
+// 	int center = (IC_TERM_HEIGHT / 2) - 4;
 
-	for(int i = 100; i--; origin[i] = center)
-		bzero(readings[0], sizeof(int) * samples);
+// 	for(int i = 100; i--; origin[i] = center)
+// 		bzero(readings[0], sizeof(int) * samples);
 
-	while(1){
-		long var = variance(readings[0], i, samples);
+// 	while(1){
+// 		long var = variance(readings[0], i, samples);
 
-		if(isOutOfSync(readings[0], i, samples)){
-			// bzero(readings[0], sizeof(int) * samples);
-			// bzero(readings[1], sizeof(int) * samples);
-			// bzero(readings[2], sizeof(int) * samples);
-			// imuSynch(IMU_FD);
-		}
+// 		if(isOutOfSync(readings[0], i, samples)){
+// 			// bzero(readings[0], sizeof(int) * samples);
+// 			// bzero(readings[1], sizeof(int) * samples);
+// 			// bzero(readings[2], sizeof(int) * samples);
+// 			// imuSynch(IMU_FD);
+// 		}
 
-		IMU_READING = imuGetReadings(IMU_FD);
+// 		IMU_READING = imuGetReadings(IMU_FD);
 		
-		const int scale = 500;
+// 		const int scale = 500;
 
-		readings[0][i] = center + IMU_READING.accLinear.x / scale;
-		readings[1][i] = center + IMU_READING.accLinear.y / scale;
-		readings[2][i] = center + IMU_READING.accLinear.z / scale;
+// 		readings[0][i] = center + IMU_READING.accLinear.x / scale;
+// 		readings[1][i] = center + IMU_READING.accLinear.y / scale;
+// 		readings[2][i] = center + IMU_READING.accLinear.z / scale;
 
-		++i;
-		i %= samples;
+// 		++i;
+// 		i %= samples;
 
-		int topLeft[2] = { 25, 2 };
-		int bottomRight[2] = { IC_TERM_WIDTH - 5, IC_TERM_HEIGHT - 2};
-		clear();
-		icLineGraph(topLeft, bottomRight, '-', origin, 100);
-		icLineGraph(topLeft, bottomRight, 'x', readings[0], samples);
-		icLineGraph(topLeft, bottomRight, 'y', readings[1], samples);
-		icLineGraph(topLeft, bottomRight, 'z', readings[2], samples);
+// 		int topLeft[2] = { 25, 2 };
+// 		int bottomRight[2] = { IC_TERM_WIDTH - 5, IC_TERM_HEIGHT - 2};
+// 		clear();
+// 		icLineGraph(topLeft, bottomRight, '-', origin, 100);
+// 		icLineGraph(topLeft, bottomRight, 'x', readings[0], samples);
+// 		icLineGraph(topLeft, bottomRight, 'y', readings[1], samples);
+// 		icLineGraph(topLeft, bottomRight, 'z', readings[2], samples);
 
-		char count[32] = {};
-		sprintf(count, "%d", var);
-		icText(2, 2, count);
+// 		char count[32] = {};
+// 		sprintf(count, "%d", var);
+// 		icText(2, 2, count);
 
-		icPresent();
-	}
+// 		icPresent();
+// 	}
 
-	return NULL;
-}
+// 	return NULL;
+// }
 
 int main(int ac, char** av) {
 
@@ -275,9 +280,9 @@ int main(int ac, char** av) {
 	std::string arg = av[1];
 	VideoCapture capture(arg); //try to open string, this will attempt to open it as a video file or image sequence
 
-	IMU_FD = open(av[2], O_RDWR);
+	// IMU_FD = open(av[2], O_RDWR);
 
-	imuConfigSerial(IMU_FD, 9600);
+	// imuConfigSerial(IMU_FD, 9600);
 
 	if (!capture.isOpened()) //if this fails, try to open as a video camera, through the use of an integer param
 		capture.open(atoi(arg.c_str()));
@@ -293,7 +298,7 @@ int main(int ac, char** av) {
 	cout << "Height " << (h = capture.get(CV_CAP_PROP_FRAME_HEIGHT)) << "\n";
 
 //	pthread_create(&IMU_THREAD, NULL, imuHandler, NULL);
-	icInit();
+	// icInit();
 
 	return process(capture);
 }

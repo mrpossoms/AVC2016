@@ -1,14 +1,8 @@
-#ifdef __cplusplus
-#warning !!!It worked!!!
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/videoio/videoio.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/opencv.hpp>
-#else
-#include <opencv/cv.h>
-#include <opencv/highgui.h>
-#endif
 
 #include <stdio.h>
 #include <unistd.h>
@@ -19,6 +13,9 @@
 int IMU_FD;
 pthread_t  IMU_THREAD;
 sensorStatei_t IMU_READING;
+
+using namespace cv;
+using namespace std;
 
 void* imuHandler(void* param)
 {
@@ -64,76 +61,60 @@ void* imuHandler(void* param)
 int main()
 {
 	const int MAX_CORNERS = 400;
-	CvCapture* cap = NULL;
-	IplImage *frame, *frameGrey, *greyProc[2];
-	IplImage *tmp, *eig;
-	IplImage *pryProc[2];
-	CvPoint2D32f corners[2][MAX_CORNERS];
-	char  statusVector[MAX_CORNERS];
-	float errorVector[MAX_CORNERS];
+	Mat frame, frameGrey, greyProc[2];
+	vector<Point2f> corners[2];
+	vector<unsigned char> statusVector;
+	vector<float> errorVector;
 	int dblBuff = 0;
 	int isReady = 0;
 
-	cap = cvCreateCameraCapture(0);	
-	assert(cap);
+	VideoCapture cap(0);	
+	assert(cap.isOpened());
 
 	// set capture size
-	cvSetCaptureProperty(cap, CV_CAP_PROP_FRAME_WIDTH,  640);
-	cvSetCaptureProperty(cap, CV_CAP_PROP_FRAME_HEIGHT, 480);
+	cap.set(CV_CAP_PROP_FRAME_WIDTH,  640);
+	cap.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
 
 	IMU_FD = open("/dev/i2c-1", O_RDWR);
 	
 	// icInit();
 	// pthread_create(&IMU_THREAD, NULL, imuHandler, NULL);
 
-	cvNamedWindow("AVC", CV_WINDOW_AUTOSIZE); //resizable window;
+	namedWindow("AVC", CV_WINDOW_AUTOSIZE); //resizable window;
 	int cornerCount = MAX_CORNERS;
 
 	while(1){
-		IplImage* currFrame = cvQueryFrame(cap);
-		if(!currFrame) continue;
-		if(!frame){
-			frame = cvCloneImage(cvQueryFrame(cap));
-			CvSize frameSize = cvSize(frame->width, frame->height);
-			frameGrey    = cvCreateImage(frameSize, 8, 1);
-			greyProc[0]  = cvCreateImage(frameSize, 8, 1);
-			greyProc[1]  = cvCloneImage(greyProc[0]);
-			pryProc[0]   = cvCloneImage(greyProc[0]);
-			pryProc[1]   = cvCloneImage(greyProc[0]);
-
-			tmp = cvCreateImage(frameSize, IPL_DEPTH_32F, 1);
-			eig = cvCreateImage(frameSize, IPL_DEPTH_32F, 1);
+		Mat currFrame;
+		cap >> currFrame;
+		if(currFrame.empty()) continue;
+		if(!isReady){
+			frame = currFrame.clone();
+			cvtColor(frame, frameGrey, CV_BGR2GRAY);
+			greyProc[0] = frameGrey.clone();
+			greyProc[1] = frameGrey.clone();
 		}
 		
-		cvCopy(currFrame, frame, 0);
+		currFrame.copyTo(frame);
 		
 		// convert the frame to black and white
-		cvCvtColor(frame, greyProc[dblBuff], CV_BGR2GRAY);
-		// cvPyrDown(frameGrey, greyProc[dblBuff], CV_GAUSSIAN_5x5);
-
+		cvtColor(frame, greyProc[dblBuff], CV_BGR2GRAY);
+		
 		if(isReady)
-		cvCalcOpticalFlowPyrLK(
+		calcOpticalFlowPyrLK(
 			greyProc[!dblBuff],
 			greyProc[dblBuff],
-			pryProc[!dblBuff],
-			pryProc[dblBuff],
 			corners[!dblBuff],
 			corners[dblBuff],
-			cornerCount,
-			cvSize(3, 3),
-			5,                 // pyr level (0 not used)
 			statusVector,      // list of bools which inicate feature matches
-			errorVector,
-			cvTermCriteria(CV_TERMCRIT_ITER|CV_TERMCRIT_EPS, 20, 0.01),
-			1
+			errorVector
 		);
 
-		for(int i = cornerCount; i--;){
-			cvCircle(
+		for(int i = corners[dblBuff].size(); i--;){
+			circle(
 				frame,
-				cvPoint(corners[dblBuff][i].x, corners[dblBuff][i].y),
+				Point(corners[dblBuff][i].x, corners[dblBuff][i].y),
 				3,
-				cvScalar(255, 0, 0, 255),
+				Scalar(255, 0, 0, 255),
 				1,
 				8,
 				0
@@ -147,31 +128,29 @@ int main()
 
 			depth = pow(depth, 64);
 
-			cvLine(
+			line(
 				frame,
-				cvPoint(corners[dblBuff][i].x, corners[dblBuff][i].y),
-				cvPoint((corners[dblBuff][i].x + dx) , (corners[dblBuff][i].y + dy)),
-				cvScalar(depth, dy + 128, dx + 128, 255 / (errorVector[i] + 1)),
+				Point(corners[dblBuff][i].x, corners[dblBuff][i].y),
+				Point((corners[dblBuff][i].x + dx) , (corners[dblBuff][i].y + dy)),
+				Scalar(depth, dy + 128, dx + 128, 255 / (errorVector[i] + 1)),
 				1, 
 				8,
 				0
 			);
 		}
 
-		cvShowImage("AVC", frame);
+		imshow("AVC", frame);
 
 		// detect corners
 		cornerCount = 400;
-		cvGoodFeaturesToTrack(
+		goodFeaturesToTrack(
 			greyProc[dblBuff],
-			NULL,
-			NULL,
 			corners[dblBuff],
-			&cornerCount,
+			MAX_CORNERS,
 			0.01,        // quality
 			0.01,        // min distance
-			NULL,        // mask for ROI
-			5,           // block size
+			Mat(),        // mask for ROI
+			3,           // block size
 			0,           // use harris detector
 			0.04         // not used (free param of harris)
 		);
@@ -180,7 +159,5 @@ int main()
 		isReady = 1;
 	}
 
-	cvReleaseImage(&frame);
-	cvReleaseCapture(&cap);
 	return 0;
 }
