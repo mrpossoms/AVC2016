@@ -23,9 +23,9 @@ int main(int argc, char* argv[])
 		imuLoadCalibrationProfile(cal_fd, &IMU_STATE);
 
 
-		print_v3i16(&IMU_STATE.calibrationMinMax[0].accLinear);
+		print_v3i16(&IMU_STATE.calibrationMinMax[0].linear);
 		printf(" - ");
-		print_v3i16(&IMU_STATE.calibrationMinMax[1].accLinear);
+		print_v3i16(&IMU_STATE.calibrationMinMax[1].linear);
 		printf("\n");
 
 		sleep(2);
@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
 
 		// have enough samples, store and start over
 		if(samples >= 100){
-			printf("Vel = (%f, %f, %f)\n", IMU_STATE.linearVel.x, IMU_STATE.linearVel.y, IMU_STATE.linearVel.z);
+			printf("Vel = (%f, %f, %f)\n", IMU_STATE.velocities.linear.x, IMU_STATE.velocities.linear.y, IMU_STATE.velocities.linear.z);
 			
 			samples = 0;
 		}
@@ -48,6 +48,10 @@ int main(int argc, char* argv[])
 			++samples;
 		}
 
+		if(time(NULL) - start >= 1){
+			printf("Vel = (%f, %f, %f)\n", IMU_STATE.velocities.linear.x, IMU_STATE.velocities.linear.y, IMU_STATE.velocities.linear.z);
+			break;
+		}
 	}
 
 	return 0;

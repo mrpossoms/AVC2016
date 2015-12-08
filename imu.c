@@ -74,10 +74,10 @@ static int requestBytes(int fd, uint8_t devAddr, uint8_t srcReg, void* dstBuf, s
 //   | |) / _` |  _/ _` | |  _/ _ \ | | | ' \/ _` |
 //   |___/\__,_|\__\__,_| |_| \___/_|_|_|_||_\__, |
 //                                           |___/ 
-readings_t imuGetReadings(int fd)
+sensorStatei_t imuGetReadings(int fd)
 {
 	static int isSetup;
-	readings_t reading = {};
+	sensorStatei_t reading = {};
 	int res = 0;
 	
 	if(!isSetup){
@@ -90,27 +90,27 @@ readings_t imuGetReadings(int fd)
 		usleep(100000);
 	}
 
-	res += requestBytes(fd, ADDR_ACC_MAG, ACC_REG, &reading.accLinear, sizeof(vec3i16_t));
-	res += requestBytes(fd, ADDR_ACC_MAG, GYR_REG, &reading.accRotational, sizeof(vec3i16_t));
+	res += requestBytes(fd, ADDR_ACC_MAG, ACC_REG, &reading.linear, sizeof(vec3i16_t));
+	res += requestBytes(fd, ADDR_ACC_MAG, GYR_REG, &reading.rotational, sizeof(vec3i16_t));
 	res += requestBytes(fd, ADDR_ACC_MAG, MAG_REG, &reading.mag, sizeof(vec3i16_t));
 
 	assert(res == 0);
 
-	endianSwapVec3(&reading.accLinear);
-	endianSwapVec3(&reading.accRotational);
+	endianSwapVec3(&reading.linear);
+	endianSwapVec3(&reading.rotational);
 	endianSwapVec3(&reading.mag);
 
 	const int samples = 100;
 	if(READINGS_COLLECTED++ < samples){
-		ACCEL_OFFSET[0] += reading.accLinear.x;
-		ACCEL_OFFSET[1] += reading.accLinear.y;
-		ACCEL_OFFSET[2] += reading.accLinear.z;
-		bzero(&reading, sizeof(readings_t));
+		ACCEL_OFFSET[0] += reading.linear.x;
+		ACCEL_OFFSET[1] += reading.linear.y;
+		ACCEL_OFFSET[2] += reading.linear.z;
+		bzero(&reading, sizeof(sensorStatei_t));
 	}
 	else{
-		reading.accLinear.x -= ACCEL_OFFSET[0];
-		reading.accLinear.y -= ACCEL_OFFSET[1];
-		reading.accLinear.z -= ACCEL_OFFSET[2];
+		reading.linear.x -= ACCEL_OFFSET[0];
+		reading.linear.y -= ACCEL_OFFSET[1];
+		reading.linear.z -= ACCEL_OFFSET[2];
 	}
 	if(READINGS_COLLECTED == samples){
 		ACCEL_OFFSET[0] /= samples;
@@ -127,18 +127,18 @@ int16_t axisAcc(char axis, int isMax, int fd_imu)
 	printf(isMax ? "(+%c) [Press any key]\n" : "(-%c) [Press any key]\n", axis);
 
 	getchar();
-	readings_t readings = imuGetReadings(fd_imu);
+	sensorStatei_t readings = imuGetReadings(fd_imu);
 
 	switch(axis){
 		case 'X':
 		case 'x':
-			return readings.accLinear.x;
+			return readings.linear.x;
 		case 'Y':
 		case 'y':
-			return readings.accLinear.y;
+			return readings.linear.y;
 		case 'Z':
 		case 'z':
-			return readings.accLinear.z;
+			return readings.linear.z;
 	}
 
 	return 0;
@@ -175,18 +175,18 @@ void smfUpdate(medianWindow_t* win, SMF_SAMP_TYPE samp)
 	win->median = window[WIN_SIZE / 2];
 }
 
-static void filterReading(readings_t* readings, readingFilter_t* filters)
+static void filterReading(sensorStatei_t* readings, readingFilter_t* filters)
 {
 	for(int i = 3; i--;){
-		smfUpdate(filters->linAcc + i, readings->accLinear.v[i]);
-		smfUpdate(filters->rotAcc + i, readings->accRotational.v[i]);
-		smfUpdate(filters->mag + i,    readings->mag.v[i]);
+		smfUpdate(filters->linear + i,     readings->linear.v[i]);
+		smfUpdate(filters->rotational + i, readings->rotational.v[i]);
+		smfUpdate(filters->mag + i,        readings->mag.v[i]);
 	}
 } 
 
 void imuUpdateState(int fd, imuState_t* state)
 {
-	readings_t readings = {};
+	sensorStatei_t readings = {};
 
 #ifdef __linux__
 	readings = state->lastReadings = imuGetReadings(fd);
@@ -200,26 +200,26 @@ void imuUpdateState(int fd, imuState_t* state)
 		vec3f_t acc;
 
 		if(state->isCalibrated){
-			vec3i16_t* accMin = &state->calibrationMinMax[0].accLinear;
-			vec3i16_t* accMax = &state->calibrationMinMax[1].accLinear;
+			vec3i16_t* accMin = &state->calibrationMinMax[0].linear;
+			vec3i16_t* accMax = &state->calibrationMinMax[1].linear;
 
 			// map the readings to the 1G calibration window that was obtained
 			// from the calibration profile
-			acc.x = G * readings.accLinear.x * 2 / (float)(accMax->x - accMin->x);
-			acc.y = G * readings.accLinear.y * 2 / (float)(accMax->y - accMin->y);
-			acc.z = G * readings.accLinear.z * 2 / (float)(accMax->z - accMin->z);
+			acc.x = G * readings.linear.x * 2 / (float)(accMax->x - accMin->x);
+			acc.y = G * readings.linear.y * 2 / (float)(accMax->y - accMin->y);
+			acc.z = G * readings.linear.z * 2 / (float)(accMax->z - accMin->z);
 		}
 		else{
 			// no calibration, just spit out the literal value
-			acc.x = readings.accLinear.x;
-			acc.y = readings.accLinear.y;
-			acc.z = readings.accLinear.z;	
+			acc.x = readings.linear.x;
+			acc.y = readings.linear.y;
+			acc.z = readings.linear.z;	
 		}
 
 		// integrate
-		state->linearVel.x += acc.x * dt;
-		state->linearVel.y += acc.y * dt;
-		state->linearVel.z += acc.z * dt;
+		state->velocities.linear.x += acc.x * dt;
+		state->velocities.linear.y += acc.y * dt;
+		state->velocities.linear.z += acc.z * dt;
 	}
 	else{
 		elapsedSeconds(state);
@@ -238,22 +238,22 @@ int imuPerformCalibration(int fd_storage, int fd_imu, imuState_t* state)
 	getchar();
 
 	printf("Calibrating accelerometer\n");
-	state->calibrationMinMax[0].accLinear.x = axisAcc('x', 0, fd_imu);
-	state->calibrationMinMax[1].accLinear.x = axisAcc('x', 1, fd_imu);
-	state->calibrationMinMax[0].accLinear.y = axisAcc('y', 0, fd_imu);
-	state->calibrationMinMax[1].accLinear.y = axisAcc('y', 1, fd_imu);
-	state->calibrationMinMax[0].accLinear.z = axisAcc('z', 0, fd_imu);
-	state->calibrationMinMax[1].accLinear.z = axisAcc('z', 1, fd_imu); 
+	state->calibrationMinMax[0].linear.x = axisAcc('x', 0, fd_imu);
+	state->calibrationMinMax[1].linear.x = axisAcc('x', 1, fd_imu);
+	state->calibrationMinMax[0].linear.y = axisAcc('y', 0, fd_imu);
+	state->calibrationMinMax[1].linear.y = axisAcc('y', 1, fd_imu);
+	state->calibrationMinMax[0].linear.z = axisAcc('z', 0, fd_imu);
+	state->calibrationMinMax[1].linear.z = axisAcc('z', 1, fd_imu); 
 
 	// store the results
-	write(fd_storage, &state->calibrationMinMax, sizeof(readings_t) * 2);
+	write(fd_storage, &state->calibrationMinMax, sizeof(sensorStatei_t) * 2);
 
 	return 0;
 }
 
 int imuLoadCalibrationProfile(int fd_storage, imuState_t* state)
 {
-	int isOk = read(fd_storage, &state->calibrationMinMax, sizeof(readings_t) * 2) == sizeof(readings_t) * 2;
+	int isOk = read(fd_storage, &state->calibrationMinMax, sizeof(sensorStatei_t) * 2) == sizeof(sensorStatei_t) * 2;
 
 	if(isOk){
 		state->isCalibrated = 1;

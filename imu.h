@@ -8,6 +8,10 @@
 #include <stdio.h>
 #include <strings.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define SMF_SAMP_TYPE int16_t
 #define WIN_SIZE 7
 
@@ -31,10 +35,16 @@ typedef union{
 } vec3f_t;
 
 typedef struct{
-	vec3i16_t accLinear;
-	vec3i16_t accRotational;
+	vec3i16_t linear;
+	vec3i16_t rotational;
 	vec3i16_t mag;
-} readings_t;
+} sensorStatei_t;
+
+typedef struct{
+	vec3f_t linear;
+	vec3f_t rotational;
+	vec3f_t mag;
+} sensorStatef_t;
 
 typedef struct{
 	SMF_SAMP_TYPE window[WIN_SIZE];
@@ -43,16 +53,15 @@ typedef struct{
 } medianWindow_t;
 
 typedef struct{
-	medianWindow_t linAcc[3], rotAcc[3], mag[3];
+	medianWindow_t linear[3], rotational[3], mag[3];
 } readingFilter_t;
 
 typedef struct{
-	readings_t      lastReadings;
+	sensorStatei_t  lastReadings;
+	sensorStatef_t  velocities;
 	readingFilter_t windows;
-	vec3f_t         linearVel;
-	vec3f_t         angularVel;
 	struct timeval  lastTime;
-	readings_t      calibrationMinMax[2];
+	sensorStatei_t  calibrationMinMax[2];
 	int             isCalibrated;
 }imuState_t;
 
@@ -80,7 +89,7 @@ int imuLoadCalibrationProfile(int fd_storage, imuState_t* state);
 //   |___/\__,_|\__\__,_| |_| \___/_|_|_|_||_\__, |
 //                                           |___/ 
 void imuUpdateState(int fd, imuState_t* state);
-readings_t imuGetReadings(int fd);
+sensorStatei_t imuGetReadings(int fd);
 
 #endif
 #ifndef SLIDING_MEDIAN_FILTER
@@ -89,5 +98,10 @@ readings_t imuGetReadings(int fd);
 #include <sys/types.h>
 
 void smfUpdate(medianWindow_t* win, SMF_SAMP_TYPE samp);
+
+#ifdef __cplusplus
+}
+#endif
+	
 
 #endif
