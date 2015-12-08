@@ -18,13 +18,46 @@
 #include <pthread.h>
 #include "imu.h"
 
-int IMU_FD;
-pthread_t  IMU_THREAD;
-sensorStatei_t IMU_READING;
-
 using namespace cv;
 using namespace std;
 
+//     ___ _     _          _    
+//    / __| |___| |__  __ _| |___
+//   | (_ | / _ \ '_ \/ _` | (_-<
+//    \___|_\___/_.__/\__,_|_/__/
+//                               
+int IMU_FD;
+pthread_t  IMU_THREAD;
+sensorStatei_t IMU_READING;
+imuState_t IMU_STATE;
+
+//     ___             _            _      
+//    / __|___ _ _  __| |_ __ _ _ _| |_ ___
+//   | (__/ _ \ ' \(_-<  _/ _` | ' \  _(_-<
+//    \___\___/_||_/__/\__\__,_|_||_\__/__/
+//                                         
+const float FOCAL_PLANE = 1;
+const int MAX_FEATURES = 400;
+
+//    _____                  
+//   |_   _|  _ _ __  ___ ___
+//     | || || | '_ \/ -_|_-<
+//     |_| \_, | .__/\___/__/
+//         |__/|_|           
+typedef struct{
+	CvPoint         frameCenter;
+	vector<Point2f> features[2];
+	float           featureDepths[2][MAX_FEATURES];
+	int             dblBuff;
+	vector<unsigned char> statusVector;
+	vector<float>         errorVector;
+} trackingState_t;
+
+//    ___ __  __ _   _    ___                      
+//   |_ _|  \/  | | | |  / __|___ _ __  _ __  ___  
+//    | || |\/| | |_| | | (__/ _ \ '  \| '  \(_-<_ 
+//   |___|_|  |_|\___/   \___\___/_|_|_|_|_|_/__(_)
+//                                                 
 void* imuHandler(void* param)
 {
 	const int samples = 50;
@@ -37,7 +70,9 @@ void* imuHandler(void* param)
 		bzero(readings[0], sizeof(int) * samples);
 
 	while(1){
-		IMU_READING = imuGetReadings(IMU_FD);
+		imuUpdateState(IMU_FD, &IMU_STATE);
+		IMU_READING = IMU_STATE.lastReadings;
+
 		int topLeft[2] = { 5, 2 };
 		int bottomRight[2] = { IC_TERM_WIDTH - 5, IC_TERM_HEIGHT - 2};	
 		
@@ -65,23 +100,53 @@ void* imuHandler(void* param)
 	return NULL;
 }
 
+//    ___           _   _      ___    _   _            _   _          
+//   |   \ ___ _ __| |_| |_   | __|__| |_(_)_ __  __ _| |_(_)___ _ _  
+//   | |) / -_) '_ \  _| ' \  | _|(_-<  _| | '  \/ _` |  _| / _ \ ' \ 
+//   |___/\___| .__/\__|_||_| |___/__/\__|_|_|_|_\__,_|\__|_\___/_||_|
+//            |_|                                                     
+void computeDepths(trackingState_t* tracking)
+{
+	int bufInd = tracking->dblBuff;
+	CvPoint frameCenter = tracking->frameCenter;
+
+	for(int i = tracking->features[bufInd].size(); i--;){
+		if(!tracking->statusVector[i]) continue;
+
+		CvPoint2D32f centered[2] = {
+			cvPoint2D32f(tracking->features[bufInd][i].x  - frameCenter.x, tracking->features[bufInd][i].y  - frameCenter.y),
+			cvPoint2D32f(tracking->features[!bufInd][i].x - frameCenter.x, tracking->features[!bufInd][i].y - frameCenter.y),
+		};
+
+		float dx = (centered[0].x - centered[1].x);
+		float dy = (centered[0].y - centered[1].y);
+		float s = sqrtf(dx * dx - dy * dy);
+
+		// assert(fabs(centered[1].x * s - centered[0].x) < 0.001);
+		// assert(fabs(centered[1].y * s - centered[0].y) < 0.001);
+
+		// use the scale of this feature whose origin has been shifted to the center
+		// of the frame. The 
+		tracking->featureDepths[bufInd][i] = s * IMU_STATE.velocities.linear.y / (1.0f - s);
+	}
+}
 
 int main()
 {
-	const int MAX_CORNERS = 400;
 	Mat frame, frameGrey, greyProc[2];
-	vector<Point2f> corners[2];
-	vector<unsigned char> statusVector;
-	vector<float> errorVector;
-	int dblBuff = 0;
+
+	trackingState_t ts = {
+		.frameCenter = CvPoint(320, 240),
+	};
+
 	int isReady = 0;
 
-	VideoCapture cap(0);	
+	VideoCapture cap(0);
 	assert(cap.isOpened());
 
 	// set capture size
-	cap.set(CV_CAP_PROP_FRAME_WIDTH,  640);
-	cap.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
+	cap.set(CV_CAP_PROP_FRAME_WIDTH,  ts.frameCenter.x * 2);
+	cap.set(CV_CAP_PROP_FRAME_HEIGHT, ts.frameCenter.y * 2);
 
 	IMU_FD = open("/dev/i2c-1", O_RDWR);
 	
@@ -91,7 +156,7 @@ int main()
 #elif defined(__APPLE__)
 	namedWindow("AVC", CV_WINDOW_AUTOSIZE); //resizable window;
 #endif
-	int cornerCount = MAX_CORNERS;
+	int cornerCount = MAX_FEATURES;
 
 	while(1){
 		Mat currFrame;
@@ -107,44 +172,46 @@ int main()
 		currFrame.copyTo(frame);
 		
 		// convert the frame to black and white
-		cvtColor(frame, greyProc[dblBuff], CV_BGR2GRAY);
+		cvtColor(frame, greyProc[ts.dblBuff], CV_BGR2GRAY);
 		
-		if(isReady)
-		calcOpticalFlowPyrLK(
-			greyProc[!dblBuff],
-			greyProc[dblBuff],
-			corners[!dblBuff],
-			corners[dblBuff],
-			statusVector,      // list of bools which inicate feature matches
-			errorVector
-		);
+		if(isReady){
+			calcOpticalFlowPyrLK(
+				greyProc[!ts.dblBuff],
+				greyProc[ts.dblBuff],
+				ts.features[!ts.dblBuff],
+				ts.features[ts.dblBuff],
+				ts.statusVector,      // list of bools which inicate feature matches
+				ts.errorVector
+			);
 
-		// TODO processing here
+			// TODO processing here
+			computeDepths(&ts);		
+		}
+
 #ifdef __APPLE__
-		for(int i = corners[dblBuff].size(); i--;){
+		for(int i = ts.features[ts.dblBuff].size(); i--;){
+			if(!ts.statusVector[i]) continue;
 			circle(
 				frame,
-				Point(corners[dblBuff][i].x, corners[dblBuff][i].y),
+				Point(ts.features[ts.dblBuff][i].x, ts.features[ts.dblBuff][i].y),
 				3,
 				Scalar(255, 0, 0, 255),
 				1,
 				8,
 				0
 			);
-			
-			if(!statusVector[i]) continue;
 
-			float dx = (corners[dblBuff][i].x - corners[!dblBuff][i].x) * 10;
-			float dy = (corners[dblBuff][i].y - corners[!dblBuff][i].y) * 10;
+			float dx = (ts.features[ts.dblBuff][i].x - ts.features[!ts.dblBuff][i].x) * 10;
+			float dy = (ts.features[ts.dblBuff][i].y - ts.features[!ts.dblBuff][i].y) * 10;
 			float depth = dx * dx + dy * dy;
 
 			depth = pow(depth, 64);
 
 			line(
 				frame,
-				Point(corners[dblBuff][i].x, corners[dblBuff][i].y),
-				Point((corners[dblBuff][i].x + dx) , (corners[dblBuff][i].y + dy)),
-				Scalar(depth, dy + 128, dx + 128, 255 / (errorVector[i] + 1)),
+				Point(ts.features[ts.dblBuff][i].x, ts.features[ts.dblBuff][i].y),
+				Point((ts.features[ts.dblBuff][i].x + dx) , (ts.features[ts.dblBuff][i].y + dy)),
+				Scalar(depth, dy + 128, dx + 128, 255 / (ts.errorVector[i] + 1)),
 				1, 
 				8,
 				0
@@ -154,21 +221,21 @@ int main()
 		imshow("AVC", frame);
 #endif
 
-		// detect corners
+		// detect features
 		cornerCount = 400;
 		goodFeaturesToTrack(
-			greyProc[dblBuff],
-			corners[dblBuff],
-			MAX_CORNERS,
+			greyProc[ts.dblBuff],
+			ts.features[ts.dblBuff],
+			MAX_FEATURES,
 			0.01,        // quality
 			0.01,        // min distance
-			Mat(),        // mask for ROI
+			Mat(),       // mask for ROI
 			3,           // block size
 			0,           // use harris detector
 			0.04         // not used (free param of harris)
 		);
 
-		dblBuff = !dblBuff;
+		ts.dblBuff = !ts.dblBuff;
 		isReady = 1;
 	}
 

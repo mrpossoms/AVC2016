@@ -62,6 +62,7 @@ typedef struct{
 	readingFilter_t windows;
 	struct timeval  lastTime;
 	sensorStatei_t  calibrationMinMax[2];
+	sensorStatei_t  standardDeviations;
 	int             isCalibrated;
 }imuState_t;
 
