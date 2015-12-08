@@ -48,10 +48,6 @@ int main(int argc, char* argv[])
 			++samples;
 		}
 
-		if(time(NULL) - start >= 1){
-			printf("Vel = (%f, %f, %f)\n", IMU_STATE.linearVel.x, IMU_STATE.linearVel.y, IMU_STATE.linearVel.z);
-			break;
-		}
 	}
 
 	return 0;

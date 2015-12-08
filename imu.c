@@ -39,7 +39,7 @@ static int sendByte(int fd, uint8_t devAddr, uint8_t dstReg, uint8_t byte)
 {
 #ifndef __linux__
 	return 1;
-#elif
+#else
 
 	uint8_t buf[] = { dstReg, byte };
 
@@ -54,7 +54,7 @@ static int requestBytes(int fd, uint8_t devAddr, uint8_t srcReg, void* dstBuf, s
 {
 #ifndef __linux__
 	return 1;
-#elif
+#else
 
 	uint8_t commByte;
 	ioctl(fd, I2C_SLAVE, devAddr);
