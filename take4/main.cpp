@@ -1,8 +1,16 @@
+#ifdef __linux__
+#include <opencv2/video.hpp>
+#include <opencv2/opencv.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#else
+
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/videoio/videoio.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/opencv.hpp>
+#endif
 
 #include <stdio.h>
 #include <unistd.h>
@@ -77,10 +85,12 @@ int main()
 
 	IMU_FD = open("/dev/i2c-1", O_RDWR);
 	
-	// icInit();
-	// pthread_create(&IMU_THREAD, NULL, imuHandler, NULL);
-
+#ifdef __linux__
+	icInit();
+	pthread_create(&IMU_THREAD, NULL, imuHandler, NULL);
+#elif defined(__APPLE__)
 	namedWindow("AVC", CV_WINDOW_AUTOSIZE); //resizable window;
+#endif
 	int cornerCount = MAX_CORNERS;
 
 	while(1){
@@ -109,6 +119,8 @@ int main()
 			errorVector
 		);
 
+		// TODO processing here
+#ifdef __APPLE__
 		for(int i = corners[dblBuff].size(); i--;){
 			circle(
 				frame,
@@ -140,6 +152,7 @@ int main()
 		}
 
 		imshow("AVC", frame);
+#endif
 
 		// detect corners
 		cornerCount = 400;
