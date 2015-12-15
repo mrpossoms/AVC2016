@@ -12,11 +12,19 @@
 #include <opencv2/opencv.hpp>
 #endif
 
+#include <errno.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <indicurses.h>
 #include <pthread.h>
+
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+
+
 #include "imu.h"
+#include "stream.h"
 
 using namespace cv;
 using namespace std;
@@ -30,6 +38,8 @@ int IMU_FD;
 pthread_t  IMU_THREAD;
 sensorStatei_t IMU_READING;
 imuState_t IMU_STATE;
+int FRAME_NUMBER;
+size_t MTU = 4096;
 
 //     ___             _            _      
 //    / __|___ _ _  __| |_ __ _ _ _| |_ ___
@@ -131,12 +141,34 @@ void computeDepths(trackingState_t* tracking)
 	}
 }
 
-int main()
+int main(int argc, char* argv[])
 {
 	Mat frame, frameGrey, greyProc[2];
 
+	int centerX = 320, centerY = 240;
+	int width = centerX * 2, height = centerY * 2;
+	int sock = socket(AF_INET, SOCK_DGRAM, 0);
+
+	if(argc >= 3){
+		for(int i = 1; i < argc; ++i){
+			if(!strncmp(argv[i], "-w", 2)){
+				centerX = atoi(argv[i] + 2) / 2;
+			}
+			if(!strncmp(argv[i], "-h", 2)){
+				centerY = atoi(argv[i] + 2) / 2;
+			}
+		}
+	}
+
+	struct hostent *hp;
+	struct sockaddr_in addr = {
+		.sin_family = AF_INET,
+		.sin_port   = htons(1337),
+		.sin_addr  = htonl(0x7f000001),
+	};
+
 	trackingState_t ts = {
-		.frameCenter = CvPoint(320, 240),
+		.frameCenter = CvPoint(centerX, centerY),
 	};
 
 	int isReady = 0;
@@ -145,18 +177,33 @@ int main()
 	assert(cap.isOpened());
 
 	// set capture size
-	cap.set(CV_CAP_PROP_FRAME_WIDTH,  ts.frameCenter.x * 2);
-	cap.set(CV_CAP_PROP_FRAME_HEIGHT, ts.frameCenter.y * 2);
+	cap.set(CV_CAP_PROP_FRAME_WIDTH,  width  = ts.frameCenter.x * 2);
+	cap.set(CV_CAP_PROP_FRAME_HEIGHT, height = ts.frameCenter.y * 2);
 
+	printf("Capture dimensions (%d, %d)\n", width, height);
+
+	errno = 0;
+#ifdef __linux__
+	// open the I2C device
 	IMU_FD = open("/dev/i2c-1", O_RDWR);
+#endif
+
+	assert(!errno);
+	hp = gethostbyname("localhost");
+	memcpy((void *)&addr.sin_addr, hp->h_addr_list[0], hp->h_length);
+	assert(!errno);
+
 	
 #ifdef __linux__
 	icInit();
 	pthread_create(&IMU_THREAD, NULL, imuHandler, NULL);
 #elif defined(__APPLE__)
 	namedWindow("AVC", CV_WINDOW_AUTOSIZE); //resizable window;
+	errno = 0;
 #endif
 	int cornerCount = MAX_FEATURES;
+
+	assert(!errno);
 
 	while(1){
 		Mat currFrame;
@@ -170,9 +217,14 @@ int main()
 		}
 		
 		currFrame.copyTo(frame);
-		
+
 		// convert the frame to black and white
+		// cvtColor(frame, frameGrey, CV_BGR2GRAY);
+		// medianBlur(frameGrey, greyProc[ts.dblBuff], 3);
+
+
 		cvtColor(frame, greyProc[ts.dblBuff], CV_BGR2GRAY);
+
 		
 		if(isReady){
 			calcOpticalFlowPyrLK(
@@ -218,6 +270,21 @@ int main()
 			);
 		}
 
+		if(!(FRAME_NUMBER % 1)){
+			int res = txFrame(
+				sock,
+				(const struct sockaddr*)&addr,
+				width, height, 
+				(const char*)greyProc[ts.dblBuff].data
+			);
+
+			if(res < 0){
+				printf("Error %d\n", errno);
+			}
+
+			printf("Sent %d bytes\n", res);
+		}
+
 		imshow("AVC", frame);
 #endif
 
@@ -237,6 +304,7 @@ int main()
 
 		ts.dblBuff = !ts.dblBuff;
 		isReady = 1;
+		++FRAME_NUMBER;
 	}
 
 	return 0;

@@ -1,16 +1,18 @@
 $(eval OS := $(shell uname))
 
 CFLAGS= 
-LINK  = -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_video -lindicurses -lcurses -lpthread -lm
+
+INC   = -I./../ -I./../video
+SRC   = ./../imu.c ./../video/stream.c ./../video/compressor.c main.cpp
+LINK  = -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_video -lindicurses -lcurses -lpthread -lm -llz4
 
 ifeq ($(OS),Darwin)
 	LINK += -lopencv_videoio
 endif
 
 all:
-	g++ $(CFLAGS) -I./../ ./../imu.c main.cpp -o objectDetection $(LINK)
-	./objectDetection 0 
-
+	g++ $(CFLAGS) $(INC) $(SRC) -o objectDetection $(LINK)
+	
 legacy:
 	gcc $(CFLAGS) -I./../ ./../imu.c main.c -o objectDetection $(LINK)
 	./objectDetection 0
