@@ -4,7 +4,7 @@
 #include  "compressor.h"
 
 #define INITIAL_MTU 4096 << 1 
-// #define CMP_DEBUG
+#define CMP_DEBUG
 
 #ifdef CMP_DEBUG
 #include <stdio.h>
@@ -16,6 +16,7 @@ static char TX_BUF[INITIAL_MTU]; // buffer that will contain the compression str
 // initial maximum transmission unit
 // this will adjust if transmission failure occurs on account of length
 static size_t STR_MTU = INITIAL_MTU;
+static int FIRST_RUN = 1;
 
 int txFrame(int sock, const struct sockaddr* destination, int width, int height, const char* frameBuffer)
 {
@@ -23,9 +24,23 @@ int txFrame(int sock, const struct sockaddr* destination, int width, int height,
 
 	// calculate some values that will be needed later on	
 	size_t frameBufferSize = width * height; // size in bytes of the grayscale framebuffer
+
+	if(FIRST_RUN){
+		STR_MTU = frameBufferSize;
+
+		while(STR_MTU > 6000){
+			STR_MTU >>= 1;
+		}
+
+		printf("Finished at MTU %zu\n", STR_MTU);
+
+		FIRST_RUN = 0;
+	}
+
 	int regions = frameBufferSize / STR_MTU; // number of chunks that the framebuffer will be split up into
 	size_t regionBytes = frameBufferSize / regions; // bytes in each chunk
 	int regionHeight   = height / regions;          // height in pixels of each region
+
 
 #ifdef CMP_DEBUG
 	printf("Frame: %zu(B)\nRegions: %d\nRegion height: %d\n", 
@@ -74,7 +89,7 @@ int txFrame(int sock, const struct sockaddr* destination, int width, int height,
 
 		res = sendto(
 			sock,
-			TX_BUF + sizeof(frameHeader_t) * 2,
+			TX_BUF + sizeof(frameHeader_t),
 			header.bytes,
 			0,
 			destination,
@@ -155,7 +170,7 @@ int rxFrame(int sock, frameHeader_t* header, char** frameBuffer)
 
 	vidDecompressFrame(
 		header,
-		RX_BUF,
+		RX_BUF + sizeof(frameHeader_t),
 		(*frameBuffer) + (header->region.y * header->region.w) + header->region.x,
 		header->bytes
 	);
