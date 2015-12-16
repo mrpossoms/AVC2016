@@ -10,7 +10,8 @@
 
 #include "stream.h"
 
-const int width = 4096, height = 1;
+#define width 4096
+#define height 1
 const size_t bufSize = width * height;
 
 char txBuf[bufSize];	

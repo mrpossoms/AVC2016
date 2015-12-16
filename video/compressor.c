@@ -2,7 +2,12 @@
 #include <lz4.h>
 #include <assert.h>
 #include <stdio.h>
+
+#ifdef __linux__
+#include <string.h>
+#else
 #include <strings.h>
+#endif
 
 #define BLOCK_BYTES 4096
 #define NO_COMP
@@ -84,12 +89,12 @@ frameHeader_t vidCompressFrame(int width, int height, const char* src, size_t sr
 	static uint32_t frameNumber;
 	
 	frameHeader_t* start = (frameHeader_t*)dst;
-	frameHeader_t frame = {
-		.width  = width,
-		.height = height,
-		.number = frameNumber++,
-		.bytes  = 0,
-	};
+	frameHeader_t frame = {};
+
+	frame.width  = width;
+	frame.height = height;
+	frame.number = frameNumber++;
+	frame.bytes  = 0;
 
 	// copy the new header into the beginning of the dst buffer
 	// offset the dst pointer to clean memory

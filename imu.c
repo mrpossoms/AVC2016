@@ -147,7 +147,7 @@ static float gaussian(float x, float mu, float sig)
 
 static void filterReading(imuState_t* state)
 {
-	assert(gaussian(0, 0, 32) == 1);
+	//assert(gaussian(0, 0, 32) == 1);
 
 	for(int i = 3; i--;){
 		smfUpdate(state->windows.linear + i,     state->lastReadings.linear.v[i]);

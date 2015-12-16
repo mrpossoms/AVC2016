@@ -145,12 +145,20 @@ int main(int argc, char* argv[])
 {
 	Mat frame, frameGrey, greyProc[2];
 
+	char* hostname = NULL;
 	int centerX = 320, centerY = 240;
 	int width = centerX * 2, height = centerY * 2;
 	int sock = socket(AF_INET, SOCK_DGRAM, 0);
 
+	if(argc < 2){
+		printf("Please provide at least a host\n");
+		return -1;
+	}
+
+	hostname = argv[1];
+
 	if(argc >= 3){
-		for(int i = 1; i < argc; ++i){
+		for(int i = 2; i < argc; ++i){
 			if(!strncmp(argv[i], "-w", 2)){
 				centerX = atoi(argv[i] + 2) / 2;
 			}
@@ -161,14 +169,13 @@ int main(int argc, char* argv[])
 	}
 
 	struct hostent *hp;
-	struct sockaddr_in addr = {
-		.sin_family = AF_INET,
-		.sin_port   = htons(1337),
-		.sin_addr  = htonl(0x7f000001),
-	};
+	struct sockaddr_in addr = {};
+
+	addr.sin_family = AF_INET;
+	addr.sin_port   = htons(1337);
 
 	trackingState_t ts = {
-		.frameCenter = CvPoint(centerX, centerY),
+		.frameCenter = cvPoint(centerX, centerY),
 	};
 
 	int isReady = 0;
@@ -189,7 +196,7 @@ int main(int argc, char* argv[])
 #endif
 
 	assert(!errno);
-	hp = gethostbyname("localhost");
+	hp = gethostbyname(hostname);
 	memcpy((void *)&addr.sin_addr, hp->h_addr_list[0], hp->h_length);
 	assert(!errno);
 
