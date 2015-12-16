@@ -5,7 +5,7 @@
 #include "stream.h"
 
 #define INITIAL_MTU 4096 << 1 
-#define CMP_DEBUG
+//#define CMP_DEBUG
 
 #ifdef CMP_DEBUG
 #include <stdio.h>
@@ -32,8 +32,6 @@ int txFrame(int sock, const struct sockaddr* destination, int width, int height,
 		while(STR_MTU > 6000){
 			STR_MTU >>= 1;
 		}
-
-		printf("Finished at MTU %zu\n", STR_MTU);
 
 		FIRST_RUN = 0;
 	}
