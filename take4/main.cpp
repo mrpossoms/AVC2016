@@ -215,6 +215,8 @@ int main(int argc, char* argv[])
 	assert(!errno);
 
 	while(1){
+		assert(!errno);
+
 		Mat currFrame;
 		cap >> currFrame;
 		if(currFrame.empty()) continue;
@@ -236,6 +238,7 @@ int main(int argc, char* argv[])
 
 		
 		if(isReady){
+			assert(!errno);
 			calcOpticalFlowPyrLK(
 				greyProc[!ts.dblBuff],
 				greyProc[ts.dblBuff],
@@ -246,7 +249,8 @@ int main(int argc, char* argv[])
 			);
 
 			// TODO processing here
-			computeDepths(&ts);		
+			//computeDepths(&ts);		
+			assert(!errno);
 		}
 
 #ifdef __APPLE__
@@ -282,6 +286,7 @@ int main(int argc, char* argv[])
 		imshow("AVC", frame);
 #endif
 
+		assert(!errno);
 		if(!(FRAME_NUMBER % 1)){
 			int res = txFrame(
 				sock,
@@ -296,6 +301,7 @@ int main(int argc, char* argv[])
 			}
 
 		}
+		assert(!errno);
 
 		// detect features
 		cornerCount = 400;
@@ -311,6 +317,7 @@ int main(int argc, char* argv[])
 			0.04         // not used (free param of harris)
 		);
 
+		assert(!errno);
 		ts.dblBuff = !ts.dblBuff;
 		isReady = 1;
 		++FRAME_NUMBER;
