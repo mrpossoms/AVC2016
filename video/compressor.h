@@ -24,7 +24,7 @@ typedef struct{
 	uint16_t width, height;
 	region_t region;
 	uint32_t number;
-	size_t   bytes;
+	uint16_t bytes;
 } frameHeader_t;
 
 //    ___             _   _             

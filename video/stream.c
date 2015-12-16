@@ -134,7 +134,7 @@ int rxFrame(int sock, frameHeader_t* header, char** frameBuffer)
 	if(res != sizeof(frameHeader_t))
 	{
 #ifdef CMP_DEBUG
-		printf("Bad header size\n");
+		printf("Bad header size %d expected %zu\n", res, sizeof(frameHeader_t));
 #endif
 		return -1;
 	}
