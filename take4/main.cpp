@@ -202,8 +202,8 @@ int main(int argc, char* argv[])
 
 	
 #ifdef __linux__
-	icInit();
-	pthread_create(&IMU_THREAD, NULL, imuHandler, NULL);
+//	icInit();
+//	pthread_create(&IMU_THREAD, NULL, imuHandler, NULL);
 #elif defined(__APPLE__)
 	namedWindow("AVC", CV_WINDOW_AUTOSIZE); //resizable window;
 	errno = 0;
@@ -222,7 +222,7 @@ int main(int argc, char* argv[])
 			greyProc[0] = frameGrey.clone();
 			greyProc[1] = frameGrey.clone();
 		}
-		
+
 		currFrame.copyTo(frame);
 
 		// convert the frame to black and white
@@ -277,6 +277,9 @@ int main(int argc, char* argv[])
 			);
 		}
 
+		imshow("AVC", frame);
+#endif
+
 		if(!(FRAME_NUMBER % 1)){
 			int res = txFrame(
 				sock,
@@ -289,11 +292,7 @@ int main(int argc, char* argv[])
 				printf("Error %d\n", errno);
 			}
 
-			printf("Sent %d bytes\n", res);
 		}
-
-		imshow("AVC", frame);
-#endif
 
 		// detect features
 		cornerCount = 400;
