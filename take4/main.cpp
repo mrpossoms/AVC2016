@@ -63,6 +63,8 @@ typedef struct{
 	vector<float>         errorVector;
 } trackingState_t;
 
+static txState_t TRANSMIT_STATE;
+
 //    ___ __  __ _   _    ___                      
 //   |_ _|  \/  | | | |  / __|___ _ __  _ __  ___  
 //    | || |\/| | |_| | | (__/ _ \ '  \| '  \(_-<_ 
@@ -285,6 +287,7 @@ int main(int argc, char* argv[])
 				sock,
 				(const struct sockaddr*)&addr,
 				width, height, 
+				&TRANSMIT_STATE,
 				(const char*)greyProc[ts.dblBuff].data
 			);
 

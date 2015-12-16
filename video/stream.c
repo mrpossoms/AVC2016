@@ -1,7 +1,8 @@
 #include <sys/socket.h>
 #include <errno.h>
 
-#include  "compressor.h"
+#include "compressor.h"
+#include "stream.h"
 
 #define INITIAL_MTU 4096 << 1 
 #define CMP_DEBUG
@@ -18,7 +19,7 @@ static char TX_BUF[INITIAL_MTU]; // buffer that will contain the compression str
 static size_t STR_MTU = INITIAL_MTU;
 static int FIRST_RUN = 1;
 
-int txFrame(int sock, const struct sockaddr* destination, int width, int height, const char* frameBuffer)
+int txFrame(int sock, const struct sockaddr* destination, int width, int height, txState_t* state, const char* frameBuffer)
 {
 	if(!frameBuffer) return -1;
 
