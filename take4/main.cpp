@@ -25,6 +25,7 @@
 
 #include "imu.h"
 #include "stream.h"
+#include "protocol.h"
 
 #define MAX_FEATURES 400
 
@@ -69,8 +70,16 @@ typedef struct{
 	uint16_t   detectedFeatures;	
 } depthWindow_t;
 
-static txState_t     TRANSMIT_STATE;
-static depthWindow_t DEPTH_WINDOW;
+static txState_t        TRANSMIT_STATE;
+static depthWindow_t    DEPTH_WINDOW;
+static struct sockaddr* PEER;
+
+static int procGreeting(int sock, struct sockaddr* addr)
+{
+	PEER = addr;	
+
+	return 0;
+}
 
 //    ___ __  __ _   _    ___                      
 //   |_ _|  \/  | | | |  / __|___ _ __  _ __  ___  
@@ -174,15 +183,8 @@ int main(int argc, char* argv[])
 	int width = centerX * 2, height = centerY * 2;
 	int sock = socket(AF_INET, SOCK_DGRAM, 0);
 
-	if(argc < 2){
-		printf("Please provide at least a host\n");
-		return -1;
-	}
-
-	hostname = argv[1];
-
 	if(argc >= 3){
-		for(int i = 2; i < argc; ++i){
+		for(int i = 1; i < argc; ++i){
 			if(!strncmp(argv[i], "-w", 2)){
 				centerX = atoi(argv[i] + 2) / 2;
 			}
@@ -192,11 +194,8 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	struct hostent *hp;
-	struct sockaddr_in addr = {};
-
-	addr.sin_family = AF_INET;
-	addr.sin_port   = htons(1337);
+	commRegisterRxProc(MSG_GREETING, procGreeting);
+	commInitHost(1337);
 
 	trackingState_t ts = {
 		.frameCenter = cvPoint(centerX, centerY),
@@ -220,10 +219,6 @@ int main(int argc, char* argv[])
 #endif
 
 	assert(!errno);
-	hp = gethostbyname(hostname);
-	memcpy((void *)&addr.sin_addr, hp->h_addr_list[0], hp->h_length);
-	assert(!errno);
-
 	
 #ifdef __linux__
 	//icInit();
@@ -310,10 +305,11 @@ int main(int argc, char* argv[])
 #endif
 
 		assert(!errno);
-		if(!(FRAME_NUMBER % 1)){
+		if(PEER && !(FRAME_NUMBER % 1)){
+			
 			int res = txFrame(
 				sock,
-				(const struct sockaddr*)&addr,
+				PEER,
 				width, height, 
 				&TRANSMIT_STATE,
 				(const char*)greyProc[ts.dblBuff].data
@@ -324,6 +320,7 @@ int main(int argc, char* argv[])
 			}
 
 		}
+		commListen();
 		assert(!errno);
 
 		// detect features

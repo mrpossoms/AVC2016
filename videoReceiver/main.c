@@ -9,41 +9,55 @@
 #include <GLFW/glfw3.h>
 
 #include "stream.h"
+#include "protocol.h"
 
 // #define RENDER_DEMO
 
 GLFWwindow* WIN;
 char* frameBuffer = NULL;
+struct sockaddr   = HOST;
+
+static int rxProcessorFrame(int sock, struct sockaddr* peer)
+{
+	frameHeader_t header   = {};
+	int res = rxFrame(sock, &header, &frameBuffer);
+
+	glTexImage2D(
+		GL_TEXTURE_2D,
+		0,
+		GL_LUMINANCE, // one color channel
+		header.width,
+		header.height,
+		0, // no border
+		GL_LUMINANCE,
+		GL_UNSIGNED_BYTE,
+		frameBuffer
+	);
+
+	return 0;
+}
 
 int main(int argc, char* argv[])
 {
-
 	size_t   frameBufferSize;
-
 	GLuint   frameTex;
 
-	struct sockaddr_in addr = {
-		.sin_family = AF_INET,
-		.sin_port   = htons(1337),
-		.sin_addr   = htonl(INADDR_ANY),
-	};
+	if (!glfwInit()){
+		return -1;
+	}
 
-	int sock = socket(AF_INET, SOCK_DGRAM, 0);
-	assert(bind(sock, (const struct sockaddr*)&addr, sizeof(addr)) >= 0);
+	WIN = glfwCreateWindow(640, 480, "AVC 2016", NULL, NULL);
 
-    if (!glfwInit()){
-            return -1;
-    }
+	if (!WIN){
+		glfwTerminate();
+		return -2;
+	}
 
-    WIN = glfwCreateWindow(640, 480, "AVC 2016", NULL, NULL);
+	commInitClient(argv[2], &HOST);
+	commSend(MSG_GREETING, NULL, 0, &HOST);
 
-    if (!WIN){
-            glfwTerminate();
-            return -2;
-    }
-
-    glfwMakeContextCurrent(WIN);
-    glShadeModel(GL_FLAT);
+	glfwMakeContextCurrent(WIN);
+	glShadeModel(GL_FLAT);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 	glEnable(GL_TEXTURE_2D);
@@ -57,14 +71,12 @@ int main(int argc, char* argv[])
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	int frameCount = 0;
 	while(!glfwWindowShouldClose(WIN)){
-		frameHeader_t header   = {};
 
-#ifndef RENDER_DEMO
-		int res = rxFrame(sock, &header, &frameBuffer);
-
-#else
+#ifdef RENDER_DEMO
 		header.width  = 128;
 		header.height = 64;
+#else
+		commListen();
 #endif
 
 		// printf("Frame %d (%d, %d) %zu\n", frameCount++, header.width, header.height, header.bytes);
@@ -78,18 +90,6 @@ int main(int argc, char* argv[])
 
 		read(rand_fd, frameBuffer, frameBufferSize);
 #endif
-
-		glTexImage2D(
-			GL_TEXTURE_2D,
-			0,
-			GL_LUMINANCE, // one color channel
-			header.width,
-			header.height,
-			0, // no border
-			GL_LUMINANCE,
-			GL_UNSIGNED_BYTE,
-			frameBuffer
-		);
 
 		glBegin(GL_QUADS);
 			glVertex2f( 1,  1);

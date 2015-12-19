@@ -24,7 +24,7 @@ typedef struct{
 
 typedef int(*rxProc_t)(int, struct sockaddr*);
 
-int commInitClient(const char* hostname);
+int commInitClient(const char* hostname, struct stockaddr* host);
 int commInitHost(uint16_t port);
 
 int commSend(msgType_e type, const void* payload, size_t payloadSize, struct sockaddr* peer);

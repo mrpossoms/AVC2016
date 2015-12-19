@@ -30,7 +30,7 @@ static struct sockaddr_in HOST_ADDR;
 
 static const uint32_t SIG = MSG_SIG;
 
-int commInitClient(const char* hostname)
+int commInitClient(const char* hostname, struct sockaddr* host)
 {			
 	struct hostent* he;
 
@@ -46,6 +46,8 @@ int commInitClient(const char* hostname)
 	if(!(SOCK = socket(AF_INET, SOCK_DGRAM, 0))){
 		return -2;
 	}
+
+	memcpy(host, &HOST_ADDR, sizeof(HOST_ADDR));
 
 	return 0;
 }
@@ -85,7 +87,7 @@ int commSend(msgType_e type, const void* payload, size_t payloadSize, struct soc
 
 	if(bufSize < payloadSize){
 		bufSize = payloadSize * 2;
-		buf = realloc(buf, bufSize);
+		buf = (char*)realloc((char*)buf, bufSize);
 	}
 
 	memcpy(buf, &header, sizeof(header));
