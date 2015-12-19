@@ -22,15 +22,15 @@ typedef struct{
 	msgType_e type;
 } msgHeader_t;
 
-typedef int(rxProc*)(int socket, struct sockaddr* peer) rxProc_t;
+typedef int(*rxProc_t)(int, struct sockaddr*);
 
 int commInitClient(const char* hostname);
 int commInitHost(uint16_t port);
 
 int commSend(msgType_e type, const void* payload, size_t payloadSize, struct sockaddr* peer);
 
-int commRegisterRxProc(msgType_e type, rxProc_t processor);
-int commListen();
+void commRegisterRxProc(msgType_e type, rxProc_t processor);
+int  commListen();
 
 #ifdef __cplusplus
 }
