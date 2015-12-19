@@ -26,6 +26,8 @@
 #include "imu.h"
 #include "stream.h"
 
+#define MAX_FEATURES 400
+
 using namespace cv;
 using namespace std;
 
@@ -47,7 +49,6 @@ size_t MTU = 4096;
 //    \___\___/_||_/__/\__\__,_|_||_\__/__/
 //                                         
 const float FOCAL_PLANE = 1;
-const int MAX_FEATURES = 400;
 
 //    _____                  
 //   |_   _|  _ _ __  ___ ___
@@ -63,7 +64,13 @@ typedef struct{
 	vector<float>         errorVector;
 } trackingState_t;
 
-static txState_t TRANSMIT_STATE;
+typedef struct{
+	vec3i16_t depth[MAX_FEATURES];
+	uint16_t   detectedFeatures;	
+} depthWindow_t;
+
+static txState_t     TRANSMIT_STATE;
+static depthWindow_t DEPTH_WINDOW;
 
 //    ___ __  __ _   _    ___                      
 //   |_ _|  \/  | | | |  / __|___ _ __  _ __  ___  
@@ -122,6 +129,8 @@ void computeDepths(trackingState_t* tracking)
 	int bufInd = tracking->dblBuff;
 	CvPoint frameCenter = tracking->frameCenter;
 
+	DEPTH_WINDOW.detectedFeatures = tracking->features[bufInd].size();
+
 	for(int i = tracking->features[bufInd].size(); i--;){
 		if(!tracking->statusVector[i]) continue;
 
@@ -130,9 +139,18 @@ void computeDepths(trackingState_t* tracking)
 			cvPoint2D32f(tracking->features[!bufInd][i].x - frameCenter.x, tracking->features[!bufInd][i].y - frameCenter.y),
 		};
 
-		float dx = (centered[0].x - centered[1].x);
-		float dy = (centered[0].y - centered[1].y);
-		float s = sqrtf(dx * dx - dy * dy);
+		float dx  = (centered[0].x - centered[1].x);
+		float dy  = (centered[0].y - centered[1].y);
+		float dot = dx * dx + dy * dy;
+		
+		// avoid taking a square root of 0
+		if(dot == 0) continue;
+
+		float s   = sqrtf(dot);
+		float den = 1.0f - s;
+
+		// no division by zero
+		if(den == 0) continue;
 
 		// assert(fabs(centered[1].x * s - centered[0].x) < 0.001);
 		// assert(fabs(centered[1].y * s - centered[0].y) < 0.001);
@@ -140,6 +158,10 @@ void computeDepths(trackingState_t* tracking)
 		// use the scale of this feature whose origin has been shifted to the center
 		// of the frame. The 
 		tracking->featureDepths[bufInd][i] = s * IMU_STATE.velocities.linear.y / (1.0f - s);
+
+		DEPTH_WINDOW.depth[i].x = centered[0].x;
+		DEPTH_WINDOW.depth[i].y = centered[0].y;
+		DEPTH_WINDOW.depth[i].z = tracking->featureDepths[bufInd][i];
 	}
 }
 
@@ -204,14 +226,15 @@ int main(int argc, char* argv[])
 
 	
 #ifdef __linux__
-//	icInit();
-//	pthread_create(&IMU_THREAD, NULL, imuHandler, NULL);
+	//icInit();
+	pthread_create(&IMU_THREAD, NULL, imuHandler, NULL);
 #elif defined(__APPLE__)
 	namedWindow("AVC", CV_WINDOW_AUTOSIZE); //resizable window;
 	errno = 0;
 #endif
 	int cornerCount = MAX_FEATURES;
-
+	
+	printf("errno %d\n", errno);
 	assert(!errno);
 
 	while(1){
@@ -249,7 +272,7 @@ int main(int argc, char* argv[])
 			);
 
 			// TODO processing here
-			//computeDepths(&ts);		
+			computeDepths(&ts);		
 			assert(!errno);
 		}
 
