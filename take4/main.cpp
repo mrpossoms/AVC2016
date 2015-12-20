@@ -76,7 +76,16 @@ static struct sockaddr* PEER;
 
 static int procGreeting(int sock, struct sockaddr* addr)
 {
-	PEER = addr;	
+	printf("Hello there!\n");
+	
+	if(PEER) return 0;
+
+	PEER = (struct sockaddr*)malloc(sizeof(struct sockaddr));	
+	memcpy(PEER, addr, sizeof(struct sockaddr));
+
+	uint32_t ip = ((struct sockaddr_in*)PEER)->sin_addr.s_addr;
+	printf("%d.%d.%d.%d\n", ip >> 24, (ip & 0x00FFFFFF) >> 16, (ip & 0x0000FFFF) >> 8, ip & 0x000000FF);	
+	assert(ip);
 
 	return 0;
 }
@@ -195,7 +204,7 @@ int main(int argc, char* argv[])
 	}
 
 	commRegisterRxProc(MSG_GREETING, procGreeting);
-	commInitHost(1337);
+	assert(!commInitHost(1337));
 
 	trackingState_t ts = {
 		.frameCenter = cvPoint(centerX, centerY),
@@ -229,7 +238,6 @@ int main(int argc, char* argv[])
 #endif
 	int cornerCount = MAX_FEATURES;
 	
-	printf("errno %d\n", errno);
 	assert(!errno);
 
 	while(1){
@@ -306,7 +314,7 @@ int main(int argc, char* argv[])
 
 		assert(!errno);
 		if(PEER && !(FRAME_NUMBER % 1)){
-			
+
 			int res = txFrame(
 				sock,
 				PEER,
@@ -318,8 +326,8 @@ int main(int argc, char* argv[])
 			if(res < 0){
 				printf("Error %d\n", errno);
 			}
-
 		}
+
 		commListen();
 		assert(!errno);
 

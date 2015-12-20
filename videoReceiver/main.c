@@ -15,7 +15,7 @@
 
 GLFWwindow* WIN;
 char* frameBuffer = NULL;
-struct sockaddr   = HOST;
+struct sockaddr HOST;
 
 static int rxProcessorFrame(int sock, struct sockaddr* peer)
 {
@@ -53,8 +53,9 @@ int main(int argc, char* argv[])
 		return -2;
 	}
 
-	commInitClient(argv[2], &HOST);
-	commSend(MSG_GREETING, NULL, 0, &HOST);
+	commInitClient(argv[1], 1337, &HOST);
+	commRegisterRxProc(MSG_VIDEO, rxProcessorFrame);
+	printf("size %d\n", commSend(MSG_GREETING, NULL, 0, &HOST));
 
 	glfwMakeContextCurrent(WIN);
 	glShadeModel(GL_FLAT);

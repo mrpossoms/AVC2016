@@ -2,8 +2,8 @@ $(eval OS := $(shell uname))
 
 CFLAGS= 
 
-INC   = -I./../ -I./../video
-SRC   = ./../video/stream.c ./../video/compressor.c  main.c
+INC   = -I./../ -I./../video -I./../comms
+SRC   = ./../video/*.c ./../comms/*.c  main.c
 LINK  = -lpthread -lm -llz4 -lglfw3 -framework Cocoa -framework OpenGL -framework IOKit -framework CoreVideo
 BIN   = videoReceiver
 

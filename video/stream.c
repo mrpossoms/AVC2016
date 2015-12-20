@@ -3,6 +3,7 @@
 
 #include "compressor.h"
 #include "stream.h"
+#include "protocol.h"
 
 #define INITIAL_MTU 4096 << 1 
 //#define CMP_DEBUG
@@ -76,6 +77,7 @@ int txFrame(int sock, const struct sockaddr* destination, int width, int height,
 		printf("Region: (%d, %d) - (%d, %d)\n", header.region.x, header.region.y, header.region.w, header.region.h);
 #endif
 
+		commSend(MSG_VIDEO, NULL, 0, (struct sockaddr*)destination);
 
 		int res = sendto(
 			sock,
@@ -124,7 +126,7 @@ int rxFrame(int sock, frameHeader_t* header, char** frameBuffer)
 		sock, 
 		header, 
 		sizeof(frameHeader_t), 
-		MSG_WAITALL,
+		0,//MSG_WAITALL,
 		&sender,
 		&addrLen
 	);
@@ -155,7 +157,7 @@ int rxFrame(int sock, frameHeader_t* header, char** frameBuffer)
 		sock, 
 		RX_BUF, 
 		header->bytes, 
-		MSG_WAITALL,
+		0,//MSG_WAITALL,
 		&sender,
 		&addrLen
 	);

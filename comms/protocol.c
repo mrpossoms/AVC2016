@@ -4,6 +4,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/select.h>
+#include <errno.h>
+
+#include <stdio.h>
+#include <assert.h>
 
 #define MSG_SIG 0xDEADBEEF
 
@@ -30,7 +34,7 @@ static struct sockaddr_in HOST_ADDR;
 
 static const uint32_t SIG = MSG_SIG;
 
-int commInitClient(const char* hostname, struct sockaddr* host)
+int commInitClient(const char* hostname, uint16_t port, struct sockaddr* host)
 {			
 	struct hostent* he;
 
@@ -40,7 +44,11 @@ int commInitClient(const char* hostname, struct sockaddr* host)
 	}
 
 	HOST_ADDR.sin_family = AF_INET;
-	memcpy((void*)&HOST_ADDR.sin_addr, he->h_addr_list[0], he->h_length);
+	HOST_ADDR.sin_port   = htons(port);
+	uint32_t ip = HOST_ADDR.sin_addr.s_addr;
+	memcpy((void*)&ip, he->h_addr_list[0], he->h_length);
+
+	printf("%d.%d.%d.%d\n", ip >> 24, (ip & 0x00FFFFFF) >> 16, (ip & 0x0000FFFF) >> 8, ip & 0x000000FF);
 
 	// open the socket
 	if(!(SOCK = socket(AF_INET, SOCK_DGRAM, 0))){
@@ -66,7 +74,7 @@ int commInitHost(uint16_t port)
 	}
 
 	// bind to the port
-	if(bind(SOCK, (const struct sockaddr*)&addr, sizeof(addr) < 0)){
+	if(bind(SOCK, (const struct sockaddr*)&addr, sizeof(addr)) < 0){
 		return -2;
 	}
 
@@ -79,27 +87,30 @@ int commSend(msgType_e type, const void* payload, size_t payloadSize, struct soc
 	static char* buf;
 	static size_t bufSize;
 
+
 	header.signature = SIG;
 	header.type      = type;
 
-	if(!payload) return -1;
 	if(!peer) return -2;
 
-	if(bufSize < payloadSize){
-		bufSize = payloadSize * 2;
+	if(!buf || bufSize < payloadSize){
+		bufSize = (payloadSize ? sizeof(header) : payloadSize) * 2;
 		buf = (char*)realloc((char*)buf, bufSize);
 	}
 
 	memcpy(buf, &header, sizeof(header));
-	memcpy(buf + sizeof(header), payload, payloadSize);
 
+	if(payloadSize){
+		memcpy(buf + sizeof(header), payload, payloadSize);
+	}
+	
 	return sendto(
 		SOCK,
 		buf,
-		payloadSize+sizeof(header),
+		payloadSize + sizeof(header),
 		0,
 		peer,
-		sizeof(*peer)
+		sizeof(HOST_ADDR)
 	);
 }
 
@@ -110,26 +121,27 @@ void commRegisterRxProc(msgType_e type, rxProc_t processor)
 
 int commListen()
 {
-	struct sockaddr peer = {};
-	socklen_t       socklen;
+	struct sockaddr_in peer = {};
+	socklen_t       socklen = sizeof(peer);
 	msgHeader_t     header = {};
-	struct timeval timeout = { 0, 5e5 };
+	struct timeval timeout = { 0, 10000 };
 	fd_set readFd;
 
 	FD_ZERO(&readFd);
 	FD_SET(SOCK, &readFd);
 
-	if(select(SOCK + 1, &readFd, 0, 0, &timeout)){
+	if(select(SOCK + 1, &readFd, 0, 0, &timeout) <= 0){
 		return -1;
 	}
 
-	recvfrom(SOCK, &header, sizeof(header), 0, &peer, &socklen);
+	recvfrom(SOCK, &header, sizeof(header), 0, (struct sockaddr*)&peer, &socklen);
 
 	if(header.signature != MSG_SIG){
+		printf("Bad signature\n");
 		return -2;
 	}
 
-	RX_PROCESSORS[header.type](SOCK, &peer);
+	RX_PROCESSORS[header.type](SOCK, (struct sockaddr*)&peer);
 
 	return 0;
 }
