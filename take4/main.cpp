@@ -74,7 +74,7 @@ static txState_t        TRANSMIT_STATE;
 static depthWindow_t    DEPTH_WINDOW;
 static struct sockaddr* PEER;
 
-static int procGreeting(int sock, struct sockaddr* addr)
+static int procGreeting(int sock, struct sockaddr_in* addr)
 {
 	printf("Hello there!\n");
 	
@@ -139,7 +139,7 @@ void* imuHandler(void* param)
 
 //    ___           _   _      ___    _   _            _   _          
 //   |   \ ___ _ __| |_| |_   | __|__| |_(_)_ __  __ _| |_(_)___ _ _  
-//   | |) / -_) '_ \  _| ' \  | _|(_-<  _| | '  \/ _` |  _| / _ \ ' \ 
+//   | |) / -_) '_ \  _| ' \  | _|(_-<  _| | '  \/ _` |  _| / _ \ ' \
 //   |___/\___| .__/\__|_||_| |___/__/\__|_|_|_|_\__,_|\__|_\___/_||_|
 //            |_|                                                     
 void computeDepths(trackingState_t* tracking)
@@ -317,7 +317,7 @@ int main(int argc, char* argv[])
 
 			int res = txFrame(
 				sock,
-				PEER,
+				(struct sockaddr_in*)PEER,
 				width, height, 
 				&TRANSMIT_STATE,
 				(const char*)greyProc[ts.dblBuff].data

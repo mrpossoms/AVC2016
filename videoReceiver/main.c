@@ -15,9 +15,9 @@
 
 GLFWwindow* WIN;
 char* frameBuffer = NULL;
-struct sockaddr HOST;
+struct sockaddr_in HOST;
 
-static int rxProcessorFrame(int sock, struct sockaddr* peer)
+static int rxProcessorFrame(int sock, struct sockaddr_in* peer)
 {
 	frameHeader_t header   = {};
 	int res = rxFrame(sock, &header, &frameBuffer);

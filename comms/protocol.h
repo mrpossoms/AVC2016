@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/ip.h>
 
 #ifdef __cplusplus
 extern "C"{
@@ -22,12 +23,12 @@ typedef struct{
 	uint8_t  type;
 } msgHeader_t;
 
-typedef int(*rxProc_t)(int, struct sockaddr*);
+typedef int(*rxProc_t)(int, struct sockaddr_in*);
 
-int commInitClient(const char* hostname, uint16_t port, struct sockaddr* host);
+int commInitClient(const char* hostname, uint16_t port, struct sockaddr_in* host);
 int commInitHost(uint16_t port);
 
-int commSend(msgType_e type, const void* payload, size_t payloadSize, struct sockaddr* peer);
+int commSend(msgType_e type, const void* payload, size_t payloadSize, struct sockaddr_in* peer);
 
 void commRegisterRxProc(msgType_e type, rxProc_t processor);
 int  commListen();

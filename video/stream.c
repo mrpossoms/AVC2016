@@ -20,7 +20,7 @@ static char TX_BUF[INITIAL_MTU]; // buffer that will contain the compression str
 static size_t STR_MTU = INITIAL_MTU;
 static int FIRST_RUN = 1;
 
-int txFrame(int sock, const struct sockaddr* destination, int width, int height, txState_t* state, const char* frameBuffer)
+int txFrame(int sock, const struct sockaddr_in* destination, int width, int height, txState_t* state, const char* frameBuffer)
 {
 	if(!frameBuffer) return -1;
 
@@ -77,14 +77,14 @@ int txFrame(int sock, const struct sockaddr* destination, int width, int height,
 		printf("Region: (%d, %d) - (%d, %d)\n", header.region.x, header.region.y, header.region.w, header.region.h);
 #endif
 
-		commSend(MSG_VIDEO, NULL, 0, (struct sockaddr*)destination);
+		commSend(MSG_VIDEO, NULL, 0, (struct sockaddr_in*)destination);
 
 		int res = sendto(
 			sock,
 			TX_BUF,
 			sizeof(frameHeader_t),
 			0,
-			destination,
+			(struct sockaddr*)destination,
 			sizeof(*destination)
 		);
 
@@ -93,7 +93,7 @@ int txFrame(int sock, const struct sockaddr* destination, int width, int height,
 			TX_BUF + sizeof(frameHeader_t),
 			header.bytes,
 			0,
-			destination,
+			(struct sockaddr*)destination,
 			sizeof(*destination)
 		);
 

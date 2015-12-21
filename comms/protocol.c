@@ -18,11 +18,20 @@ static struct sockaddr_in HOST_ADDR;
 
 static const uint32_t SIG = MSG_SIG;
 
-int commInitClient(const char* hostname, uint16_t port, struct sockaddr* host)
+int commInitClient(const char* hostname, uint16_t port, struct sockaddr_in* host)
 {			
 	struct hostent* he;
 
 	// try to resolve the host's name
+	// memset((char *) &remaddr, 0, sizeof(remaddr));
+	// remaddr.sin_family = AF_INET;
+	// remaddr.sin_port = htons(SERVICE_PORT);
+	// if (inet_aton(server, &remaddr.sin_addr)==0) {
+	// 	fprintf(stderr, "inet_aton() failed\n");
+	// 	exit(1);
+	// }
+
+
 	if(!(he = gethostbyname(hostname))){
 		return -1;
 	}
@@ -69,7 +78,7 @@ int commInitHost(uint16_t port)
 	return 0;
 }
 
-int commSend(msgType_e type, const void* payload, size_t payloadSize, struct sockaddr* peer)
+int commSend(msgType_e type, const void* payload, size_t payloadSize, struct sockaddr_in* peer)
 {
 	msgHeader_t header = {};
 	static char* buf;
@@ -97,8 +106,8 @@ int commSend(msgType_e type, const void* payload, size_t payloadSize, struct soc
 		buf,
 		payloadSize + sizeof(header),
 		0,
-		peer,
-		sizeof(*peer)
+		(struct sockaddr*)peer,
+		sizeof(struct sockaddr_in)
 	);
 }
 
@@ -129,7 +138,7 @@ int commListen()
 		return -2;
 	}
 
-	RX_PROCESSORS[header.type](SOCK, (struct sockaddr*)&peer);
+	RX_PROCESSORS[header.type](SOCK, &peer);
 
 	return 0;
 }
