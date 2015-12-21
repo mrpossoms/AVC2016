@@ -83,6 +83,7 @@ typedef struct{
 
 static txState_t        TRANSMIT_STATE;
 static depthWindow_t    DEPTH_WINDOW;
+static int              MY_SOCK;
 static struct sockaddr* PEER;
 
 static int procGreeting(int sock, struct sockaddr_in* addr)
@@ -92,6 +93,8 @@ static int procGreeting(int sock, struct sockaddr_in* addr)
 	if(!PEER){
 		PEER = (struct sockaddr*)malloc(sizeof(struct sockaddr));	
 	}
+
+	MY_SOCK = sock;
 
 	memcpy(PEER, addr, sizeof(struct sockaddr));
 
@@ -202,7 +205,7 @@ int main(int argc, char* argv[])
 	char* hostname = NULL;
 	int centerX = 320, centerY = 240;
 	int width = centerX * 2, height = centerY * 2;
-	int sock = socket(AF_INET, SOCK_DGRAM, 0);
+	int isReady = 0, hasVideoFeed = 0;
 
 	if(argc >= 3){
 		for(int i = 1; i < argc; ++i){
@@ -222,16 +225,18 @@ int main(int argc, char* argv[])
 		.frameCenter = cvPoint(centerX, centerY),
 	};
 
-	int isReady = 0;
+	VideoCapture cap(1);
+	hasVideoFeed = cap.isOpened();
 
-	VideoCapture cap(0);
-	assert(cap.isOpened());
+	width  = ts.frameCenter.x * 2;
+	height = ts.frameCenter.y * 2;
 
-	// set capture size
-	cap.set(CV_CAP_PROP_FRAME_WIDTH,  width  = ts.frameCenter.x * 2);
-	cap.set(CV_CAP_PROP_FRAME_HEIGHT, height = ts.frameCenter.y * 2);
-
-	printf("Capture dimensions (%d, %d)\n", width, height);
+	if(hasVideoFeed){
+		// set capture size
+		cap.set(CV_CAP_PROP_FRAME_WIDTH, width);
+		cap.set(CV_CAP_PROP_FRAME_HEIGHT, height);
+		printf("Capture dimensions (%d, %d)\n", width, height);
+	}
 
 	errno = 0;
 #ifdef __linux__
@@ -256,8 +261,21 @@ int main(int argc, char* argv[])
 		DBG("");
 
 		Mat currFrame;
-		cap >> currFrame;
-		if(currFrame.empty()) continue;
+
+		if(hasVideoFeed){
+			cap >> currFrame;
+			if(currFrame.empty()) continue;
+		}
+		else{
+			static int rand_fd;
+			if(!rand_fd){
+				rand_fd = open("/dev/random", O_RDONLY);
+			}	
+
+			currFrame.create(height, width, CV_8UC(3));
+			read(rand_fd, currFrame.data, width * height * 3);
+		}
+
 		if(!isReady){
 			frame = currFrame.clone();
 			cvtColor(frame, frameGrey, CV_BGR2GRAY);
@@ -271,9 +289,7 @@ int main(int argc, char* argv[])
 		// cvtColor(frame, frameGrey, CV_BGR2GRAY);
 		// medianBlur(frameGrey, greyProc[ts.dblBuff], 3);
 
-
 		cvtColor(frame, greyProc[ts.dblBuff], CV_BGR2GRAY);
-
 		
 		if(isReady){
 			DBG("");
@@ -328,7 +344,7 @@ int main(int argc, char* argv[])
 		if(PEER && !(FRAME_NUMBER % 1)){
 
 			int res = txFrame(
-				sock,
+				MY_SOCK,
 				(struct sockaddr_in*)PEER,
 				width, height, 
 				&TRANSMIT_STATE,
