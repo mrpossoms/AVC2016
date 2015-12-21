@@ -17,6 +17,11 @@ GLFWwindow* WIN;
 char* frameBuffer = NULL;
 struct sockaddr_in HOST;
 
+static int rxProcessorGreeting(int sock, struct sockaddr_in* peer)
+{
+	return 0;
+}
+
 static int rxProcessorFrame(int sock, struct sockaddr_in* peer)
 {
 	frameHeader_t header   = {};
@@ -54,6 +59,7 @@ int main(int argc, char* argv[])
 	}
 
 	commInitClient(argv[1], 1337, &HOST);
+	commRegisterRxProc(MSG_GREETING, rxProcessorGreeting);
 	commRegisterRxProc(MSG_VIDEO, rxProcessorFrame);
 	printf("size %d\n", commSend(MSG_GREETING, NULL, 0, &HOST));
 

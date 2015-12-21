@@ -225,7 +225,7 @@ int main(int argc, char* argv[])
 		.frameCenter = cvPoint(centerX, centerY),
 	};
 
-	VideoCapture cap(1);
+	VideoCapture cap(0);
 	hasVideoFeed = cap.isOpened();
 
 	width  = ts.frameCenter.x * 2;

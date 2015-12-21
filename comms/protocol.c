@@ -121,13 +121,18 @@ int commListen()
 		return -1;
 	}
 
-	recvfrom(SOCK, &header, sizeof(header), 0, (struct sockaddr*)&peer, &socklen);
-
-	if(header.signature != MSG_SIG){
-		printf("Bad signature\n");
+	int bytes = recvfrom(SOCK, &header, sizeof(header), 0, (struct sockaddr*)&peer, &socklen);
+	if(bytes != sizeof(header)){
+		printf("Bad header size\n");
 		return -2;
 	}
 
+	if(header.signature != MSG_SIG){
+		printf("Bad signature\n");
+		return -3;
+	}
+
+	assert(RX_PROCESSORS[header.type]);
 	RX_PROCESSORS[header.type](SOCK, &peer);
 
 	return 0;
