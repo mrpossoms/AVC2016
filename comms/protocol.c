@@ -11,22 +11,6 @@
 
 #define MSG_SIG 0xDEADBEEF
 
-/*
-typedef enum{
-	MSG_GREETING = 0,
-	MSG_STATE,
-	MSG_TRACKING,
-	MSG_VIDEO,
-} msgType_e;
-
-typedef struct{
-	uint32_t  signature;
-	msgType_e type;
-} msgHeader_t;
-
-typedef int(rxProc*)(int socket, struct sockaddr* peer) rxProc_t;
-*/
-
 static rxProc_t RX_PROCESSORS[MSG_COUNT];
 
 static int                SOCK;
@@ -45,8 +29,10 @@ int commInitClient(const char* hostname, uint16_t port, struct sockaddr* host)
 
 	HOST_ADDR.sin_family = AF_INET;
 	HOST_ADDR.sin_port   = htons(port);
-	uint32_t ip = HOST_ADDR.sin_addr.s_addr;
+	
+	uint32_t ip;
 	memcpy((void*)&ip, he->h_addr_list[0], he->h_length);
+	ip = ntohl(ip);
 
 	printf("%d.%d.%d.%d\n", ip >> 24, (ip & 0x00FFFFFF) >> 16, (ip & 0x0000FFFF) >> 8, ip & 0x000000FF);
 
@@ -56,6 +42,8 @@ int commInitClient(const char* hostname, uint16_t port, struct sockaddr* host)
 	}
 
 	memcpy(host, &HOST_ADDR, sizeof(HOST_ADDR));
+
+
 
 	return 0;
 }
@@ -110,7 +98,7 @@ int commSend(msgType_e type, const void* payload, size_t payloadSize, struct soc
 		payloadSize + sizeof(header),
 		0,
 		peer,
-		sizeof(HOST_ADDR)
+		sizeof(*peer)
 	);
 }
 

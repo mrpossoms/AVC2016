@@ -18,8 +18,8 @@ typedef enum{
 } msgType_e;
 
 typedef struct{
-	uint32_t  signature;
-	msgType_e type;
+	uint32_t signature;
+	uint8_t  type;
 } msgHeader_t;
 
 typedef int(*rxProc_t)(int, struct sockaddr*);
