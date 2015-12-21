@@ -21,27 +21,33 @@ static const uint32_t SIG = MSG_SIG;
 
 int commInitClient(const char* hostname, uint16_t port, struct sockaddr_in* host)
 {			
+	struct sockaddr_in addr = {};
 	struct hostent* he;
 	int res = 0;
 
-	if((res = commInitHost(port))){
-		printf("commInitHost(): failed\n");
+	addr.sin_family      = AF_INET;
+	addr.sin_port        = htons(0);
+	addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	
+	// open the socket
+	if(!(SOCK = socket(AF_INET, SOCK_DGRAM, 0))){
+		return -1;
 	}
 
+	// bind to the port
+	if(bind(SOCK, (const struct sockaddr*)&addr, sizeof(addr)) < 0){
+		return -2;
+	}
 	printf("Resolving '%s'\n", hostname);
 
 	if(!(he = gethostbyname(hostname))){
-		return -1;
+		return -3;
 	}
 
 	HOST_ADDR.sin_family = AF_INET;
 	HOST_ADDR.sin_port   = htons(port);
+	memcpy((void*)&(HOST_ADDR.sin_addr), he->h_addr_list[0], he->h_length);
 	
-	uint32_t ip;
-	memcpy((void*)&ip, he->h_addr_list[0], he->h_length);
-	ip = ntohl(ip);
-	printf("%d.%d.%d.%d\n", ip >> 24, (ip & 0x00FFFFFF) >> 16, (ip & 0x0000FFFF) >> 8, ip & 0x000000FF);
-
 	memcpy(host, &HOST_ADDR, sizeof(HOST_ADDR));
 
 	return 0;
