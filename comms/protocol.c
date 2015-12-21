@@ -3,6 +3,7 @@
 #include <netdb.h>
 #include <string.h>
 #include <stdlib.h>
+#include <arpa/inet.h>
 #include <sys/select.h>
 #include <errno.h>
 
@@ -21,16 +22,13 @@ static const uint32_t SIG = MSG_SIG;
 int commInitClient(const char* hostname, uint16_t port, struct sockaddr_in* host)
 {			
 	struct hostent* he;
+	int res = 0;
 
-	// try to resolve the host's name
-	// memset((char *) &remaddr, 0, sizeof(remaddr));
-	// remaddr.sin_family = AF_INET;
-	// remaddr.sin_port = htons(SERVICE_PORT);
-	// if (inet_aton(server, &remaddr.sin_addr)==0) {
-	// 	fprintf(stderr, "inet_aton() failed\n");
-	// 	exit(1);
-	// }
+	if((res = commInitHost(port))){
+		printf("commInitHost(): failed\n");
+	}
 
+	printf("Resolving '%s'\n", hostname);
 
 	if(!(he = gethostbyname(hostname))){
 		return -1;
@@ -42,17 +40,9 @@ int commInitClient(const char* hostname, uint16_t port, struct sockaddr_in* host
 	uint32_t ip;
 	memcpy((void*)&ip, he->h_addr_list[0], he->h_length);
 	ip = ntohl(ip);
-
 	printf("%d.%d.%d.%d\n", ip >> 24, (ip & 0x00FFFFFF) >> 16, (ip & 0x0000FFFF) >> 8, ip & 0x000000FF);
 
-	// open the socket
-	if(!(SOCK = socket(AF_INET, SOCK_DGRAM, 0))){
-		return -2;
-	}
-
 	memcpy(host, &HOST_ADDR, sizeof(HOST_ADDR));
-
-
 
 	return 0;
 }

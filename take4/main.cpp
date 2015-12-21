@@ -29,6 +29,17 @@
 
 #define MAX_FEATURES 400
 
+
+// #define DBG(str){\
+// 	if(errno){\
+// 		printf("%s %d\n", str, errno);\
+// 		assert(!errno);\
+// 	}\
+// }\
+
+#define DBG(str){\
+}\
+
 using namespace cv;
 using namespace std;
 
@@ -78,9 +89,10 @@ static int procGreeting(int sock, struct sockaddr_in* addr)
 {
 	printf("Hello there!\n");
 	
-	if(PEER) return 0;
+	if(!PEER){
+		PEER = (struct sockaddr*)malloc(sizeof(struct sockaddr));	
+	}
 
-	PEER = (struct sockaddr*)malloc(sizeof(struct sockaddr));	
 	memcpy(PEER, addr, sizeof(struct sockaddr));
 
 	uint32_t ip = ((struct sockaddr_in*)PEER)->sin_addr.s_addr;
@@ -227,7 +239,7 @@ int main(int argc, char* argv[])
 	IMU_FD = open("/dev/i2c-1", O_RDWR);
 #endif
 
-	assert(!errno);
+	DBG("");
 	
 #ifdef __linux__
 	//icInit();
@@ -238,10 +250,10 @@ int main(int argc, char* argv[])
 #endif
 	int cornerCount = MAX_FEATURES;
 	
-	assert(!errno);
+	DBG("");
 
 	while(1){
-		assert(!errno);
+		DBG("");
 
 		Mat currFrame;
 		cap >> currFrame;
@@ -264,7 +276,7 @@ int main(int argc, char* argv[])
 
 		
 		if(isReady){
-			assert(!errno);
+			DBG("");
 			calcOpticalFlowPyrLK(
 				greyProc[!ts.dblBuff],
 				greyProc[ts.dblBuff],
@@ -276,7 +288,7 @@ int main(int argc, char* argv[])
 
 			// TODO processing here
 			computeDepths(&ts);		
-			assert(!errno);
+			DBG("");
 		}
 
 #ifdef __APPLE__
@@ -312,7 +324,7 @@ int main(int argc, char* argv[])
 		imshow("AVC", frame);
 #endif
 
-		assert(!errno);
+		DBG("");
 		if(PEER && !(FRAME_NUMBER % 1)){
 
 			int res = txFrame(
@@ -329,7 +341,7 @@ int main(int argc, char* argv[])
 		}
 
 		commListen();
-		assert(!errno);
+		DBG("");
 
 		// detect features
 		cornerCount = 400;
@@ -345,7 +357,7 @@ int main(int argc, char* argv[])
 			0.04         // not used (free param of harris)
 		);
 
-		assert(!errno);
+		DBG("");
 		ts.dblBuff = !ts.dblBuff;
 		isReady = 1;
 		++FRAME_NUMBER;
