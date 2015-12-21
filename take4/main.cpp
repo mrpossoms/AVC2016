@@ -354,6 +354,8 @@ int main(int argc, char* argv[])
 			if(res < 0){
 				printf("Error %d\n", errno);
 			}
+			
+			commSend(MSG_TRACK, &DEPTH_WINDOW, sizeof(DEPTH_WINDOW), (struct sockaddr_in*)PEER);
 		}
 
 		commListen();
