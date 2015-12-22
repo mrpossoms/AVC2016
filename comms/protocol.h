@@ -12,15 +12,15 @@ extern "C"{
 
 typedef enum{
 	MSG_GREETING = 0,
-	MSG_STATE,
-	MSG_TRACKING,
-	MSG_VIDEO,
-	MSG_COUNT,
+	MSG_STATE    = 1,
+	MSG_TRACKING = 2,
+	MSG_VIDEO    = 3,
+	MSG_COUNT    = 4,
 } msgType_e;
 
 typedef struct{
 	uint32_t signature;
-	uint32_t  type;
+	uint32_t type;
 } msgHeader_t;
 
 typedef int(*rxProc_t)(int, struct sockaddr_in*);
