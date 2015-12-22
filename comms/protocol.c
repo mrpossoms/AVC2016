@@ -87,7 +87,8 @@ int commSend(msgType_e type, const void* payload, size_t payloadSize, struct soc
 	if(!peer) return -2;
 
 	if(!buf || bufSize < payloadSize){
-		bufSize = (payloadSize ? sizeof(header) : payloadSize) * 2;
+		bufSize = payloadSize * 2 + sizeof(header);
+		printf("allocating buffer of size %zu\n", bufSize);
 		buf = (char*)realloc((char*)buf, bufSize);
 	}
 

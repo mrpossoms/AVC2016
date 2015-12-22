@@ -341,7 +341,18 @@ int main(int argc, char* argv[])
 #endif
 
 		DBG("");
-		if(PEER && !(FRAME_NUMBER % 1)){
+		if(PEER && !(FRAME_NUMBER % 20)){
+			commSend(MSG_TRACKING, NULL, 0, (struct sockaddr_in*)PEER);
+			sendto(
+				MY_SOCK,
+				&DEPTH_WINDOW,
+				0,
+				sizeof(DEPTH_WINDOW),
+				PEER,
+				sizeof(struct sockaddr_in)
+			);
+		}
+		else if(PEER && !(FRAME_NUMBER % 1)){
 
 			int res = txFrame(
 				MY_SOCK,
@@ -354,8 +365,6 @@ int main(int argc, char* argv[])
 			if(res < 0){
 				printf("Error %d\n", errno);
 			}
-			
-			commSend(MSG_TRACK, &DEPTH_WINDOW, sizeof(DEPTH_WINDOW), (struct sockaddr_in*)PEER);
 		}
 
 		commListen();

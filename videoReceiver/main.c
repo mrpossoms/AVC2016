@@ -8,10 +8,16 @@
 
 #include <GLFW/glfw3.h>
 
+#include "imu.h"
 #include "stream.h"
 #include "protocol.h"
 
 // #define RENDER_DEMO
+#define MAX_FEATURES 400
+typedef struct{
+	vec3i16_t depth[MAX_FEATURES];
+	uint16_t   detectedFeatures;	
+} depthWindow_t;
 
 GLFWwindow* WIN;
 char* frameBuffer = NULL;
@@ -19,6 +25,29 @@ struct sockaddr_in HOST;
 
 static int rxProcessorGreeting(int sock, struct sockaddr_in* peer)
 {
+	return 0;
+}
+
+static int rxProcessorTracking(int sock, struct sockaddr_in* peer)
+{
+	depthWindow_t window;
+	socklen_t len = sizeof(HOST);
+	size_t windowSize = sizeof(depthWindow_t);
+
+	printf("Tracking message %d\n", sock);
+
+	size_t bytes = recvfrom(
+		sock,
+		&window,
+		windowSize,
+		0,
+		(struct sockaddr*)peer,
+		&len
+	);
+
+	printf("Bytes read %zu expected %zu\n", bytes, windowSize);
+	assert(bytes == windowSize);
+
 	return 0;
 }
 
@@ -61,6 +90,7 @@ int main(int argc, char* argv[])
 	commInitClient(argv[1], 1337, &HOST);
 	commRegisterRxProc(MSG_GREETING, rxProcessorGreeting);
 	commRegisterRxProc(MSG_VIDEO, rxProcessorFrame);
+	commRegisterRxProc(MSG_TRACKING, rxProcessorTracking);
 	printf("size %d\n", commSend(MSG_GREETING, NULL, 0, &HOST));
 
 	glfwMakeContextCurrent(WIN);
