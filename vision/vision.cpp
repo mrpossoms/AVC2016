@@ -1,15 +1,23 @@
+#ifdef __linux__
+#include <opencv2/video.hpp>
+#include <opencv2/opencv.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#else
+
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/videoio/videoio.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/opencv.hpp>
+#endif
+
 #include <limits.h>
 #include <errno.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
 
-
-#include "stream.h"
-#include "comms/protocol.h"
-#include "comms/messages.h"
+#include "system.h"
 
 // #define DBG(str){\
 // 	if(errno){\
@@ -30,7 +38,6 @@ using namespace std;
 //    \___|_\___/_.__/\__,_|_/__/
 //                               
 int FRAME_NUMBER;
-static depthWindow_t    DEPTH_WINDOW;
 
 static Mat frame, frameGrey, greyProc[2];
 static int centerX = 320, centerY = 240;
@@ -46,19 +53,6 @@ static int isReady, hasVideoFeed;
 //                                         
 const float FOCAL_PLANE = 1;
 
-//    _____                  
-//   |_   _|  _ _ __  ___ ___
-//     | || || | '_ \/ -_|_-<
-//     |_| \_, | .__/\___/__/
-//         |__/|_|           
-typedef struct{
-	CvPoint         frameCenter;
-	vector<Point2f> features[2];
-	float           featureDepths[2][MAX_FEATURES];
-	int             dblBuff;
-	vector<unsigned char> statusVector;
-	vector<float>         errorVector;
-} trackingState_t;
 //    ___           _   _      ___    _   _            _   _          
 //   |   \ ___ _ __| |_| |_   | __|__| |_(_)_ __  __ _| |_(_)___ _ _  
 //   | |) / -_) '_ \  _| ' \  | _|(_-<  _| | '  \/ _` |  _| / _ \ ' \
@@ -69,7 +63,7 @@ void computeDepths(trackingState_t* tracking)
 	int bufInd = tracking->dblBuff;
 	CvPoint frameCenter = tracking->frameCenter;
 
-	DEPTH_WINDOW.detectedFeatures = tracking->features[bufInd].size();
+	SYS.window.detectedFeatures = tracking->features[bufInd].size();
 
 	for(int i = tracking->features[bufInd].size(); i--;){
 		if(!tracking->statusVector[i]) continue;
@@ -99,138 +93,10 @@ void computeDepths(trackingState_t* tracking)
 		// of the frame. The 
 		tracking->featureDepths[bufInd][i] = s * IMU_STATE.velocities.linear.y / (1.0f - s);
 
-		DEPTH_WINDOW.depth[i].x = (centered[0].x / (float)frameCenter.x) * SHRT_MAX;
-		DEPTH_WINDOW.depth[i].y = (centered[0].y / (float)frameCenter.y) * SHRT_MAX;
-		DEPTH_WINDOW.depth[i].z = tracking->featureDepths[bufInd][i];
+		SYS.window.depth[i].x = (centered[0].x / (float)frameCenter.x) * SHRT_MAX;
+		SYS.window.depth[i].y = (centered[0].y / (float)frameCenter.y) * SHRT_MAX;
+		SYS.window.depth[i].z = tracking->featureDepths[bufInd][i];
 	}
-}
-
-int main(int argc, char* argv[])
-{
-	int cornerCount = MAX_FEATURES;
-	
-	DBG("");
-
-	while(1){
-		DBG("");
-
-		Mat currFrame;
-
-		if(hasVideoFeed){
-			cap >> currFrame;
-			if(currFrame.empty()) continue;
-		}
-		else{
-			static int rand_fd;
-			if(!rand_fd){
-				rand_fd = open("/dev/random", O_RDONLY);
-			}	
-
-			currFrame.create(height, width, CV_8UC(3));
-			read(rand_fd, currFrame.data, width * height * 3);
-		}
-
-		if(!isReady){
-			frame = currFrame.clone();
-			cvtColor(frame, frameGrey, CV_BGR2GRAY);
-			greyProc[0] = frameGrey.clone();
-			greyProc[1] = frameGrey.clone();
-		}
-
-		currFrame.copyTo(frame);
-		cvtColor(frame, greyProc[ts.dblBuff], CV_BGR2GRAY);
-		
-		if(isReady){
-			DBG("");
-			calcOpticalFlowPyrLK(
-				greyProc[!ts.dblBuff],
-				greyProc[ts.dblBuff],
-				ts.features[!ts.dblBuff],
-				ts.features[ts.dblBuff],
-				ts.statusVector,      // list of bools which inicate feature matches
-				ts.errorVector
-			);
-
-			// TODO processing here
-			computeDepths(&ts);		
-			DBG("");
-		}
-
-#ifdef __APPLE__
-		for(int i = ts.features[ts.dblBuff].size(); i--;){
-			if(!ts.statusVector[i]) continue;
-			circle(
-				frame,
-				Point(ts.features[ts.dblBuff][i].x, ts.features[ts.dblBuff][i].y),
-				3,
-				Scalar(255, 0, 0, 255),
-				1,
-				8,
-				0
-			);
-
-			float dx = (ts.features[ts.dblBuff][i].x - ts.features[!ts.dblBuff][i].x) * 10;
-			float dy = (ts.features[ts.dblBuff][i].y - ts.features[!ts.dblBuff][i].y) * 10;
-			float depth = dx * dx + dy * dy;
-
-			depth = pow(depth, 64);
-
-			line(
-				frame,
-				Point(ts.features[ts.dblBuff][i].x, ts.features[ts.dblBuff][i].y),
-				Point((ts.features[ts.dblBuff][i].x + dx) , (ts.features[ts.dblBuff][i].y + dy)),
-				Scalar(depth, dy + 128, dx + 128, 255 / (ts.errorVector[i] + 1)),
-				1, 
-				8,
-				0
-			);
-		}
-
-		imshow("AVC", frame);
-#endif
-		DBG("");
-		if(PEER){
-			int res = 0;
-
-			if(!(FRAME_NUMBER % 1)){
-				res = txFrame(
-					MY_SOCK,
-					(struct sockaddr_in*)PEER,
-					width, height, 
-					&TRANSMIT_STATE,
-					(const char*)greyProc[ts.dblBuff].data
-				);
-				commSend(MSG_TRACKING, &DEPTH_WINDOW, sizeof(DEPTH_WINDOW), PEER);
-			}
-
-			if(res < 0){
-				printf("Error %d\n", errno);
-			}
-		}
-
-		commListen();
-		DBG("");
-
-		// detect features
-		goodFeaturesToTrack(
-			greyProc[ts.dblBuff],
-			ts.features[ts.dblBuff],
-			MAX_FEATURES,
-			0.01,        // quality
-			0.01,        // min distance
-			Mat(),       // mask for ROI
-			3,           // block size
-			0,           // use harris detector
-			0.04         // not used (free param of harris)
-		);
-
-		DBG("");
-		ts.dblBuff = !ts.dblBuff;
-		isReady = 1;
-		++FRAME_NUMBER;
-	}
-
-	return 0;
 }
 
 int visionInit(int w, int h)
@@ -240,11 +106,7 @@ int visionInit(int w, int h)
 	centerX = width / 2;
 	centerY = height / 2;
 
-	commRegisterRxProc(MSG_GREETING, procGreeting);
-
-	trackingState_t ts = {
-		.frameCenter = cvPoint(centerX, centerY),
-	};
+	SYS.tracking.frameCenter = cvPoint(centerX, centerY);,
 
 	VideoCapture cap(0);
 	hasVideoFeed = cap.isOpened();
@@ -292,30 +154,29 @@ void visionUpdate()
 	}
 
 	currFrame.copyTo(frame);
-	cvtColor(frame, greyProc[ts.dblBuff], CV_BGR2GRAY);
+	cvtColor(frame, greyProc[SYS.tracking.dblBuff], CV_BGR2GRAY);
 	
 	if(isReady){
 		DBG("");
 		calcOpticalFlowPyrLK(
-			greyProc[!ts.dblBuff],
-			greyProc[ts.dblBuff],
-			ts.features[!ts.dblBuff],
-			ts.features[ts.dblBuff],
-			ts.statusVector,      // list of bools which inicate feature matches
-			ts.errorVector
+			greyProc[!SYS.tracking.dblBuff],
+			greyProc[SYS.tracking.dblBuff],
+			SYS.tracking.features[!SYS.tracking.dblBuff],
+			SYS.tracking.features[SYS.tracking.dblBuff],
+			SYS.tracking.statusVector,      // list of bools which inicate feature matches
+			SYS.tracking.errorVector
 		);
 
-		// TODO processing here
-		computeDepths(&ts);		
+		computeDepths(&SYS.tracking);		
 		DBG("");
 	}
 
 #ifdef __APPLE__
-	for(int i = ts.features[ts.dblBuff].size(); i--;){
-		if(!ts.statusVector[i]) continue;
+	for(int i = SYS.tracking.features[SYS.tracking.dblBuff].size(); i--;){
+		if(!SYS.tracking.statusVector[i]) continue;
 		circle(
 			frame,
-			Point(ts.features[ts.dblBuff][i].x, ts.features[ts.dblBuff][i].y),
+			Point(SYS.tracking.features[SYS.tracking.dblBuff][i].x, SYS.tracking.features[SYS.tracking.dblBuff][i].y),
 			3,
 			Scalar(255, 0, 0, 255),
 			1,
@@ -323,17 +184,17 @@ void visionUpdate()
 			0
 		);
 
-		float dx = (ts.features[ts.dblBuff][i].x - ts.features[!ts.dblBuff][i].x) * 10;
-		float dy = (ts.features[ts.dblBuff][i].y - ts.features[!ts.dblBuff][i].y) * 10;
+		float dx = (SYS.tracking.features[SYS.tracking.dblBuff][i].x - SYS.tracking.features[!SYS.tracking.dblBuff][i].x) * 10;
+		float dy = (SYS.tracking.features[SYS.tracking.dblBuff][i].y - SYS.tracking.features[!SYS.tracking.dblBuff][i].y) * 10;
 		float depth = dx * dx + dy * dy;
 
 		depth = pow(depth, 64);
 
 		line(
 			frame,
-			Point(ts.features[ts.dblBuff][i].x, ts.features[ts.dblBuff][i].y),
-			Point((ts.features[ts.dblBuff][i].x + dx) , (ts.features[ts.dblBuff][i].y + dy)),
-			Scalar(depth, dy + 128, dx + 128, 255 / (ts.errorVector[i] + 1)),
+			Point(SYS.tracking.features[SYS.tracking.dblBuff][i].x, SYS.tracking.features[SYS.tracking.dblBuff][i].y),
+			Point((SYS.tracking.features[SYS.tracking.dblBuff][i].x + dx) , (SYS.tracking.features[SYS.tracking.dblBuff][i].y + dy)),
+			Scalar(depth, dy + 128, dx + 128, 255 / (SYS.tracking.errorVector[i] + 1)),
 			1, 
 			8,
 			0
@@ -346,8 +207,8 @@ void visionUpdate()
 
 	// detect features
 	goodFeaturesToTrack(
-		greyProc[ts.dblBuff],
-		ts.features[ts.dblBuff],
+		greyProc[SYS.tracking.dblBuff],
+		SYS.tracking.features[SYS.tracking.dblBuff],
 		MAX_FEATURES,
 		0.01,        // quality
 		0.01,        // min distance
@@ -358,7 +219,7 @@ void visionUpdate()
 	);
 
 	DBG("");
-	ts.dblBuff = !ts.dblBuff;
+	SYS.tracking.dblBuff = !SYS.tracking.dblBuff;
 	isReady = 1;
 	++FRAME_NUMBER;
 
