@@ -16,11 +16,21 @@ typedef struct{
 } depthWindow_t;
 
 typedef struct{
+	vec3f_t position;
+	vec3f_t velocity;
+	float   angle;
+} physFrame_t;
+
+typedef struct{
 	// tracking
 	depthWindow_t   window;
 
 	// sensor readings
-	sensorStatei_t  imu;	
+	sensorStatei_t  imu;
+
+	// physical measurements and estimates
+	physFrame_t body; // position, vel etc in respect to the car
+	physFrame_t world;	
 } system_t;
 
 

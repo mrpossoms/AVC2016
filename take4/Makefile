@@ -1,6 +1,6 @@
 $(eval OS := $(shell uname))
 
-CFLAGS= 
+CFLAGS=-g 
 
 INC   = -I./../ -I./../video
 SRC   = ./../imu.c ./../video/*.c ./../comms/*.c main.cpp

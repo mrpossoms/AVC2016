@@ -228,6 +228,7 @@ int main(int argc, char* argv[])
 		// set capture size
 		cap.set(CV_CAP_PROP_FRAME_WIDTH, width);
 		cap.set(CV_CAP_PROP_FRAME_HEIGHT, height);
+		cap.set(CV_CAP_PROP_FPS, 12);
 		printf("Capture dimensions (%d, %d)\n", width, height);
 	}
 
