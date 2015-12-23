@@ -2,7 +2,7 @@ $(eval OS := $(shell uname))
 
 CFLAGS= 
 
-INC   = -I./../ -I./../video -I./../comms
+INC   = -I./../ -I./../video
 SRC   = ./../imu.c ./../video/*.c ./../comms/*.c main.cpp
 LINK  = -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_video -lindicurses -lcurses -lpthread -lm -llz4
 

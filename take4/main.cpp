@@ -12,6 +12,7 @@
 #include <opencv2/opencv.hpp>
 #endif
 
+#include <limits.h>
 #include <errno.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -23,12 +24,9 @@
 #include <sys/socket.h>
 
 
-#include "imu.h"
 #include "stream.h"
-#include "protocol.h"
-
-#define MAX_FEATURES 400
-
+#include "comms/protocol.h"
+#include "comms/messages.h"
 
 // #define DBG(str){\
 // 	if(errno){\
@@ -76,22 +74,17 @@ typedef struct{
 	vector<float>         errorVector;
 } trackingState_t;
 
-typedef struct{
-	vec3i16_t depth[MAX_FEATURES];
-	uint16_t   detectedFeatures;	
-} depthWindow_t;
-
 static txState_t        TRANSMIT_STATE;
 static depthWindow_t    DEPTH_WINDOW;
 static int              MY_SOCK;
-static struct sockaddr* PEER;
+static struct sockaddr_in* PEER;
 
 static int procGreeting(int sock, struct sockaddr_in* addr)
 {
 	printf("Hello there!\n");
 	
 	if(!PEER){
-		PEER = (struct sockaddr*)malloc(sizeof(struct sockaddr));	
+		PEER = (struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));	
 	}
 
 	MY_SOCK = sock;
@@ -192,8 +185,8 @@ void computeDepths(trackingState_t* tracking)
 		// of the frame. The 
 		tracking->featureDepths[bufInd][i] = s * IMU_STATE.velocities.linear.y / (1.0f - s);
 
-		DEPTH_WINDOW.depth[i].x = centered[0].x;
-		DEPTH_WINDOW.depth[i].y = centered[0].y;
+		DEPTH_WINDOW.depth[i].x = (centered[0].x / (float)frameCenter.x) * SHRT_MAX;
+		DEPTH_WINDOW.depth[i].y = (centered[0].y / (float)frameCenter.y) * SHRT_MAX;
 		DEPTH_WINDOW.depth[i].z = tracking->featureDepths[bufInd][i];
 	}
 }
@@ -284,11 +277,6 @@ int main(int argc, char* argv[])
 		}
 
 		currFrame.copyTo(frame);
-
-		// convert the frame to black and white
-		// cvtColor(frame, frameGrey, CV_BGR2GRAY);
-		// medianBlur(frameGrey, greyProc[ts.dblBuff], 3);
-
 		cvtColor(frame, greyProc[ts.dblBuff], CV_BGR2GRAY);
 		
 		if(isReady){
@@ -339,28 +327,20 @@ int main(int argc, char* argv[])
 
 		imshow("AVC", frame);
 #endif
-
 		DBG("");
-		if(PEER && !(FRAME_NUMBER % 20)){
-			commSend(MSG_TRACKING, NULL, 0, (struct sockaddr_in*)PEER);
-			sendto(
-				MY_SOCK,
-				&DEPTH_WINDOW,
-				0,
-				sizeof(DEPTH_WINDOW),
-				PEER,
-				sizeof(struct sockaddr_in)
-			);
-		}
-		else if(PEER && !(FRAME_NUMBER % 1)){
+		if(PEER){
+			int res = 0;
 
-			int res = txFrame(
-				MY_SOCK,
-				(struct sockaddr_in*)PEER,
-				width, height, 
-				&TRANSMIT_STATE,
-				(const char*)greyProc[ts.dblBuff].data
-			);
+			if(!(FRAME_NUMBER % 1)){
+				res = txFrame(
+					MY_SOCK,
+					(struct sockaddr_in*)PEER,
+					width, height, 
+					&TRANSMIT_STATE,
+					(const char*)greyProc[ts.dblBuff].data
+				);
+				commSend(MSG_TRACKING, &DEPTH_WINDOW, sizeof(DEPTH_WINDOW), PEER);
+			}
 
 			if(res < 0){
 				printf("Error %d\n", errno);
@@ -371,7 +351,6 @@ int main(int argc, char* argv[])
 		DBG("");
 
 		// detect features
-		cornerCount = 400;
 		goodFeaturesToTrack(
 			greyProc[ts.dblBuff],
 			ts.features[ts.dblBuff],

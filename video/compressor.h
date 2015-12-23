@@ -3,29 +3,11 @@
 
 #include <inttypes.h>
 #include <stdlib.h>
+#include "comms/messages.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-//    _____                  
-//   |_   _|  _ _ __  ___ ___
-//     | || || | '_ \/ -_|_-<
-//     |_| \_, | .__/\___/__/
-//         |__/|_|           
-typedef struct{
-	uint16_t x;
-	uint16_t w;
-	uint16_t y;
-	uint16_t h;
-} region_t;
-
-typedef struct{
-	uint16_t width, height;
-	region_t region;
-	uint32_t number;
-	uint16_t bytes;
-} frameHeader_t;
 
 //    ___             _   _             
 //   | __|  _ _ _  __| |_(_)___ _ _  ___

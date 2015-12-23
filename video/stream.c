@@ -3,7 +3,7 @@
 
 #include "compressor.h"
 #include "stream.h"
-#include "protocol.h"
+#include "comms/protocol.h"
 
 #define INITIAL_MTU 4096 << 1 
 //#define CMP_DEBUG

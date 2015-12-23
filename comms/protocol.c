@@ -77,35 +77,34 @@ int commInitHost(uint16_t port)
 int commSend(msgType_e type, const void* payload, size_t payloadSize, struct sockaddr_in* peer)
 {
 	msgHeader_t header = {};
-	static char* buf;
-	static size_t bufSize;
-
+	size_t bytesSent = 0;
 
 	header.signature = SIG;
 	header.type      = type;
 
 	if(!peer) return -2;
 
-	if(!buf || bufSize < payloadSize){
-		bufSize = payloadSize * 2 + sizeof(header);
-		printf("allocating buffer of size %zu\n", bufSize);
-		buf = (char*)realloc((char*)buf, bufSize);
-	}
-
-	memcpy(buf, &header, sizeof(header));
-
-	if(payloadSize){
-		memcpy(buf + sizeof(header), payload, payloadSize);
-	}
-	
-	return sendto(
+	bytesSent = sendto(
 		SOCK,
-		buf,
-		payloadSize + sizeof(header),
+		&header,
+		sizeof(header),
 		0,
 		(struct sockaddr*)peer,
 		sizeof(struct sockaddr_in)
 	);
+
+	if(payloadSize){
+		bytesSent += sendto(
+			SOCK,
+			payload,
+			payloadSize,
+			0,
+			(struct sockaddr*)peer,
+			sizeof(struct sockaddr_in)
+		);
+	}
+
+	return bytesSent;
 }
 
 void commRegisterRxProc(msgType_e type, rxProc_t processor)
@@ -128,7 +127,15 @@ int commListen()
 		return -1;
 	}
 
-	int bytes = recvfrom(SOCK, &header, sizeof(header), 0, (struct sockaddr*)&peer, &socklen);
+	int bytes = recvfrom(
+		SOCK,
+		&header,
+		sizeof(header),
+		0,
+		(struct sockaddr*)&peer,
+		&socklen
+	);
+
 	if(bytes != sizeof(header)){
 		printf("Bad header size\n");
 		return -2;

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <limits.h>
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -10,23 +11,14 @@
 
 #include "imu.h"
 #include "stream.h"
-#include "protocol.h"
+#include "comms/protocol.h"
 
 // #define RENDER_DEMO
-#define MAX_FEATURES 400
-typedef struct{
-	vec3i16_t depth[MAX_FEATURES];
-	uint16_t   detectedFeatures;	
-} depthWindow_t;
 
 GLFWwindow* WIN;
 char* frameBuffer = NULL;
 struct sockaddr_in HOST;
-
-static int rxProcessorGreeting(int sock, struct sockaddr_in* peer)
-{
-	return 0;
-}
+depthWindow_t DEPTHS;
 
 static int rxProcessorTracking(int sock, struct sockaddr_in* peer)
 {
@@ -71,6 +63,42 @@ static int rxProcessorFrame(int sock, struct sockaddr_in* peer)
 	return 0;
 }
 
+static int rxProcessorDepths(int sock, struct sockaddr_in* peer)
+{
+	socklen_t addrLen = sizeof(HOST);
+	struct sockaddr sender = {};
+
+	size_t bytes = recvfrom(
+		sock,
+		&DEPTHS,
+		sizeof(DEPTHS),
+		0,
+		&sender,
+		&addrLen
+	);
+
+	return 0;
+}
+
+static void setupGL()
+{
+	glShadeModel(GL_SMOOTH);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+	glEnable(GL_TEXTURE_2D);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+}
+
+static void createTexture(GLuint* tex)
+{
+	glGenTextures(1, tex);
+	glBindTexture(GL_TEXTURE_2D, *tex);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+}
+
 int main(int argc, char* argv[])
 {
 	size_t   frameBufferSize;
@@ -87,25 +115,16 @@ int main(int argc, char* argv[])
 		return -2;
 	}
 
+	glfwMakeContextCurrent(WIN);
+	setupGL();
+	createTexture(&frameTex);
+
 	commInitClient(argv[1], 1337, &HOST);
-	commRegisterRxProc(MSG_GREETING, rxProcessorGreeting);
 	commRegisterRxProc(MSG_VIDEO, rxProcessorFrame);
-	commRegisterRxProc(MSG_TRACKING, rxProcessorTracking);
+	commRegisterRxProc(MSG_TRACKING, rxProcessorDepths);
 	printf("size %d\n", commSend(MSG_GREETING, NULL, 0, &HOST));
 
-	glfwMakeContextCurrent(WIN);
-	glShadeModel(GL_FLAT);
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-	glEnable(GL_TEXTURE_2D);
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
-
-	glGenTextures(1, &frameTex);
-	glBindTexture(GL_TEXTURE_2D, frameTex);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	int frameCount = 0;
 	while(!glfwWindowShouldClose(WIN)){
 
@@ -128,6 +147,8 @@ int main(int argc, char* argv[])
 		read(rand_fd, frameBuffer, frameBufferSize);
 #endif
 
+		glClear(GL_COLOR_BUFFER_BIT);
+		glEnable(GL_TEXTURE_2D);
 		glBegin(GL_QUADS);
 			glVertex2f( 1,  1);
 			glTexCoord2f(0, 0);
@@ -140,6 +161,15 @@ int main(int argc, char* argv[])
 
 			glVertex2f( 1, -1);
 			glTexCoord2f(1, 0);
+		glEnd();
+
+		glPointSize(10);
+		glDisable(GL_TEXTURE_2D);
+		glBegin(GL_POINTS);
+		for(int i = DEPTHS.detectedFeatures; i--;){
+			glColor3f(DEPTHS.depth[i].z / 100.0f, 0.1f, 0);
+			glVertex2f(DEPTHS.depth[i].x / (float)SHRT_MAX, -DEPTHS.depth[i].y / (float)SHRT_MAX);
+		}
 		glEnd();
 
 		glfwSwapBuffers(WIN);
