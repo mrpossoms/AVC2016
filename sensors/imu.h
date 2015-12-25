@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <strings.h>
 
+#include "types.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -20,20 +22,6 @@ extern "C" {
 //     | || || | '_ \/ -_|_-<
 //     |_| \_, | .__/\___/__/
 //         |__/|_|           
-typedef union{
-	int16_t v[3];
-	struct{
-		int16_t x, y, z;
-	};
-} vec3i16_t;
-
-typedef union{
-	float v[3];
-	struct{
-		float x, y, z;
-	};
-} vec3f_t;
-
 typedef struct{
 	vec3i16_t linear;
 	vec3i16_t rotational;
@@ -57,10 +45,9 @@ typedef struct{
 } readingFilter_t;
 
 typedef struct{
-	sensorStatei_t  lastReadings;
-	sensorStatef_t  velocities;
+	sensorStatei_t  rawReadings;
+	sensorStatef_t  adjReadings;
 	readingFilter_t windows;
-	struct timeval  lastTime;
 	sensorStatei_t  calibrationMinMax[2];
 	sensorStatei_t  standardDeviations;
 	int             isCalibrated;

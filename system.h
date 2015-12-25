@@ -1,7 +1,8 @@
 #ifndef AVC_SYSTEM_STATE
 #define AVC_SYSTEM_STATE
 
-#include "imu.h"
+#include "types.h"
+#include "sensors/imu.h"
 
 #define MAX_FEATURES 400
 
@@ -18,19 +19,24 @@ typedef struct{
 typedef struct{
 	vec3f_t position;
 	vec3f_t velocity;
-	float   angle;
-} physFrame_t;
+}objectState_t;
+
+typedef struct{
+	imuState_t    imu;
+	float         lastMeasureTime;
+	float         lastEstTime;
+	objectState_t measured;
+	objectState_t estimated;
+}fusedObjState_t;
 
 typedef struct{
 	// tracking
 	depthWindow_t   window;
 
-	// sensor readings
-	sensorStatei_t  imu;
+	// sensor measurements and estimates
+	fusedObjState_t body;
 
-	// physical measurements and estimates
-	physFrame_t body; // position, vel etc in respect to the car
-	physFrame_t world;	
+	float timeUp; // time in seconds the system has been running
 } system_t;
 
 

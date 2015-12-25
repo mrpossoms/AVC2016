@@ -105,18 +105,6 @@ sensorStatei_t imuGetReadings(int fd)
 	return reading;
 }
 
-static float elapsedSeconds(imuState_t* state)
-{
-	// compute the elapsed time in seconds
-	struct timeval now;
-	gettimeofday(&now, NULL);
-	int64_t usElapsed = (now.tv_sec - state->lastTime.tv_sec) * 1000000 +
-	                    (now.tv_usec - state->lastTime.tv_usec);
-	state->lastTime = now;
-
-	return usElapsed / 1000000.0;	
-}
-
 static int comp(const void* a, const void* b)
 {
 	return *((SMF_SAMP_TYPE*)a) - *((SMF_SAMP_TYPE*)b);
@@ -150,14 +138,14 @@ static void filterReading(imuState_t* state)
 	//assert(gaussian(0, 0, 32) == 1);
 
 	for(int i = 3; i--;){
-		smfUpdate(state->windows.linear + i,     state->lastReadings.linear.v[i]);
-		smfUpdate(state->windows.rotational + i, state->lastReadings.rotational.v[i]);
-		smfUpdate(state->windows.mag + i,        state->lastReadings.mag.v[i]);
+		smfUpdate(state->windows.linear + i,     state->rawReadings.linear.v[i]);
+		smfUpdate(state->windows.rotational + i, state->rawReadings.rotational.v[i]);
+		smfUpdate(state->windows.mag + i,        state->rawReadings.mag.v[i]);
 	
 		// apply a gaussian weighting to the readings to try to further remove noise
 		// TODO: this may be useful for removing the offset instead mu could accomplish that.
 		float w = gaussian(
-			state->lastReadings.linear.v[i],
+			state->rawReadings.linear.v[i],
 			ACCEL_MEAN[i],
 			state->standardDeviations.linear.v[i]
 		);
@@ -172,11 +160,11 @@ static int obtainedStatisticalProps(imuState_t* state)
 
 	if(isFinished) return 1;
 	if(READINGS_COLLECTED < WARMUP_SAMPLES){
-		ACCEL_MEAN[0] += state->lastReadings.linear.x;
-		ACCEL_MEAN[1] += state->lastReadings.linear.y;
-		ACCEL_MEAN[2] += state->lastReadings.linear.z;
-		READINGS[READINGS_COLLECTED++] = state->lastReadings;
-		bzero(&state->lastReadings, sizeof(sensorStatei_t));
+		ACCEL_MEAN[0] += state->rawReadings.linear.x;
+		ACCEL_MEAN[1] += state->rawReadings.linear.y;
+		ACCEL_MEAN[2] += state->rawReadings.linear.z;
+		READINGS[READINGS_COLLECTED++] = state->rawReadings;
+		bzero(&state->rawReadings, sizeof(sensorStatei_t));
 
 		return 0;
 	}
@@ -205,6 +193,11 @@ static int obtainedStatisticalProps(imuState_t* state)
 	return 1;
 }
 
+static float map(float x, float min, float max)
+{
+	return (x - min) * 2 / (max - min) - 1.0f;
+}
+
 void imuUpdateState(int fd, imuState_t* state)
 {
 	sensorStatei_t reading = {};
@@ -213,7 +206,7 @@ void imuUpdateState(int fd, imuState_t* state)
 	reading = imuGetReadings(fd);
 #endif
 
-	state->lastReadings = reading;
+	state->rawReadings = reading;
 
 	if(!obtainedStatisticalProps(state)) return;
 
@@ -223,37 +216,22 @@ void imuUpdateState(int fd, imuState_t* state)
 
 	filterReading(state);
 
-	// if we don't have a start time yet, don't bother to compute the velocities
-	if(state->lastTime.tv_usec){
-		float dt = elapsedSeconds(state);
-		vec3f_t acc;
+	if(state->isCalibrated){
+		vec3i16_t* accMin = &state->calibrationMinMax[0].linear;
+		vec3i16_t* accMax = &state->calibrationMinMax[1].linear;
 
-		if(state->isCalibrated){
-			vec3i16_t* accMin = &state->calibrationMinMax[0].linear;
-			vec3i16_t* accMax = &state->calibrationMinMax[1].linear;
-
-			// map the readings to the 1G calibration window that was obtained
-			// from the calibration profile
-			acc.x = G * reading.linear.x * 2 / (float)(accMax->x - accMin->x);
-			acc.y = G * reading.linear.y * 2 / (float)(accMax->y - accMin->y);
-			acc.z = G * reading.linear.z * 2 / (float)(accMax->z - accMin->z);
-
-		}
-		else{
-			// no calibration, just spit out the literal value
-			acc.x = reading.linear.x;
-			acc.y = reading.linear.y;
-			acc.z = reading.linear.z;	
-		}
-
-		// integrate
-		state->velocities.linear.x += acc.x * dt;
-		state->velocities.linear.y += acc.y * dt;
-		state->velocities.linear.z += acc.z * dt;
+		// map the readings to the 1G calibration window that was obtained
+		// from the calibration profile
+		state->adjReadings.linear.x = G * map(reading.linear.x, accMin->x, accMax->x);
+		state->adjReadings.linear.y = G * map(reading.linear.y, accMin->y, accMax->y);
+		state->adjReadings.linear.z = G * map(reading.linear.z, accMin->z, accMax->z);
 
 	}
 	else{
-		elapsedSeconds(state);
+		// no calibration, just spit out the literal value
+		state->adjReadings.linear.x = reading.linear.x;
+		state->adjReadings.linear.y = reading.linear.y;
+		state->adjReadings.linear.z = reading.linear.z;	
 	}
 }
 

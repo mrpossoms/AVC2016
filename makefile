@@ -1,7 +1,7 @@
 CMP=g++
 CFLAGS=
-INC=
-LIB=-I./sensors -I./controls
+INC=-I./sensors -I./controls
+LIB=
 SRC=./controls/*.c ./sensors/*.c avc.cxx
 LINK=-lm
 
