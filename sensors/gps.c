@@ -45,5 +45,5 @@ int gpsGetReadings(vec3f_t* position, vec3f_t* veclocity)
 
 	LAST_CHK_SUM = GPS_STATE.checksum;
 
-	return 0;
+	return GPS_STATE.Fix;
 }
