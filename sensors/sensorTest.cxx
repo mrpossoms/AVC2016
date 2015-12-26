@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <assert.h>
 
 #include "system.h"
 #include "aggergate.h"
@@ -10,9 +11,13 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	senInit(argv[1], argv[2], "./../imu.cal");
+	int res = senInit(argv[1], argv[2], "./../imu.cal");
+	printf("Res %d\n", res);
+
+	assert(!res);
 
 	while(1){
+		printf("Begin\n");
 		senUpdate(&SYS.body);
 
 		vec3f_t *posMes = &SYS.body.measured.position, *posEst = &SYS.body.estimated.position;

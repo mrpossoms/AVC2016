@@ -6,6 +6,7 @@
 
 static gpsState_t GPS_STATE;
 static unsigned char LAST_CHK_SUM;
+static pthread_t GPS_THREAD;
 
 static void* gpsWorker(void* args)
 {
@@ -26,6 +27,8 @@ int gpsInit(const char* devPath)
 	if(lnConnect(devPath, 9600) <= 0){
 		return -1;
 	}
+
+	pthread_create(&GPS_THREAD, NULL, gpsWorker, NULL);
 
 	return 0;
 }

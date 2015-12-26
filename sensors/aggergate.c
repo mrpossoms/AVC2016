@@ -1,5 +1,6 @@
 #include "aggergate.h"
 
+#include <assert.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <libNEMA.h>
@@ -15,14 +16,20 @@ static int openSensor(const char* dev, int* fd, int flags)
 //-----------------------------------------------------------------------------
 int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile)
 {
+	printf("Initializing GPS...");
 	if(gpsInit(gpsDevice)){
+		printf("Failed!\n");
 		return -1;
 	}
+	printf("OK!\n");
 
-	if(!openSensor(gpsDevice, &FD_GPS, O_RDONLY)){
+	printf("Initializing IMU...");
+	if(!openSensor(imuDevice, &FD_IMU, O_RDONLY)){
+		printf("Failed!\n");
 		return -2;
 	}
-
+	printf("OK!\n");
+	
 	if(calProfile){
 		int calFd = open(calProfile, O_RDONLY);
 
@@ -41,7 +48,9 @@ int senUpdate(fusedObjState_t* body)
 {
 	imuUpdateState(FD_IMU, &body->imu);
 
+	printf("GPS updating...");
 	if(gpsHasNewReadings()){
+		printf(">>>>>>>> New GPS!\n");
 		float dt = SYS.timeUp - body->lastMeasureTime;
 		vec3f_t lastPos = body->measured.position;
 		
@@ -73,6 +82,5 @@ int senUpdate(fusedObjState_t* body)
 
 		body->lastEstTime = SYS.timeUp;
 	}
-
 	return 0;
 }

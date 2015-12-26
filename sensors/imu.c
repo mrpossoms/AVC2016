@@ -202,13 +202,15 @@ void imuUpdateState(int fd, imuState_t* state)
 {
 	sensorStatei_t reading = {};
 
-#ifdef __linux__
 	reading = imuGetReadings(fd);
-#endif
+	printf("%d -> (%d, %d)\n", fd, reading.linear.x, reading.linear.y);
 
 	state->rawReadings = reading;
 
-	if(!obtainedStatisticalProps(state)) return;
+	if(!obtainedStatisticalProps(state)){
+		printf("Collecting data...\n");
+		return;
+	}
 
 	reading.linear.x -= ACCEL_MEAN[0];
 	reading.linear.y -= ACCEL_MEAN[1];
@@ -291,5 +293,5 @@ int imuLoadCalibrationProfile(int fd_storage, imuState_t* state)
 		state->isCalibrated = 1;
 	}
 
-	return 1;
+	return 0;
 }
