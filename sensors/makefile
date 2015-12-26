@@ -1,9 +1,9 @@
 CMP=g++
 CFLAGS=
 INC=-I./../
-LIB=
-SRC=./../system.c aggergate.c gps.c imu.c
-LINK=-lm
+LIB=-L/usr/lib
+SRC=./../system.c gps.c imu.c aggergate.c 
+LINK=-lm -lNEMA
 
 
 all:

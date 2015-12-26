@@ -3,7 +3,8 @@
 
 #include "types.h"
 
-int     gpsHasNewReadings(int fd);
-vec3f_t gpsGetReadings(int fd);
+int gpsInit(const char* device);
+int gpsHasNewReadings();
+int gpsGetReadings(vec3f_t* position, vec3f_t* veclocity);
 
 #endif

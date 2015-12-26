@@ -2,8 +2,9 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#include <libNEMA.h>
 
-static int FD_IMU, FD_GPS;
+static int FD_IMU;
 
 //-----------------------------------------------------------------------------
 static int openSensor(const char* dev, int* fd, int flags)
@@ -14,7 +15,7 @@ static int openSensor(const char* dev, int* fd, int flags)
 //-----------------------------------------------------------------------------
 int senInit(const char* imuDevice, const char* gpsDevice)
 {
-	if(!openSensor(imuDevice, &FD_IMU, O_RDWR)){
+	if(gpsInit(gpsDevice)){
 		return -1;
 	}
 
@@ -29,13 +30,13 @@ int senUpdate(fusedObjState_t* body)
 {
 	body->imu.rawReadings = imuGetReadings(FD_IMU);
 
-	if(gpsHasNewReadings(FD_GPS)){
+	if(gpsHasNewReadings()){
 		float dt = SYS.timeUp - body->lastMeasureTime;
 		vec3f_t lastPos = body->measured.position;
 		
 
 		// assign new measurements
-		body->measured.position = gpsGetReadings(FD_GPS);
+		gpsGetReadings(&body->measured.position, &body->measured.velocity);
 		vec3Sub(body->measured.velocity, body->measured.position, lastPos); 
 		vec3Scl(body->measured.velocity, body->measured.velocity, dt);
 
