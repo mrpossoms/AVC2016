@@ -10,10 +10,24 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	senInit(argv[1], argv[2]);
+	senInit(argv[1], argv[2], "./../imu.cal");
 
 	while(1){
 		senUpdate(&SYS.body);
+
+		vec3f_t *posMes = &SYS.body.measured.position, *posEst = &SYS.body.estimated.position;
+		vec3f_t *velMes = &SYS.body.measured.velocity, *velEst = &SYS.body.estimated.velocity;
+		printf(
+			"Position mes:(%f, %f, %f) est:(%f, %f, %f)\n",
+			posMes->x, posMes->y, posMes->z,
+			posEst->x, posEst->y, posEst->z
+		);
+		printf(
+			"Velocity mes:(%f, %f, %f) est:(%f, %f, %f)\n",
+			velMes->x, velMes->y, velMes->z,
+			velEst->x, velEst->y, velEst->z
+		);
+
 		usleep(1000);
 	}
 

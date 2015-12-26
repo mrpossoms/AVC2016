@@ -1,7 +1,7 @@
 #ifndef AVC_PROTOCOL_MESSAGES
 #define AVC_PROTOCOL_MESSAGES
 
-#include "imu.h"
+#include "types.h"
 
 #define MAX_FEATURES 400
 

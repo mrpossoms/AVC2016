@@ -2,6 +2,7 @@
 #define AVC_IMU
 
 #include <inttypes.h>
+#include <sys/types.h>
 #include <sys/time.h>
 #include <unistd.h>   // UNIX standard function definitions 
 #include <fcntl.h>    // File control definitions 
@@ -82,8 +83,6 @@ sensorStatei_t imuGetReadings(int fd);
 #endif
 #ifndef SLIDING_MEDIAN_FILTER
 #define SLIDING_MEDIAN_FILTER
-
-#include <sys/types.h>
 
 void smfUpdate(medianWindow_t* win, SMF_SAMP_TYPE samp);
 

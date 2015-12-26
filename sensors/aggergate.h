@@ -6,7 +6,7 @@
 
 #include "system.h"
 
-int senInit(const char* imuDevice, const char* gpsDevice);
+int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile);
 int senUpdate(fusedObjState_t* body);
 
 #endif

@@ -13,7 +13,7 @@ static int openSensor(const char* dev, int* fd, int flags)
 	return fd > 0;
 }
 //-----------------------------------------------------------------------------
-int senInit(const char* imuDevice, const char* gpsDevice)
+int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile)
 {
 	if(gpsInit(gpsDevice)){
 		return -1;
@@ -23,12 +23,23 @@ int senInit(const char* imuDevice, const char* gpsDevice)
 		return -2;
 	}
 
+	if(calProfile){
+		int calFd = open(calProfile, O_RDONLY);
+
+		if(calFd <= 0 || imuLoadCalibrationProfile(calFd, &SYS.body.imu)){
+			close(calFd);
+			return -3;
+		}
+
+		close(calFd);
+	}
+
 	return 0;
 }
 //-----------------------------------------------------------------------------
 int senUpdate(fusedObjState_t* body)
 {
-	body->imu.rawReadings = imuGetReadings(FD_IMU);
+	imuUpdateState(FD_IMU, &body->imu);
 
 	if(gpsHasNewReadings()){
 		float dt = SYS.timeUp - body->lastMeasureTime;
