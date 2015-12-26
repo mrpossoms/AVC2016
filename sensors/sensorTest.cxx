@@ -5,7 +5,12 @@
 
 int main(int argc, char* argv[])
 {
-	senInit();
+	if(argc < 3){
+		printf("Usage:\n[imu device][gps device]\n");
+		return 1;
+	}
+
+	senInit(argv[1], argv[2]);
 
 	while(1){
 		senUpdate(&SYS.body);

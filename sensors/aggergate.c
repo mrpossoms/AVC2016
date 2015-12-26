@@ -31,7 +31,7 @@ int senUpdate(fusedObjState_t* body)
 
 	if(gpsHasNewReadings(FD_GPS)){
 		float dt = SYS.timeUp - body->lastMeasureTime;
-		vec3f_t lastPos   = body->measured.position;
+		vec3f_t lastPos = body->measured.position;
 		
 
 		// assign new measurements
