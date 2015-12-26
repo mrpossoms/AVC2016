@@ -203,8 +203,6 @@ void imuUpdateState(int fd, imuState_t* state)
 	sensorStatei_t reading = {};
 
 	reading = imuGetReadings(fd);
-	printf("%d -> (%d, %d)\n", fd, reading.linear.x, reading.linear.y);
-
 	state->rawReadings = reading;
 
 	if(!obtainedStatisticalProps(state)){
