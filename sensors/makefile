@@ -3,7 +3,7 @@ CFLAGS=
 INC=-I./../
 LIB=-L/usr/lib
 SRC=./../system.c ./../timer.c gps.c imu.c aggergate.c 
-LINK=-lm -lNEMA -lpthread
+LINK=-lm -lNEMA -lpthread -lindicurses -lncurses
 
 
 all:
