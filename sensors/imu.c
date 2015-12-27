@@ -141,16 +141,6 @@ static void filterReading(imuState_t* state)
 		smfUpdate(state->windows.linear + i,     state->rawReadings.linear.v[i]);
 		smfUpdate(state->windows.rotational + i, state->rawReadings.rotational.v[i]);
 		smfUpdate(state->windows.mag + i,        state->rawReadings.mag.v[i]);
-	
-		// apply a gaussian weighting to the readings to try to further remove noise
-		// TODO: this may be useful for removing the offset instead mu could accomplish that.
-		float w = gaussian(
-			state->rawReadings.linear.v[i],
-			ACCEL_MEAN[i],
-			state->standardDeviations.linear.v[i]
-		);
-
-		state->standardDeviations.linear.v[i] -= state->standardDeviations.linear.v[i] * w;
 	}
 } 
 
