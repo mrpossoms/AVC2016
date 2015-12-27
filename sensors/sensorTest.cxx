@@ -3,6 +3,7 @@
 
 #include "system.h"
 #include "aggergate.h"
+#include "timer.h"
 
 int main(int argc, char* argv[])
 {
@@ -33,6 +34,7 @@ int main(int argc, char* argv[])
 			velEst->x, velEst->y, velEst->z
 		);
 
+		timerUpdate();
 		usleep(1000);
 	}
 

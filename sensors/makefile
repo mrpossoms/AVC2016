@@ -2,7 +2,7 @@ CMP=g++
 CFLAGS=
 INC=-I./../
 LIB=-L/usr/lib
-SRC=./../system.c gps.c imu.c aggergate.c 
+SRC=./../system.c ./../timer.c gps.c imu.c aggergate.c 
 LINK=-lm -lNEMA -lpthread
 
 
