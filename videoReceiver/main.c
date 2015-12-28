@@ -6,12 +6,14 @@
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <pthread.h>
 
 #include <GLFW/glfw3.h>
 
-#include "imu.h"
+#include "sensors/imu.h"
 #include "stream.h"
 #include "comms/protocol.h"
+#include "utilities/rc.h"
 
 // #define RENDER_DEMO
 
@@ -19,6 +21,53 @@ GLFWwindow* WIN;
 char* frameBuffer = NULL;
 struct sockaddr_in HOST;
 depthWindow_t DEPTHS;
+
+int RC_SOCK;
+rcMessage_t RC_STATE;
+int RC_NEW_DATA;
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if (key == GLFW_KEY_LEFT){
+    	RC_STATE.steering = action == GLFW_RELEASE ? 50 : 25;
+    }
+    if (key == GLFW_KEY_RIGHT){
+    	RC_STATE.steering = action == GLFW_RELEASE ? 50 : 75;
+    }
+     
+    if (key == GLFW_KEY_UP){
+    	RC_STATE.throttle = action == GLFW_RELEASE ? 50 : 75;
+    }
+    if (key == GLFW_KEY_DOWN){
+    	RC_STATE.throttle = action == GLFW_RELEASE ? 50 : 25;
+    }
+
+    printf("%d %d\n", RC_STATE.throttle, RC_STATE.steering);
+    RC_NEW_DATA = 1;
+}
+
+static void* rcWorker(void* args)
+{
+	RC_SOCK = socket(AF_INET, SOCK_DGRAM, 0);
+
+	while(1){
+		if(RC_NEW_DATA){
+			struct sockaddr_in peer = HOST;
+			peer.sin_port = htons(2048);
+
+			sendto(
+				RC_SOCK,
+				&RC_STATE,
+				sizeof(RC_STATE),
+				0,
+				(const struct sockaddr*)&peer,
+				sizeof(peer)
+			);
+			printf("Sent!\n");
+			RC_NEW_DATA = 0;
+		}
+	}
+}
 
 static int rxProcessorTracking(int sock, struct sockaddr_in* peer)
 {
@@ -101,8 +150,9 @@ static void createTexture(GLuint* tex)
 
 int main(int argc, char* argv[])
 {
-	size_t   frameBufferSize;
-	GLuint   frameTex;
+	size_t    frameBufferSize;
+	GLuint    frameTex;
+	pthread_t rcThread;
 
 	if (!glfwInit()){
 		return -1;
@@ -124,28 +174,48 @@ int main(int argc, char* argv[])
 	commRegisterRxProc(MSG_TRACKING, rxProcessorDepths);
 	printf("size %d\n", commSend(MSG_GREETING, NULL, 0, &HOST));
 
+	pthread_create(&rcThread, NULL, rcWorker, NULL);
+	glfwSetKeyCallback(WIN, key_callback);
 
 	int frameCount = 0;
 	while(!glfwWindowShouldClose(WIN)){
 
-#ifdef RENDER_DEMO
-		header.width  = 128;
-		header.height = 64;
-#else
-		commListen();
+	int res = 1;
+#ifndef RENDER_DEMO
+	res = commListen();
 #endif
 
-		// printf("Frame %d (%d, %d) %zu\n", frameCount++, header.width, header.height, header.bytes);
-		// printf("width %d height %d\n", header.width, header.height);
-
-#ifdef RENDER_DEMO
+	if(res){
 		static int rand_fd;
+		frameHeader_t header;
+
+		header.width = 128;
+		header.height = 64;
+
 		if(!rand_fd){
 			rand_fd = open("/dev/random", O_RDONLY);
 		}
 
-		read(rand_fd, frameBuffer, frameBufferSize);
-#endif
+		if(!frameBuffer){
+			frameBufferSize = header.width * header.height;
+			frameBuffer = malloc(frameBufferSize);
+		}
+
+		read(rand_fd, frameBuffer, frameBufferSize);		
+
+		glTexImage2D(
+			GL_TEXTURE_2D,
+			0,
+			GL_LUMINANCE, // one color channel
+			header.width,
+			header.height,
+			0, // no border
+			GL_LUMINANCE,
+			GL_UNSIGNED_BYTE,
+			frameBuffer
+		);
+
+	}
 
 		glClear(GL_COLOR_BUFFER_BIT);
 		glEnable(GL_TEXTURE_2D);
@@ -172,6 +242,7 @@ int main(int argc, char* argv[])
 		}
 		glEnd();
 
+		glfwPollEvents();
 		glfwSwapBuffers(WIN);
 	}
 
