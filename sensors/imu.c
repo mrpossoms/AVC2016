@@ -196,7 +196,6 @@ void imuUpdateState(int fd, imuState_t* state)
 	state->rawReadings = reading;
 
 	if(!obtainedStatisticalProps(state)){
-		printf("Collecting data...\n");
 		return;
 	}
 
@@ -215,7 +214,6 @@ void imuUpdateState(int fd, imuState_t* state)
 		state->adjReadings.linear.x = G * map(reading.linear.x, accMin->x, accMax->x);
 		state->adjReadings.linear.y = G * map(reading.linear.y, accMin->y, accMax->y);
 		state->adjReadings.linear.z = G * map(reading.linear.z, accMin->z, accMax->z);
-
 	}
 	else{
 		// no calibration, just spit out the literal value

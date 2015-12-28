@@ -241,7 +241,7 @@ int main(int argc, char* argv[])
 	DBG("");
 	
 #ifdef __linux__
-	//icInit();
+	icInit();
 	pthread_create(&IMU_THREAD, NULL, imuHandler, NULL);
 #elif defined(__APPLE__)
 	namedWindow("AVC", CV_WINDOW_AUTOSIZE); //resizable window;

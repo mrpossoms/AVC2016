@@ -1,8 +1,9 @@
 #include "gps.h"
 
-#include <libNEMA.h>
+#include <math.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <libNEMA.h>
 
 static gpsState_t GPS_STATE;
 static unsigned char LAST_CHK_SUM;
@@ -40,8 +41,16 @@ int gpsHasNewReadings()
 //-----------------------------------------------------------------------------
 int gpsGetReadings(vec3f_t* position, vec3f_t* veclocity)
 {
-	position->x = GPS_STATE.Lon;
-	position->y = GPS_STATE.Lat;
+	const float dia = 6371000 * 2;
+
+	float latRad = GPS_STATE.Lat * (M_PI / 180.0f);	
+	float lonRad = GPS_STATE.Lon * (M_PI / 180.0f);	
+
+	// circumferance = d * pi
+	
+
+	position->x = dia * lonRad;
+	position->y = dia * latRad;
 	position->z = GPS_STATE.Altitude;
 
 	veclocity->x = GPS_STATE.Speed;

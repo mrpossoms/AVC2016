@@ -48,9 +48,7 @@ int senUpdate(fusedObjState_t* body)
 {
 	imuUpdateState(FD_IMU, &body->imu);
 
-	printf("GPS updating...");
 	if(gpsHasNewReadings()){
-		printf(">>>>>>>> New GPS!\n");
 		float dt = SYS.timeUp - body->lastMeasureTime;
 		vec3f_t lastPos = body->measured.position;
 		
