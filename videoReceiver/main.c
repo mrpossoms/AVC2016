@@ -36,10 +36,10 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     }
      
     if (key == GLFW_KEY_UP){
-    	RC_STATE.throttle = action == GLFW_RELEASE ? 50 : 75;
+    	RC_STATE.throttle = action == GLFW_RELEASE ? 50 : 55;
     }
     if (key == GLFW_KEY_DOWN){
-    	RC_STATE.throttle = action == GLFW_RELEASE ? 50 : 25;
+    	RC_STATE.throttle = action == GLFW_RELEASE ? 50 : 45;
     }
 
     printf("%d %d\n", RC_STATE.throttle, RC_STATE.steering);
@@ -53,7 +53,7 @@ static void* rcWorker(void* args)
 	while(1){
 		if(RC_NEW_DATA){
 			struct sockaddr_in peer = HOST;
-			peer.sin_port = htons(2048);
+			peer.sin_port = htons(1338);
 
 			sendto(
 				RC_SOCK,
@@ -148,6 +148,7 @@ static void createTexture(GLuint* tex)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 }
 
+static int oneOK;
 int main(int argc, char* argv[])
 {
 	size_t    frameBufferSize;
@@ -183,9 +184,11 @@ int main(int argc, char* argv[])
 	int res = 1;
 #ifndef RENDER_DEMO
 	res = commListen();
+
+	if(!res) oneOK = 1;
 #endif
 
-	if(res){
+	if(res && !oneOK){
 		static int rand_fd;
 		frameHeader_t header;
 
