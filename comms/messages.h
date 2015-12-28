@@ -2,6 +2,7 @@
 #define AVC_PROTOCOL_MESSAGES
 
 #include "types.h"
+#include "system.h"
 
 #define MAX_FEATURES 400
 
@@ -28,11 +29,12 @@ typedef struct{
 	uint16_t bytes;
 } frameHeader_t;
 
+/*
 typedef struct{
 	vec3i16_t depth[MAX_FEATURES];
 	uint16_t  detectedFeatures;	
 } depthWindow_t;
-
+*/
 #ifdef __cplusplus
 }
 #endif

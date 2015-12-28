@@ -23,10 +23,11 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
-
+#include "system.h"
 #include "stream.h"
 #include "comms/protocol.h"
 #include "comms/messages.h"
+#include "sensors/imu.h"
 
 // #define DBG(str){\
 // 	if(errno){\
@@ -116,7 +117,7 @@ void* imuHandler(void* param)
 
 	while(1){
 		imuUpdateState(IMU_FD, &IMU_STATE);
-		IMU_READING = IMU_STATE.lastReadings;
+		sensorStatef_t reading = IMU_STATE.adjReadings;
 
 		int topLeft[2] = { 5, 2 };
 		int bottomRight[2] = { IC_TERM_WIDTH - 5, IC_TERM_HEIGHT - 2};	
@@ -125,9 +126,9 @@ void* imuHandler(void* param)
 
 		const int scale = 500;
 
-		readings[0][i] = center + IMU_READING.linear.x / scale;
-		readings[1][i] = center + IMU_READING.linear.y / scale;
-		readings[2][i] = center + IMU_READING.linear.z / scale;
+		readings[0][i] = center + reading.linear.x / scale;
+		readings[1][i] = center + reading.linear.y / scale;
+		readings[2][i] = center + reading.linear.z / scale;
 
 		++i;
 		i %= samples;
@@ -183,7 +184,7 @@ void computeDepths(trackingState_t* tracking)
 
 		// use the scale of this feature whose origin has been shifted to the center
 		// of the frame. The 
-		tracking->featureDepths[bufInd][i] = s * IMU_STATE.velocities.linear.y / (1.0f - s);
+		tracking->featureDepths[bufInd][i] = s * SYS.body.estimated.velocity.y / (1.0f - s);
 
 		DEPTH_WINDOW.depth[i].x = (centered[0].x / (float)frameCenter.x) * SHRT_MAX;
 		DEPTH_WINDOW.depth[i].y = (centered[0].y / (float)frameCenter.y) * SHRT_MAX;
