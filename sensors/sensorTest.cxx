@@ -43,18 +43,16 @@ int main(int argc, char* argv[])
 
 		const int scale = 500;
 
-		readings[0][i] = center + velEst.x / scale;
+		readings[0][i] = center + SYS.body.imu.rawReadings.linear.y / scale;
 		readings[1][i] = center + velEst.y / scale;
-		readings[2][i] = center + velEst.z / scale;
 
 		++i;
 		i %= samples;
 
 		clear();
 		icLineGraph(topLeft, bottomRight, '-', origin, 100);
-		icLineGraph(topLeft, bottomRight, 'x', readings[0], samples);
-		icLineGraph(topLeft, bottomRight, 'y', readings[1], samples);
-		icLineGraph(topLeft, bottomRight, 'z', readings[2], samples);
+		icLineGraph(topLeft, bottomRight, 'r', readings[0], samples);
+		icLineGraph(topLeft, bottomRight, 'e', readings[1], samples);
 
 		icPresent();
 
