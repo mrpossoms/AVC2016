@@ -17,11 +17,13 @@ int main(int argc, char* argv[])
 	setsockopt(sock, AF_INET, SO_REUSEPORT, &yes, sizeof(yes));
 	errno = 0;
 
-	struct sockaddr_in addr = {
-		.sin_family = AF_INET,
-		.sin_port   = htons(1338),
-		.sin_addr   = htonl(INADDR_ANY),
-	};
+	struct sockaddr_in addr = { };
+
+	addr.sin_family      = AF_INET;
+	addr.sin_port        = htons(2048);
+	addr.sin_addr.s_addr = (INADDR_ANY);
+
+	printf("Setup\n");
 
 	assert(!conInit());
 
