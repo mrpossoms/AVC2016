@@ -2,7 +2,9 @@
 #include <arpa/inet.h>
 #include <assert.h>
 #include <unistd.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "controls/servos.h"
 #include "rc.h"
@@ -10,25 +12,34 @@
 int main(int argc, char* argv[])
 {
 	int sock = socket(AF_INET, SOCK_DGRAM, 0);
+	int yes = 1;
+	setsockopt(sock, AF_INET, SO_REUSEADDR, &yes, sizeof(yes));	
+	setsockopt(sock, AF_INET, SO_REUSEPORT, &yes, sizeof(yes));
+	errno = 0;
 
 	struct sockaddr_in addr = {
 		.sin_family = AF_INET,
-		.sin_port   = htons(1337),
+		.sin_port   = htons(1338),
 		.sin_addr   = htonl(INADDR_ANY),
 	};
 
 	assert(!conInit());
 
 	assert(sock > 0);
-	bind(sock, (const struct sockaddr*)&addr, sizeof(addr));
+
+	int res = bind(sock, (const struct sockaddr*)&addr, sizeof(addr));
+	printf("%d %d\n", res, errno);
+	
+	assert(res >= 0);
 
 	while(1){
-		struct timeval timeout = { 0, 10000 };
+		struct timeval timeout = { 1, 0 };
 		fd_set readFd;
-		rcMessage_t msg = {};
+		rcMessage_t msg = { 0, 50, 50 };
 
 		FD_ZERO(&readFd);
 		FD_SET(sock, &readFd);
+
 
 		if(select(sock + 1, &readFd, 0, 0, &timeout) <= 0){
 			conSet(0, 50);
@@ -36,11 +47,14 @@ int main(int argc, char* argv[])
 			continue;
 		}
 
-		int bytes = recv(sock, &msg, sizeof(msg), 0);
+
+		int bytes = recv(sock, &msg, sizeof(msg), MSG_WAITALL);
+
+		printf("Got %d bytes\n");
 
 		if(bytes == sizeof(msg)){
-			conSet(0, msg.throttle);
-			conSet(1, msg.steering);
+			conSet(1, msg.throttle);
+			conSet(0, msg.steering);
 		}
 
 		usleep(1000);
