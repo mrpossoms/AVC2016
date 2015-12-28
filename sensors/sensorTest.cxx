@@ -21,6 +21,14 @@ int main(int argc, char* argv[])
 
 	assert(!res);
 
+	const int samples = 50;
+	int i = 0;
+	int readings[3][50] = {{},{},{}};
+	int origin[100];
+	
+	for(int i = 100; i--; origin[i] = 0)
+		bzero(readings[0], sizeof(int) * samples);
+
 	while(1){
 		char buf[64] = {};
 		senUpdate(&SYS.body);
@@ -28,21 +36,27 @@ int main(int argc, char* argv[])
 		vec3f_t posMes = SYS.body.measured.position, posEst = SYS.body.estimated.position;
 		vec3f_t velMes = SYS.body.measured.velocity, velEst = SYS.body.estimated.velocity;
 	
-		sprintf(
-			buf,
-			"Position mes:(%f, %f, %f) est:(%f, %f, %f)\n",
-			posMes.x, posMes.y, posMes.z,
-			posEst.x, posEst.y, posEst.z
-		);
-		icText(2, 2, buf);
+		int topLeft[2] = { 5, 2 };
+		int bottomRight[2] = { IC_TERM_WIDTH - 5, IC_TERM_HEIGHT - 2};	
+		
+		int center = (bottomRight[1] - topLeft[1]) / 2;
 
-		sprintf(
-			buf,
-			"Velocity mes:(%f, %f, %f) est:(%f, %f, %f)\n",
-			velMes.x, velMes.y, velMes.z,
-			velEst.x, velEst.y, velEst.z
-		);
-		icText(2, 4, buf);
+		const int scale = 500;
+
+		readings[0][i] = center + velEst.x / scale;
+		readings[1][i] = center + velEst.y / scale;
+		readings[2][i] = center + velEst.z / scale;
+
+		++i;
+		i %= samples;
+
+		clear();
+		icLineGraph(topLeft, bottomRight, '-', origin, 100);
+		icLineGraph(topLeft, bottomRight, 'x', readings[0], samples);
+		icLineGraph(topLeft, bottomRight, 'y', readings[1], samples);
+		icLineGraph(topLeft, bottomRight, 'z', readings[2], samples);
+
+		icPresent();
 
 		timerUpdate();
 		usleep(1000);
