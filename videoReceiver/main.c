@@ -18,13 +18,16 @@
 // #define RENDER_DEMO
 
 GLFWwindow* WIN;
-char* frameBuffer = NULL;
+GLuint frameTex;
+size_t frameBufferSize;
+char*  frameBuffer = NULL;
 struct sockaddr_in HOST;
 depthWindow_t DEPTHS;
 
 int RC_SOCK;
 rcMessage_t RC_STATE;
 int RC_NEW_DATA;
+int HAS_GOTTEN_FRAME = 0;
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -107,6 +110,8 @@ static int rxProcessorFrame(int sock, struct sockaddr_in* peer)
 		frameBuffer
 	);
 
+	HAS_GOTTEN_FRAME = 1;
+
 	return 0;
 }
 
@@ -149,8 +154,6 @@ static void createTexture(GLuint* tex)
 static int oneOK;
 int main(int argc, char* argv[])
 {
-	size_t    frameBufferSize;
-	GLuint    frameTex;
 	pthread_t rcThread;
 
 	if (!glfwInit()){
@@ -171,7 +174,8 @@ int main(int argc, char* argv[])
 	commInitClient(argv[1], 1337, &HOST);
 	commRegisterRxProc(MSG_VIDEO, rxProcessorFrame);
 	commRegisterRxProc(MSG_TRACKING, rxProcessorDepths);
-	printf("size %d\n", commSend(MSG_GREETING, NULL, 0, &HOST));
+	printf("Connecting");
+	printf(".", commSend(MSG_GREETING, NULL, 0, &HOST));
 
 	pthread_create(&rcThread, NULL, rcWorker, NULL);
 	glfwSetKeyCallback(WIN, key_callback);
@@ -186,7 +190,7 @@ int main(int argc, char* argv[])
 	if(!res) oneOK = 1;
 #endif
 
-	if(res && !oneOK){
+	if(!oneOK){
 		static int rand_fd;
 		frameHeader_t header;
 
@@ -216,6 +220,23 @@ int main(int argc, char* argv[])
 			frameBuffer
 		);
 
+		// keep trying to connect
+		printf(".", commSend(MSG_GREETING, NULL, 0, &HOST));
+	}
+	else if(!HAS_GOTTEN_FRAME){
+		memset(frameBuffer, 0xff, 16 * 16);
+
+		glTexImage2D(
+			GL_TEXTURE_2D,
+			0,
+			GL_LUMINANCE, // one color channel
+			16,
+			16,
+			0, // no border
+			GL_LUMINANCE,
+			GL_UNSIGNED_BYTE,
+			frameBuffer
+		);
 	}
 
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -238,7 +259,7 @@ int main(int argc, char* argv[])
 		glDisable(GL_TEXTURE_2D);
 		glBegin(GL_POINTS);
 		for(int i = DEPTHS.detectedFeatures; i--;){
-			glColor3f(DEPTHS.depth[i].z / 100.0f, 0.1f, 0);
+			glColor3f(0.1f, DEPTHS.depth[i].z / 10, 0);
 			glVertex2f(DEPTHS.depth[i].x / (float)SHRT_MAX, -DEPTHS.depth[i].y / (float)SHRT_MAX);
 		}
 		glEnd();
