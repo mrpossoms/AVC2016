@@ -28,7 +28,7 @@
 #include "timer.h"
 #include "comms/protocol.h"
 #include "comms/messages.h"
-#include "sensors/imu.h"
+#include "sensors/aggergate.h"
 
 // #define DBG(str){\
 // 	if(errno){\
@@ -186,10 +186,9 @@ void computeDepths(trackingState_t* tracking)
 
 		// use the scale of this feature whose origin has been shifted to the center
 		// of the frame. The
-		static float deepest;
 		float depth = s * SYS.body.estimated.velocity.y / (1.0f - s);
 
-		tracking->featureDepths[bufInd][i] = 10 * depth;
+		tracking->featureDepths[bufInd][i] = 100 * depth;
 
 		DEPTH_WINDOW.depth[i].x = (centered[0].x / (float)frameCenter.x) * SHRT_MAX;
 		DEPTH_WINDOW.depth[i].y = (centered[0].y / (float)frameCenter.y) * SHRT_MAX;
@@ -244,7 +243,7 @@ int main(int argc, char* argv[])
 
 	errno = 0;
 #ifdef __linux__
-	int res = senInit(argv[1], argv[2], "./../imu.cal");
+	int res = senInit("/dev/i2c-1", "/dev/ttyAMA0", "./../imu.cal");
 #endif
 
 	DBG("");

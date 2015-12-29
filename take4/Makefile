@@ -3,8 +3,8 @@ $(eval OS := $(shell uname))
 CFLAGS=-g 
 
 INC   = -I./../ -I./../video
-SRC   = ./../system.c ./../timer.c ./../sensors/imu.c ./../video/*.c ./../comms/*.c main.cpp
-LINK  = -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_video -lindicurses -lcurses -lpthread -lm -llz4
+SRC   = ./../system.c ./../timer.c ./../sensors/*.c ./../video/*.c ./../comms/*.c main.cpp
+LINK  = -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_video -lindicurses -lcurses -lpthread -lm -llz4 -lNEMA
 
 ifeq ($(OS),Darwin)
 	LINK += -lopencv_videoio
