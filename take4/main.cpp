@@ -79,6 +79,7 @@ static txState_t        TRANSMIT_STATE;
 static depthWindow_t    DEPTH_WINDOW;
 static int              MY_SOCK;
 static struct sockaddr_in* PEER;
+static int NO_VIDEO_FRAMES;
 
 static int procGreeting(int sock, struct sockaddr_in* addr)
 {
@@ -209,6 +210,9 @@ int main(int argc, char* argv[])
 			if(!strncmp(argv[i], "-h", 2)){
 				centerY = atoi(argv[i] + 2) / 2;
 			}
+			if(!strncmp(argv[i], "--no-video", 10)){
+				NO_VIDEO_FRAMES = 1;
+			}
 		}
 	}
 
@@ -242,7 +246,7 @@ int main(int argc, char* argv[])
 	DBG("");
 	
 #ifdef __linux__
-	icInit();
+	//icInit();
 	pthread_create(&IMU_THREAD, NULL, imuHandler, NULL);
 #elif defined(__APPLE__)
 	namedWindow("AVC", CV_WINDOW_AUTOSIZE); //resizable window;
@@ -334,6 +338,7 @@ int main(int argc, char* argv[])
 			int res = 0;
 
 			if(!(FRAME_NUMBER % 1)){
+				if(!NO_VIDEO_FRAMES)
 				res = txFrame(
 					MY_SOCK,
 					(struct sockaddr_in*)PEER,
@@ -342,10 +347,6 @@ int main(int argc, char* argv[])
 					(const char*)greyProc[ts.dblBuff].data
 				);
 				commSend(MSG_TRACKING, &DEPTH_WINDOW, sizeof(DEPTH_WINDOW), PEER);
-			}
-
-			if(res < 0){
-				printf("Error %d\n", errno);
 			}
 		}
 

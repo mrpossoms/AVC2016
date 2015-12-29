@@ -17,6 +17,9 @@ int main(int argc, char* argv[])
 	printf("Res %d\n", res);
 
 	assert(!icInit());
+	start_color();
+	init_pair(1, COLOR_RED, COLOR_BLACK);
+	init_pair(2, COLOR_BLUE, COLOR_BLACK);
 	clear();
 
 	assert(!res);
@@ -33,27 +36,28 @@ int main(int argc, char* argv[])
 		char buf[64] = {};
 		senUpdate(&SYS.body);
 
-		vec3f_t posMes = SYS.body.measured.position, posEst = SYS.body.estimated.position;
-		vec3f_t velMes = SYS.body.measured.velocity, velEst = SYS.body.estimated.velocity;
-	
 		int topLeft[2] = { 5, 2 };
 		int bottomRight[2] = { IC_TERM_WIDTH - 5, IC_TERM_HEIGHT - 2};	
 		
 		int center = (bottomRight[1] - topLeft[1]) / 2;
 
-		const int scale = 500;
+		const int scale = 50;
 
-		readings[0][i] = center + SYS.body.imu.rawReadings.linear.y / scale;
-		readings[1][i] = center + velEst.y / scale;
+		readings[0][i] = center + SYS.body.imu.adjReadings.linear.y;
+		readings[1][i] = center + SYS.body.estimated.velocity.y * 10;
 
 		++i;
 		i %= samples;
 
 		clear();
-		icLineGraph(topLeft, bottomRight, '-', origin, 100);
+		attron(COLOR_PAIR(1));
 		icLineGraph(topLeft, bottomRight, 'r', readings[0], samples);
+		attron(COLOR_PAIR(2));
 		icLineGraph(topLeft, bottomRight, 'e', readings[1], samples);
+		attroff(COLOR_PAIR(2));
 
+		icLineGraph(topLeft, bottomRight, '-', origin, 100);
+		
 		icPresent();
 
 		timerUpdate();
