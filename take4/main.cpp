@@ -244,15 +244,14 @@ int main(int argc, char* argv[])
 
 	errno = 0;
 #ifdef __linux__
-	// open the I2C device
-	IMU_FD = open("/dev/i2c-1", O_RDWR);
+	int res = senInit(argv[1], argv[2], "./../imu.cal");
 #endif
 
 	DBG("");
 	
 #ifdef __linux__
 	//icInit();
-	pthread_create(&IMU_THREAD, NULL, imuHandler, NULL);
+	// pthread_create(&IMU_THREAD, NULL, imuHandler, NULL);
 #elif defined(__APPLE__)
 	namedWindow("AVC", CV_WINDOW_AUTOSIZE); //resizable window;
 	errno = 0;
