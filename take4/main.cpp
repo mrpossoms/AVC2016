@@ -25,6 +25,7 @@
 
 #include "system.h"
 #include "stream.h"
+#include "timer.h"
 #include "comms/protocol.h"
 #include "comms/messages.h"
 #include "sensors/imu.h"
@@ -188,12 +189,6 @@ void computeDepths(trackingState_t* tracking)
 		static float deepest;
 		float depth = s * SYS.body.estimated.velocity.y / (1.0f - s);
 
-		printf("depth %f\n", depth);
-
-		if(fabs(depth) > deepest){
-			printf("Deepest %f\n", deepest = depth);
-		}
-
 		tracking->featureDepths[bufInd][i] = 10 * depth;
 
 		DEPTH_WINDOW.depth[i].x = (centered[0].x / (float)frameCenter.x) * SHRT_MAX;
@@ -342,7 +337,10 @@ int main(int argc, char* argv[])
 		}
 
 		imshow("AVC", frame);
+#else
+		senUpdate(&SYS.body);
 #endif
+
 		DBG("");
 		if(PEER){
 			int res = 0;
@@ -367,7 +365,7 @@ int main(int argc, char* argv[])
 			greyProc[ts.dblBuff],
 			ts.features[ts.dblBuff],
 			MAX_FEATURES,
-			0.01,        // quality
+			0.1,        // quality
 			0.01,        // min distance
 			Mat(),       // mask for ROI
 			9,           // block size
@@ -376,6 +374,8 @@ int main(int argc, char* argv[])
 		);
 
 		DBG("");
+
+		timerUpdate();
 		ts.dblBuff = !ts.dblBuff;
 		isReady = 1;
 		++FRAME_NUMBER;
