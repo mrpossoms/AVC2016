@@ -184,8 +184,17 @@ void computeDepths(trackingState_t* tracking)
 		// assert(fabs(centered[1].y * s - centered[0].y) < 0.001);
 
 		// use the scale of this feature whose origin has been shifted to the center
-		// of the frame. The 
-		tracking->featureDepths[bufInd][i] = s * SYS.body.estimated.velocity.y / (1.0f - s);
+		// of the frame. The
+		static float deepest;
+		float depth = s * SYS.body.estimated.velocity.y / (1.0f - s);
+
+		printf("depth %f\n", depth);
+
+		if(fabs(depth) > deepest){
+			printf("Deepest %f\n", deepest = depth);
+		}
+
+		tracking->featureDepths[bufInd][i] = 10 * depth;
 
 		DEPTH_WINDOW.depth[i].x = (centered[0].x / (float)frameCenter.x) * SHRT_MAX;
 		DEPTH_WINDOW.depth[i].y = (centered[0].y / (float)frameCenter.y) * SHRT_MAX;
@@ -212,6 +221,7 @@ int main(int argc, char* argv[])
 			}
 			if(!strncmp(argv[i], "--no-video", 10)){
 				NO_VIDEO_FRAMES = 1;
+				printf("Not transmitting video\n");
 			}
 		}
 	}
@@ -337,8 +347,7 @@ int main(int argc, char* argv[])
 		if(PEER){
 			int res = 0;
 
-			if(!(FRAME_NUMBER % 1)){
-				if(!NO_VIDEO_FRAMES)
+			if(!NO_VIDEO_FRAMES){
 				res = txFrame(
 					MY_SOCK,
 					(struct sockaddr_in*)PEER,
@@ -346,8 +355,8 @@ int main(int argc, char* argv[])
 					&TRANSMIT_STATE,
 					(const char*)greyProc[ts.dblBuff].data
 				);
-				commSend(MSG_TRACKING, &DEPTH_WINDOW, sizeof(DEPTH_WINDOW), PEER);
 			}
+			commSend(MSG_TRACKING, &DEPTH_WINDOW, sizeof(DEPTH_WINDOW), PEER);
 		}
 
 		commListen();
@@ -361,7 +370,7 @@ int main(int argc, char* argv[])
 			0.01,        // quality
 			0.01,        // min distance
 			Mat(),       // mask for ROI
-			3,           // block size
+			9,           // block size
 			0,           // use harris detector
 			0.04         // not used (free param of harris)
 		);

@@ -4,8 +4,6 @@
 #include "types.h"
 #include "system.h"
 
-#define MAX_FEATURES 400
-
 #ifdef __cplusplus
 extern "C" {
 #endif
