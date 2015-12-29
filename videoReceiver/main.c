@@ -42,7 +42,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     	RC_STATE.throttle = action == GLFW_RELEASE ? 50 : 45;
     }
 
-    printf("%d %d\n", RC_STATE.throttle, RC_STATE.steering);
     RC_NEW_DATA = 1;
 }
 
@@ -63,7 +62,6 @@ static void* rcWorker(void* args)
 				(const struct sockaddr*)&peer,
 				sizeof(peer)
 			);
-			printf("Sent!\n");
 			RC_NEW_DATA = 0;
 		}
 	}
