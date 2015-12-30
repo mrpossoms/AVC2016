@@ -57,7 +57,7 @@ void transmit(){
     self.throttleStick.xAxisDisabled = YES;
     self.steerStick.yAxisDisabled    = YES;
     
-    [self.throttleStick setRangeForAxis:1 withMin:75 andMax:25];
+    [self.throttleStick setRangeForAxis:1 withMin:60 andMax:40];
     [self.steerStick setRangeForAxis:0 withMin:25 andMax:75];
     
     self.throttleStick.delegate = self;
@@ -92,7 +92,21 @@ void transmit(){
     struct hostent* he = NULL;
     
     if(!(he = gethostbyname([self.ipAddressText.text UTF8String]))){
+        UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Error" message:@"Host name could not be resolved" preferredStyle:UIAlertControllerStyleAlert];
+        
+        UIAlertAction* defaultAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault
+                                                              handler:^(UIAlertAction * action) {}];
+        
+        [alert addAction:defaultAction];
+        [self presentViewController:alert animated:YES completion:^{
+            // NOOP
+        }];
+        
         return;
+    }
+    else{
+        unsigned char* addr = (unsigned char*)he->h_addr_list[0];
+        self.ipAddressText.text = [NSString stringWithFormat:@"%d.%d.%d.%d", addr[0], addr[1], addr[2], addr[3]];
     }
     
     HOST.sin_family = AF_INET;
