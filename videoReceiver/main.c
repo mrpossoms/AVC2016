@@ -39,7 +39,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     }
      
     if (key == GLFW_KEY_UP){
-    	RC_STATE.throttle = action == GLFW_RELEASE ? 50 : 55;
+    	RC_STATE.throttle = action == GLFW_RELEASE ? 50 : 54;
     }
     if (key == GLFW_KEY_DOWN){
     	RC_STATE.throttle = action == GLFW_RELEASE ? 50 : 45;
@@ -259,7 +259,7 @@ int main(int argc, char* argv[])
 		glDisable(GL_TEXTURE_2D);
 		glBegin(GL_POINTS);
 		for(int i = DEPTHS.detectedFeatures; i--;){
-			glColor3f(0.1f, DEPTHS.depth[i].z / 10, 0);
+			glColor3f(0.1f, DEPTHS.depth[i].z / 100.0f, 0);
 			glVertex2f(DEPTHS.depth[i].x / (float)SHRT_MAX, -DEPTHS.depth[i].y / (float)SHRT_MAX);
 		}
 		glEnd();
