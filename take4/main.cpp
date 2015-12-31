@@ -186,7 +186,7 @@ void computeDepths(trackingState_t* tracking)
 
 		// use the scale of this feature whose origin has been shifted to the center
 		// of the frame. The
-		float depth = s * SYS.body.estimated.velocity.y / (1.0f - s);
+		float depth = s * (SYS.body.estimated.velocity.y = 1) / (1.0f - s);
 
 		tracking->featureDepths[bufInd][i] = 100 * depth;
 
@@ -257,12 +257,27 @@ int main(int argc, char* argv[])
 #endif
 	int cornerCount = MAX_FEATURES;
 	
-	DBG("");
+		float side = sqrtf(MAX_FEATURES);
+		for(int i = MAX_FEATURES; i--;){
+
+			float x = (i % (int)side) * width / side;
+			float y = (i / side) * height / side;
+			ts.features[!ts.dblBuff].push_back(Point2f(x, y));
+			ts.features[ts.dblBuff].push_back(Point2f(x, y));
+			ts.statusVector.push_back(0);	
+		}
 
 	while(1){
-		DBG("");
-
 		Mat currFrame;
+
+		float side = sqrtf(MAX_FEATURES);
+		for(int i = MAX_FEATURES; i--;){
+
+			float x = (i % (int)side) * width / side;
+			float y = (i / side) * height / side;
+			ts.features[!ts.dblBuff][i] = (Point2f(x, y));
+			ts.features[ts.dblBuff][i] = (Point2f(x, y));	
+		}
 
 		if(hasVideoFeed){
 			cap >> currFrame;
@@ -317,9 +332,9 @@ int main(int argc, char* argv[])
 				0
 			);
 
-			float dx = (ts.features[ts.dblBuff][i].x - ts.features[!ts.dblBuff][i].x) * 10;
-			float dy = (ts.features[ts.dblBuff][i].y - ts.features[!ts.dblBuff][i].y) * 10;
-			float depth = dx * dx + dy * dy;
+			float dx = (ts.features[ts.dblBuff][i].x - ts.features[!ts.dblBuff][i].x) * 2;
+			float dy = (ts.features[ts.dblBuff][i].y - ts.features[!ts.dblBuff][i].y) * 2;
+			float depth = DEPTH_WINDOW.depth[i].z;
 
 			depth = pow(depth, 64);
 
@@ -352,24 +367,25 @@ int main(int argc, char* argv[])
 					(const char*)greyProc[ts.dblBuff].data
 				);
 			}
+			DEPTH_WINDOW.detectedFeatures = 400;
 			commSend(MSG_TRACKING, &DEPTH_WINDOW, sizeof(DEPTH_WINDOW), PEER);
 		}
 
 		commListen();
 		DBG("");
 
-		// detect features
-		goodFeaturesToTrack(
-			greyProc[ts.dblBuff],
-			ts.features[ts.dblBuff],
-			MAX_FEATURES,
-			0.1,        // quality
-			0.01,        // min distance
-			Mat(),       // mask for ROI
-			9,           // block size
-			0,           // use harris detector
-			0.04         // not used (free param of harris)
-		);
+		// // detect features
+		// goodFeaturesToTrack(
+		// 	greyProc[ts.dblBuff],
+		// 	ts.features[ts.dblBuff],
+		// 	MAX_FEATURES,
+		// 	0.1,        // quality
+		// 	0.01,        // min distance
+		// 	Mat(),       // mask for ROI
+		// 	9,           // block size
+		// 	0,           // use harris detector
+		// 	0.04         // not used (free param of harris)
+		// );
 
 		DBG("");
 

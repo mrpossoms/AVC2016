@@ -2,7 +2,8 @@ $(eval OS := $(shell uname))
 
 CFLAGS=-g 
 
-INC   = -I./../ -I./../video
+INC   = -I./../ -I./../video -I/usr/local/include
+LIB   = -L/usr/local/lib
 SRC   = ./../system.c ./../timer.c ./../sensors/*.c ./../video/*.c ./../comms/*.c main.cpp
 LINK  = -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_video -lindicurses -lcurses -lpthread -lm -llz4 -lNEMA
 
@@ -11,7 +12,7 @@ ifeq ($(OS),Darwin)
 endif
 
 all:
-	g++ $(CFLAGS) $(INC) $(SRC) -o objectDetection $(LINK)
+	g++ $(CFLAGS) $(LIB) $(INC) $(SRC) -o objectDetection $(LINK)
 	
 legacy:
 	gcc $(CFLAGS) -I./../ ./../imu.c main.c -o objectDetection $(LINK)

@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <math.h>
+#include <string.h>
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -177,7 +179,14 @@ int main(int argc, char* argv[])
 	printf("Connecting");
 	printf(".", commSend(MSG_GREETING, NULL, 0, &HOST));
 
-	pthread_create(&rcThread, NULL, rcWorker, NULL);
+	for(int i = argc; i--;){
+		const char use_controls[] = "--remote-control";
+
+		if(strncmp(argv[i], use_controls, sizeof(use_controls))){
+			pthread_create(&rcThread, NULL, rcWorker, NULL);
+		}
+	}
+	
 	glfwSetKeyCallback(WIN, key_callback);
 
 	int frameCount = 0;
@@ -255,11 +264,26 @@ int main(int argc, char* argv[])
 			glTexCoord2f(1, 0);
 		glEnd();
 
+		const float spectrum[][3] = {
+			{ 1.0, 0.0, 0.0 },
+			{ 1.0, 0.5, 0.0 },
+			{ 1.0, 1.0, 0.0 },
+			{ 0.0, 0.0, 1.0 },
+			{ 1.0, 0.0, 1.0 },
+		};
+
 		glPointSize(10);
 		glDisable(GL_TEXTURE_2D);
 		glBegin(GL_POINTS);
 		for(int i = DEPTHS.detectedFeatures; i--;){
-			glColor3f(0.1f, DEPTHS.depth[i].z / 100.0f, 0);
+			float meters = DEPTHS.depth[i].z / 100.0f;
+			float p = meters - floor(meters);
+
+			float r = spectrum[(int)meters][0] * (1 - p) + spectrum[(int)ceil(meters)][0] * p;
+			float g = spectrum[(int)meters][1] * (1 - p) + spectrum[(int)ceil(meters)][1] * p;
+			float b = spectrum[(int)meters][2] * (1 - p) + spectrum[(int)ceil(meters)][2] * p;
+
+			glColor3f(r, g, b);
 			glVertex2f(DEPTHS.depth[i].x / (float)SHRT_MAX, -DEPTHS.depth[i].y / (float)SHRT_MAX);
 		}
 		glEnd();
