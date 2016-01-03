@@ -4,7 +4,7 @@
 #include "types.h"
 #include "sensors/imu.h"
 
-#define MAX_FEATURES 400
+#define MAX_FEATURES 900
 
 //    _____                  
 //   |_   _|  _ _ __  ___ ___

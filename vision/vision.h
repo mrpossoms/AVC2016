@@ -20,12 +20,20 @@ using namespace cv;
 using namespace std;
 
 typedef struct{
+	Point2f topLeft, bottomRight;
+} boundingBox_t;
+
+typedef struct{
 	CvPoint         frameCenter;
 	vector<Point2f> features[2];
+	vector<Point2f> flow;
 	float           featureDepths[2][MAX_FEATURES];
 	int             dblBuff;
 	vector<unsigned char> statusVector;
 	vector<float>         errorVector;
+
+	boundingBox_t   regions[256];
+	int             maxRegion;
 } trackingState_t;
 
 int  visionInit(trackingState_t* tracking, int width, int height);

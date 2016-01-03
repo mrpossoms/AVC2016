@@ -37,6 +37,8 @@
 // 	}\
 // }\
 
+#define MAX_REGIONS 256
+
 #define DBG(str){\
 }\
 
@@ -69,18 +71,62 @@ const float FOCAL_PLANE = 1;
 //         |__/|_|           
 typedef struct{
 	CvPoint         frameCenter;
-	vector<Point2f> features[2];
+	struct {
+		vector<Point2f> points[2];
+		vector<Point2f> delta;
+		vector<uint8_t> regionIndex;
+	} features;
 	float           featureDepths[2][MAX_FEATURES];
 	int             dblBuff;
 	vector<unsigned char> statusVector;
 	vector<float>         errorVector;
 } trackingState_t;
 
+typedef struct{
+	Point2f topLeft, bottomRight;
+	Point2f lastMean;
+	Point2f mean;
+	Point2f variance;
+	int features;
+} trackingRegion_t;
+
+int maxRegion;
+trackingRegion_t regions[MAX_REGIONS];
+uint8_t regionColors[MAX_REGIONS][3];
+
 static txState_t        TRANSMIT_STATE;
 static depthWindow_t    DEPTH_WINDOW;
 static int              MY_SOCK;
 static struct sockaddr_in* PEER;
 static int NO_VIDEO_FRAMES;
+
+static Point2f featureDerivative(trackingState_t* ts, int x, int y)
+{
+	return ts->features.delta[y * 30 + x];
+}
+
+static Point2f gradient(trackingState_t* ts, int x, int y)
+{
+	if(x >= 29){
+		x = 28;
+	}
+	else if(x < 0){
+		x = 0;
+	}
+
+	if(y >= 29){
+		y = 29;
+	}
+	else if(y < 0){
+		y = 0;
+	}
+
+	Point2f f0 = featureDerivative(ts, x, y);
+	Point2f f1 = featureDerivative(ts, x + 1, y + 1);
+
+
+	return Point2f(f1.x - f0.x, f1.y - f0.y);
+}
 
 static int procGreeting(int sock, struct sockaddr_in* addr)
 {
@@ -158,14 +204,14 @@ void computeDepths(trackingState_t* tracking)
 	int bufInd = tracking->dblBuff;
 	CvPoint frameCenter = tracking->frameCenter;
 
-	DEPTH_WINDOW.detectedFeatures = tracking->features[bufInd].size();
+	DEPTH_WINDOW.detectedFeatures = tracking->features.points[bufInd].size();
 
-	for(int i = tracking->features[bufInd].size(); i--;){
+	for(int i = tracking->features.points[bufInd].size(); i--;){
 		if(!tracking->statusVector[i]) continue;
 
 		CvPoint2D32f centered[2] = {
-			cvPoint2D32f(tracking->features[bufInd][i].x  - frameCenter.x, tracking->features[bufInd][i].y  - frameCenter.y),
-			cvPoint2D32f(tracking->features[!bufInd][i].x - frameCenter.x, tracking->features[!bufInd][i].y - frameCenter.y),
+			cvPoint2D32f(tracking->features.points[bufInd][i].x  - frameCenter.x, tracking->features.points[bufInd][i].y  - frameCenter.y),
+			cvPoint2D32f(tracking->features.points[!bufInd][i].x - frameCenter.x, tracking->features.points[!bufInd][i].y - frameCenter.y),
 		};
 
 		float dx  = (centered[0].x - centered[1].x);
@@ -196,22 +242,39 @@ void computeDepths(trackingState_t* tracking)
 	}
 }
 
+static void computeRegionBBoxes(trackingState_t* ts);
+static void computeRegionMeans(Mat* frame, trackingState_t* ts);
+static void computeRegionVariances(Mat* frame, trackingState_t* ts);
+static void resetRegion(trackingRegion_t* region);
+static float regionDensity(int r);
+static uint8_t regionIndexForDelta(trackingState_t* ts, int deltaIndex);
+
+int width, height;
 int main(int argc, char* argv[])
 {
 	Mat frame, frameGrey, greyProc[2];
 
 	char* hostname = NULL;
 	int centerX = 320, centerY = 240;
-	int width = centerX * 2, height = centerY * 2;
 	int isReady = 0, hasVideoFeed = 0;
+
+	commRegisterRxProc(MSG_GREETING, procGreeting);
+	assert(!commInitHost(1337));
+
+	trackingState_t ts = {
+		.frameCenter = cvPoint(320, 240),
+	};
+
+	VideoCapture cap("./SparkFun_AVC_2015.avi");
+	hasVideoFeed = cap.isOpened();
 
 	if(argc >= 3){
 		for(int i = 1; i < argc; ++i){
 			if(!strncmp(argv[i], "-w", 2)){
-				centerX = atoi(argv[i] + 2) / 2;
+				ts.frameCenter.x = atoi(argv[i] + 2) / 2;
 			}
 			if(!strncmp(argv[i], "-h", 2)){
-				centerY = atoi(argv[i] + 2) / 2;
+				ts.frameCenter.y = atoi(argv[i] + 2) / 2;
 			}
 			if(!strncmp(argv[i], "--no-video", 10)){
 				NO_VIDEO_FRAMES = 1;
@@ -220,16 +283,6 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	commRegisterRxProc(MSG_GREETING, procGreeting);
-	assert(!commInitHost(1337));
-
-	trackingState_t ts = {
-		.frameCenter = cvPoint(centerX, centerY),
-	};
-
-	VideoCapture cap(0);
-	hasVideoFeed = cap.isOpened();
-
 	width  = ts.frameCenter.x * 2;
 	height = ts.frameCenter.y * 2;
 
@@ -237,8 +290,11 @@ int main(int argc, char* argv[])
 		// set capture size
 		cap.set(CV_CAP_PROP_FRAME_WIDTH, width);
 		cap.set(CV_CAP_PROP_FRAME_HEIGHT, height);
-		cap.set(CV_CAP_PROP_FPS, 12);
+		cap.set(CV_CAP_PROP_FPS, 2);
 		printf("Capture dimensions (%d, %d)\n", width, height);
+	}
+	else{
+		printf("No capture\n");
 	}
 
 	errno = 0;
@@ -255,17 +311,25 @@ int main(int argc, char* argv[])
 	namedWindow("AVC", CV_WINDOW_AUTOSIZE); //resizable window;
 	errno = 0;
 #endif
-	int cornerCount = MAX_FEATURES;
 	
-		float side = sqrtf(MAX_FEATURES);
-		for(int i = MAX_FEATURES; i--;){
+	float side = sqrtf(MAX_FEATURES);
+	for(int i = MAX_FEATURES; i--;){
+		float x = (i % (int)side) * width / side;
+		float y = (i / side) * height / side;
+		ts.features.points[!ts.dblBuff].push_back(Point2f(x, y));
+		ts.features.points[ts.dblBuff].push_back(Point2f(x, y));
+		ts.features.delta.push_back(Point2f(0, 0));
+		ts.features.regionIndex.push_back(0);
+		ts.statusVector.push_back(0);
+	}
 
-			float x = (i % (int)side) * width / side;
-			float y = (i / side) * height / side;
-			ts.features[!ts.dblBuff].push_back(Point2f(x, y));
-			ts.features[ts.dblBuff].push_back(Point2f(x, y));
-			ts.statusVector.push_back(0);	
-		}
+	for(int i = MAX_REGIONS; i--;){
+		regionColors[i][0] = random() % 128;
+		regionColors[i][1] = random() % 255;
+		regionColors[i][2] = random() % 255; 
+	}
+	regionColors[0][0] = regionColors[0][1] = regionColors[0][2] = 0;
+
 
 	while(1){
 		Mat currFrame;
@@ -275,23 +339,19 @@ int main(int argc, char* argv[])
 
 			float x = (i % (int)side) * width / side;
 			float y = (i / side) * height / side;
-			ts.features[!ts.dblBuff][i] = (Point2f(x, y));
-			ts.features[ts.dblBuff][i] = (Point2f(x, y));	
+			ts.features.points[!ts.dblBuff][i] = (Point2f(x, y));
+			ts.features.points[ts.dblBuff][i] = (Point2f(x, y));
+			ts.features.regionIndex[i] = 0;
 		}
 
-		if(hasVideoFeed){
-			cap >> currFrame;
-			if(currFrame.empty()) continue;
-		}
-		else{
-			static int rand_fd;
-			if(!rand_fd){
-				rand_fd = open("/dev/random", O_RDONLY);
-			}	
+		cap >> currFrame;
 
-			currFrame.create(height, width, CV_8UC(3));
-			read(rand_fd, currFrame.data, width * height * 3);
+		if(currFrame.empty()){
+			printf("Is empty\n");
+			continue;
 		}
+
+		resize(currFrame, currFrame, Size(width, height), 0, 0, INTER_CUBIC);
 
 		if(!isReady){
 			frame = currFrame.clone();
@@ -300,94 +360,127 @@ int main(int argc, char* argv[])
 			greyProc[1] = frameGrey.clone();
 		}
 
+
+
 		currFrame.copyTo(frame);
 		cvtColor(frame, greyProc[ts.dblBuff], CV_BGR2GRAY);
-		
+
+
 		if(isReady){
-			DBG("");
 			calcOpticalFlowPyrLK(
 				greyProc[!ts.dblBuff],
 				greyProc[ts.dblBuff],
-				ts.features[!ts.dblBuff],
-				ts.features[ts.dblBuff],
+				ts.features.points[!ts.dblBuff],
+				ts.features.points[ts.dblBuff],
 				ts.statusVector,      // list of bools which inicate feature matches
 				ts.errorVector
 			);
 
+			for(int i = ts.features.points[ts.dblBuff].size(); i--;){
+				if(!ts.statusVector[i]) continue;
+				ts.features.delta[i] = Point2f(
+					ts.features.points[ts.dblBuff][i].x - ts.features.points[!ts.dblBuff][i].x,
+					ts.features.points[ts.dblBuff][i].y - ts.features.points[!ts.dblBuff][i].y
+				);
+			}
+
 			// TODO processing here
 			computeDepths(&ts);		
-			DBG("");
 		}
 
 #ifdef __APPLE__
-		for(int i = ts.features[ts.dblBuff].size(); i--;){
-			if(!ts.statusVector[i]) continue;
-			circle(
-				frame,
-				Point(ts.features[ts.dblBuff][i].x, ts.features[ts.dblBuff][i].y),
-				3,
-				Scalar(255, 0, 0, 255),
-				1,
-				8,
-				0
-			);
-
-			float dx = (ts.features[ts.dblBuff][i].x - ts.features[!ts.dblBuff][i].x) * 2;
-			float dy = (ts.features[ts.dblBuff][i].y - ts.features[!ts.dblBuff][i].y) * 2;
-			float depth = DEPTH_WINDOW.depth[i].z;
-
-			depth = pow(depth, 64);
-
-			line(
-				frame,
-				Point(ts.features[ts.dblBuff][i].x, ts.features[ts.dblBuff][i].y),
-				Point((ts.features[ts.dblBuff][i].x + dx) , (ts.features[ts.dblBuff][i].y + dy)),
-				Scalar(depth, dy + 128, dx + 128, 255 / (ts.errorVector[i] + 1)),
-				1, 
-				8,
-				0
-			);
+		// region reset
+		for(int i = MAX_REGIONS; i--;){
+			resetRegion(&regions[i]);
 		}
+		// maxRegion = 0;
+
+		computeRegionMeans(&frame, &ts);
+
+		// compute the varience
+		computeRegionVariances(&frame, &ts);
+
+		computeRegionBBoxes(&ts);
+
+		for(int r = 1; r <= maxRegion; ++r){
+			Point2f o(10, r * 24);
+			char buf[32] = {};
+			
+			if(!regions[r].features) continue;
+			
+			sprintf(buf, "density: %f", regionDensity(r));
+			putText(
+				frame,
+				buf,
+				o - Point2f(1, 1),
+				FONT_HERSHEY_PLAIN,
+				1,
+				Scalar(0, 0, 0)
+			);
+			putText(
+				frame,
+				buf,
+				o,
+				FONT_HERSHEY_PLAIN,
+				1,
+				Scalar(regionColors[r][0], regionColors[r][1], regionColors[r][2], 128)
+			);
+			sprintf(buf, "stdDev: (%0.3f, %0.3f)", sqrt(regions[r].variance.x), sqrt(regions[r].variance.y));
+			putText(
+				frame,
+				buf,
+				o + Point2f(0, 12) - Point2f(1, 1),
+				FONT_HERSHEY_PLAIN,
+				1,
+				Scalar(0, 0, 0)
+			);
+			putText(
+				frame,
+				buf,
+				o + Point2f(0, 12),
+				FONT_HERSHEY_PLAIN,
+				1,
+				Scalar(regionColors[r][0], regionColors[r][1], regionColors[r][2], 128)
+			);
+
+			rectangle(
+				frame,
+				Point(regions[r].topLeft.x, regions[r].topLeft.y),
+				Point(regions[r].bottomRight.x, regions[r].bottomRight.y),
+				// Scalar(0, ts.delta[i].y * 16 + 128, ts.delta[i].x * 16 + 128),
+				Scalar(regionColors[r][0], regionColors[r][1], regionColors[r][2], 128),
+				1,
+				8
+			);
+		}		
+
 
 		imshow("AVC", frame);
 #else
 		senUpdate(&SYS.body);
 #endif
 
-		DBG("");
-		if(PEER){
-			int res = 0;
+		// DBG("");
+		// if(PEER){
+		// 	int res = 0;
 
-			if(!NO_VIDEO_FRAMES){
-				res = txFrame(
-					MY_SOCK,
-					(struct sockaddr_in*)PEER,
-					width, height, 
-					&TRANSMIT_STATE,
-					(const char*)greyProc[ts.dblBuff].data
-				);
-			}
-			DEPTH_WINDOW.detectedFeatures = 400;
-			commSend(MSG_TRACKING, &DEPTH_WINDOW, sizeof(DEPTH_WINDOW), PEER);
-		}
+		// 	if(!NO_VIDEO_FRAMES){
+		// 		res = txFrame(
+		// 			MY_SOCK,
+		// 			(struct sockaddr_in*)PEER,
+		// 			width, height, 
+		// 			&TRANSMIT_STATE,
+		// 			(const char*)greyProc[ts.dblBuff].data
+		// 		);
+		// 	}
+		// 	DEPTH_WINDOW.detectedFeatures = 400;
+		// 	commSend(MSG_TRACKING, &DEPTH_WINDOW, sizeof(DEPTH_WINDOW), PEER);
+		// }
 
-		commListen();
-		DBG("");
+		//commListen();
 
-		// // detect features
-		// goodFeaturesToTrack(
-		// 	greyProc[ts.dblBuff],
-		// 	ts.features[ts.dblBuff],
-		// 	MAX_FEATURES,
-		// 	0.1,        // quality
-		// 	0.01,        // min distance
-		// 	Mat(),       // mask for ROI
-		// 	9,           // block size
-		// 	0,           // use harris detector
-		// 	0.04         // not used (free param of harris)
-		// );
-
-		DBG("");
+		char c = cvWaitKey(16);
+		if (c == 27) break;
 
 		timerUpdate();
 		ts.dblBuff = !ts.dblBuff;
@@ -396,4 +489,149 @@ int main(int argc, char* argv[])
 	}
 
 	return 0;
+}
+
+static uint8_t regionIndexForDelta(trackingState_t* ts, int i)
+{
+	float s = sqrtf(ts->features.delta[i].x * ts->features.delta[i].x + ts->features.delta[i].y * ts->features.delta[i].y);
+	if(ts->errorVector[i] > 1) s /= ts->errorVector[i];
+	return (s / 1000) * MAX_REGIONS;
+}
+
+static Point2f featureIndexes(int i)
+{
+	float side = sqrtf(MAX_FEATURES);
+	return Point2f((i % (int)side) * width / side, (i / side) * height / side);
+}
+
+static void computeRegionMeans(Mat* frame, trackingState_t* ts)
+{
+	for(int i = ts->features.points[ts->dblBuff].size(); i--;){
+		if(!ts->statusVector[i]) continue;
+		
+		uint8_t r = regionIndexForDelta(ts, i);
+
+		if(r > maxRegion) maxRegion = r;
+
+		Point2f pos = featureIndexes(i); //(ts->features.points[ts->dblBuff][i].x, ts->features.points[ts->dblBuff][i].y);
+		// float s = sqrtf(ts->features.delta[i].x * ts->features.delta[i].x + ts->features.delta[i].y * ts->features.delta[i].y);
+		// if(ts->errorVector[i] > 1) s /= ts->errorVector[i];
+		float s = 4;
+
+		if(r)
+		rectangle(
+			*frame,
+			Point(ts->features.points[ts->dblBuff][i].x - s, ts->features.points[ts->dblBuff][i].y - s),
+			Point(ts->features.points[ts->dblBuff][i].x + s, ts->features.points[ts->dblBuff][i].y + s),
+			// Scalar(0, ts->delta[i].y * 16 + 128, ts->delta[i].x * 16 + 128),
+			Scalar(regionColors[r][0], regionColors[r][1], regionColors[r][2], 128),
+			-1,
+			8
+		);
+
+		Point2f delta = ts->features.delta[i];
+		line(
+			*frame,
+			ts->features.points[ts->dblBuff][i],
+			ts->features.points[ts->dblBuff][i] + delta,
+			Scalar(0, 128 + 255 * delta.x, 128 + 255 * delta.y)
+		);
+
+		ts->features.regionIndex[i] = r;
+		regions[r].mean += pos;
+		regions[r].features++;
+	}
+
+	for(int r = 1; r <= maxRegion; ++r){
+		regions[r].mean /= regions[r].features;
+	}
+}
+
+static void computeRegionVariances(Mat* frame, trackingState_t* ts)
+{
+	float side = sqrtf(MAX_FEATURES);
+	static float lastTime;
+
+	float dt = 1;//SYS.timeUp - lastTime;
+
+	for(int i = ts->features.points[ts->dblBuff].size(); i--;){
+		if(!ts->statusVector[i]) continue;
+
+		Point2f pos = featureIndexes(i);//(ts->features.points[ts->dblBuff][i].x, ts->features.points[ts->dblBuff][i].y);
+		uint8_t r = ts->features.regionIndex[i];
+
+		Point2f muDelta = (regions[r].mean - pos) * dt;
+		Point2f muDeltaSqr(muDelta.x * muDelta.x, muDelta.y * muDelta.y);
+		regions[r].variance += muDeltaSqr / regions[r].features;
+	}
+
+	lastTime = SYS.timeUp;
+
+	for(int r = 1; r <= maxRegion; ++r){
+		ellipse(
+			*frame,
+			Point2f(regions[r].mean.x, regions[r].mean.y),
+			Size2f(sqrt(regions[r].variance.x) , sqrt(regions[r].variance.y)),
+			0,
+			0,
+			360,
+			Scalar(regionColors[r][0], regionColors[r][1], regionColors[r][2], 128)
+		);
+		ellipse(
+			*frame,
+			Point2f(regions[r].mean.x, regions[r].mean.y),
+			Size2f(sqrt(regions[r].variance.x) * 2, sqrt(regions[r].variance.y) * 2),
+			0,
+			0,
+			360,
+			Scalar(regionColors[r][0], regionColors[r][1], regionColors[r][2], 128)
+		);
+	}
+
+}
+static float regionDensity(int r)
+{
+	float width  = regions[r].bottomRight.x - regions[r].topLeft.x;
+	float height = regions[r].bottomRight.y - regions[r].topLeft.y;
+
+	return regions[r].features / (width * height);
+}
+
+static void computeRegionBBoxes(trackingState_t* ts)
+{
+	for(int i = ts->features.points[ts->dblBuff].size(); i--;){
+		if(!ts->statusVector[i]) continue;
+		
+		uint8_t r = ts->features.regionIndex[i];
+		Point2f inds = featureIndexes(r);
+		Point2f pos(ts->features.points[ts->dblBuff][i].x, ts->features.points[ts->dblBuff][i].y);
+
+		Point2f muDelta = regions[r].mean - inds;
+		Point2f stdDev(sqrtf(regions[r].variance.x), sqrtf(regions[r].variance.y));
+
+		// if(regionDensity(r) < 0.0001){
+		// 	regions[r].features = 0;
+		// 	continue;
+		// }
+		if(fabs(muDelta.x) > stdDev.x * 2 || fabs(muDelta.y) > stdDev.y * 2){
+			regions[r].features = 0;
+			continue;
+		}
+
+		if(pos.x < regions[r].topLeft.x)     regions[r].topLeft.x     = pos.x;
+		if(pos.x > regions[r].bottomRight.x) regions[r].bottomRight.x = pos.x;
+		if(pos.y < regions[r].topLeft.y)     regions[r].topLeft.y     = pos.y;
+		if(pos.y > regions[r].bottomRight.y) regions[r].bottomRight.y = pos.y;
+
+	}
+}
+
+static void resetRegion(trackingRegion_t* region)
+{
+	region->topLeft = Point2f(width, height);
+	region->bottomRight = Point2f(0, 0);
+	region->lastMean = region->mean;
+	region->mean = Point2f(0, 0);
+	region->variance = Point2f(0, 0);
+	region->features = 0;	
 }

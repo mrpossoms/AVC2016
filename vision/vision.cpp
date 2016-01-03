@@ -118,6 +118,23 @@ void visionUpdate(trackingState_t* tracking)
 
 	Mat currFrame;
 
+	// reset feature positions each frame
+	float side = sqrtf(MAX_FEATURES);
+	for(int i = MAX_FEATURES; i--;){
+
+		float x = (i % (int)side) * width / side;
+		float y = (i / side) * height / side;
+		tracking.features[!tracking.dblBuff][i] = (Point2f(x, y));
+		tracking.features[tracking.dblBuff][i] = (Point2f(x, y));	
+	}
+
+	// reset the regions
+	tracking->maxRegion = 0;
+	for(int i = 256; i--;){
+		tracking->regions[i].topLeft = Point2f(width, height);
+		tracking->regions[i].bottomRight = Point2f(0, 0);
+	}
+
 	if(hasVideoFeed){
 		CAP >> currFrame;
 		if(currFrame.empty()) return;
@@ -137,6 +154,16 @@ void visionUpdate(trackingState_t* tracking)
 		cvtColor(frame, frameGrey, CV_BGR2GRAY);
 		greyProc[0] = frameGrey.clone();
 		greyProc[1] = frameGrey.clone();
+
+		for(int i = MAX_FEATURES; i--;){
+
+			float x = (i % (int)side) * width / side;
+			float y = (i / side) * height / side;
+			tracking->features[!tracking->dblBuff].push_back(Point2f(x, y));
+			tracking->features[tracking->dblBuff].push_back(Point2f(x, y));
+			tracking->flow.push_back(Point2f(0, 0));
+			tracking->statusVector.push_back(0);	
+		}
 	}
 
 	currFrame.copyTo(frame);
@@ -153,13 +180,40 @@ void visionUpdate(trackingState_t* tracking)
 			tracking->errorVector
 		);
 
+		// compute flow vectors from recovered features
+		for(int i = tracking->features[tracking->dblBuff].size(); i--;){
+			if(!tracking->statusVector[i]) continue;
+			tracking->flow[i] = Point2f(
+				tracking->features[tracking->dblBuff][i].x - tracking->features[!tracking->dblBuff][i].x,
+				tracking->features[tracking->dblBuff][i].y - tracking->features[!tracking->dblBuff][i].y
+			);
+		}
+
 		computeDepths(tracking);		
 		DBG("");
 	}
 
-#ifdef __APPLE__
+
 	for(int i = tracking->features[tracking->dblBuff].size(); i--;){
 		if(!tracking->statusVector[i]) return;
+
+		Point2f delta = tracking->flow[i];
+		float s = sqrtf(delta.x * delta.x + delta.y * delta.y);
+		if(tracking->errorVector[i] > 1) s /= tracking->errorVector[i];
+		uint8_t r = (s / 800) * 256;
+
+		if(r > maxRegion) maxRegion = r;
+
+		float x = tracking->features[tracking->dblBuff][i].x;
+		float y = tracking->features[tracking->dblBuff][i].y;
+
+		if(x < regions[r].topLeft.x)     regions[r].topLeft.x = x;
+		if(x > regions[r].bottomRight.x) regions[r].bottomRight.x = x;
+		if(y < regions[r].topLeft.y)     regions[r].topLeft.y = y;
+		if(y > regions[r].bottomRight.y) regions[r].bottomRight.y = y;
+
+
+#ifdef __APPLE__
 		circle(
 			frame,
 			Point(tracking->features[tracking->dblBuff][i].x, tracking->features[tracking->dblBuff][i].y),
@@ -185,26 +239,25 @@ void visionUpdate(trackingState_t* tracking)
 			8,
 			0
 		);
+#endif
+	}
+
+#ifdef __APPLE__
+	for(int r = 1; r <= maxRegion; ++r){
+		rectangle(
+			frame,
+			Point(tracking->regions[r].topLeft.x, tracking->regions[r].topLeft.y),
+			Point(tracking->regions[r].bottomRight.x, tracking->regions[r].bottomRight.y),
+			// Scalar(0, ts.delta[i].y * 16 + 128, ts.delta[i].x * 16 + 128),
+			Scalar(regionColors[r][0], regionColors[r][1], regionColors[r][2], 128),
+			1,
+			8
+		);
 	}
 
 	imshow("AVC", frame);
 #endif
-	DBG("");
 
-	// detect features
-	goodFeaturesToTrack(
-		greyProc[tracking->dblBuff],
-		tracking->features[tracking->dblBuff],
-		MAX_FEATURES,
-		0.01,        // quality
-		0.01,        // min distance
-		Mat(),       // mask for ROI
-		3,           // block size
-		0,           // use harris detector
-		0.04         // not used (free param of harris)
-	);
-
-	DBG("");
 	tracking->dblBuff = !tracking->dblBuff;
 	isReady = 1;
 	++FRAME_NUMBER;
