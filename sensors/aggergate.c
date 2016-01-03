@@ -24,7 +24,7 @@ int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile
 	printf("OK!\n");
 
 	printf("Initializing IMU...");
-	if(!openSensor(imuDevice, &FD_IMU, O_RDONLY)){
+	if(!openSensor(imuDevice, &FD_IMU, O_RDWR)){
 		printf("Failed!\n");
 		return -2;
 	}

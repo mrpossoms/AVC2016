@@ -186,7 +186,7 @@ void computeDepths(trackingState_t* tracking)
 
 		// use the scale of this feature whose origin has been shifted to the center
 		// of the frame. The
-		float depth = s * (SYS.body.estimated.velocity.y = 1) / (1.0f - s);
+		float depth = s * (SYS.body.estimated.velocity.y) / (1.0f - s);
 
 		tracking->featureDepths[bufInd][i] = 100 * depth;
 
@@ -249,8 +249,8 @@ int main(int argc, char* argv[])
 	DBG("");
 	
 #ifdef __linux__
-	//icInit();
-	// pthread_create(&IMU_THREAD, NULL, imuHandler, NULL);
+	icInit();
+	pthread_create(&IMU_THREAD, NULL, imuHandler, NULL);
 #elif defined(__APPLE__)
 	namedWindow("AVC", CV_WINDOW_AUTOSIZE); //resizable window;
 	errno = 0;

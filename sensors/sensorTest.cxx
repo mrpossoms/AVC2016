@@ -57,6 +57,11 @@ int main(int argc, char* argv[])
 		attroff(COLOR_PAIR(2));
 
 		icLineGraph(topLeft, bottomRight, '-', origin, 100);
+
+		vec3i16_t acc = SYS.body.imu.rawReadings.linear;
+		vec3i16_t mag = SYS.body.imu.rawReadings.mag;
+		sprintf(buf, "acc (%d, %d, %d) mag (%d, %d, %d)", acc.x, acc.y, acc.z, mag.x, mag.y, mag.z);
+		icText(2, 2, buf);
 		
 		icPresent();
 

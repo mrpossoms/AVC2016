@@ -93,7 +93,7 @@ sensorStatei_t imuGetReadings(int fd)
 	}
 
 	res += requestBytes(fd, ADDR_ACC_MAG, ACC_REG, &reading.linear, sizeof(vec3i16_t));
-	res += requestBytes(fd, ADDR_ACC_MAG, GYR_REG, &reading.rotational, sizeof(vec3i16_t));
+	res += requestBytes(fd, ADDR_GYRO,    GYR_REG, &reading.rotational, sizeof(vec3i16_t));
 	res += requestBytes(fd, ADDR_ACC_MAG, MAG_REG, &reading.mag, sizeof(vec3i16_t));
 
 	assert(res == 0);
