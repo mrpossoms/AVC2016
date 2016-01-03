@@ -39,7 +39,7 @@ int gpsHasNewReadings()
 	return LAST_CHK_SUM != GPS_STATE.checksum;
 }
 //-----------------------------------------------------------------------------
-int gpsGetReadings(vec3f_t* position, vec3f_t* veclocity)
+int gpsGetReadings(vec3f_t* position, vec3f_t* velocity)
 {
 	const float dia = 6371000 * 2;
 
@@ -47,13 +47,19 @@ int gpsGetReadings(vec3f_t* position, vec3f_t* veclocity)
 	float lonRad = GPS_STATE.Lon * (M_PI / 180.0f);	
 
 	// circumferance = d * pi
-	
+
+	vec3f_t lastPos = *position;	
 
 	position->x = dia * lonRad;
 	position->y = dia * latRad;
 	position->z = GPS_STATE.Altitude;
 
-	veclocity->x = GPS_STATE.Speed;
+	vec3f_t heading  = { position->x - lastPos.x, position->y - lastPos.y, position->z - lastPosition.z };
+	float headingMag = sqrt(heading.x * heading.x + heading.y * heading.y + heading.z * heading.z);
+
+	velocity->x = GPS_STATE.Speed * heading.x / headingMag;
+	velocity->y = GPS_STATE.Speed * heading.y / headingMag;
+	velocity->z = GPS_STATE.Speed * heading.z / headingMag;
 
 	LAST_CHK_SUM = GPS_STATE.checksum;
 
