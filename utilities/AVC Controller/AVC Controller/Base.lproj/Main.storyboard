@@ -3,6 +3,7 @@
     <dependencies>
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="9529"/>
+        <capability name="Alignment constraints with different attributes" minToolsVersion="5.1"/>
         <capability name="Constraints to layout margins" minToolsVersion="6.0"/>
     </dependencies>
     <scenes>
@@ -91,12 +92,12 @@
                             <mask key="constraints">
                                 <exclude reference="ryQ-7M-6xp"/>
                                 <exclude reference="yQe-Vx-jRx"/>
+                                <exclude reference="2IS-yh-v7E"/>
+                                <exclude reference="31J-xS-B0O"/>
                                 <exclude reference="GYS-qM-Pcp"/>
                                 <exclude reference="8A0-J1-RXB"/>
                                 <exclude reference="KdK-A0-NOl"/>
                                 <exclude reference="yvm-1k-CaO"/>
-                                <exclude reference="2IS-yh-v7E"/>
-                                <exclude reference="31J-xS-B0O"/>
                                 <exclude reference="dOQ-Gm-WBU"/>
                                 <exclude reference="OSm-QW-V6m"/>
                             </mask>
@@ -109,12 +110,12 @@
                             <mask key="constraints">
                                 <include reference="ryQ-7M-6xp"/>
                                 <include reference="yQe-Vx-jRx"/>
+                                <include reference="2IS-yh-v7E"/>
+                                <include reference="31J-xS-B0O"/>
                                 <include reference="GYS-qM-Pcp"/>
                                 <include reference="8A0-J1-RXB"/>
                                 <include reference="KdK-A0-NOl"/>
                                 <include reference="yvm-1k-CaO"/>
-                                <include reference="2IS-yh-v7E"/>
-                                <include reference="31J-xS-B0O"/>
                                 <include reference="dOQ-Gm-WBU"/>
                                 <include reference="OSm-QW-V6m"/>
                             </mask>

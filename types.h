@@ -40,4 +40,15 @@ typedef union{
 	};
 } vec3f_t;
 
+typedef struct{
+	uint32_t waypoints;
+} gpsRouteHeader_t;
+
+typedef struct{
+	vec3f_t location;
+	float   tolerance;
+	uint8_t nextWaypoint;
+	uint8_t flags; 
+} gpsWaypoint_t;
+
 #endif
