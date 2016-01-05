@@ -8,13 +8,22 @@
 
 int main(int argc, char* argv[])
 {
-	if(argc < 3){
-		printf("Usage:\n[imu device][gps device]\n");
+	if(argc < 4){
+		printf("Usage:\n[imu device][gps device][gps mission]\n");
 		return 1;
 	}
 
 	int res = senInit(argv[1], argv[2], "./../imu.cal");
 	printf("Res %d\n", res);
+
+	gpsWaypointCont_t* waypoints;
+	assert(!gpsRouteLoad(argv[3], &waypoints));
+	printf("Loaded GPS route!\n");
+	for(gpsWaypointCont_t* w = waypoints; w; w = w->next){
+		printf("Waypoint %d (%f, %f)\n", w->self.nextWaypoint, w->self.location.x, w->self.location.y);
+	}
+
+	sleep(2);
 
 	assert(!icInit());
 	start_color();

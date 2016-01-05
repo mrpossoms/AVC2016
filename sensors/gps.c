@@ -1,8 +1,11 @@
 #include "gps.h"
 
 #include <math.h>
+#include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <pthread.h>
+
 #include <libNEMA.h>
 
 static gpsState_t GPS_STATE;
@@ -54,7 +57,7 @@ int gpsGetReadings(vec3f_t* position, vec3f_t* velocity)
 	position->y = dia * latRad;
 	position->z = GPS_STATE.Altitude;
 
-	vec3f_t heading  = { position->x - lastPos.x, position->y - lastPos.y, position->z - lastPosition.z };
+	vec3f_t heading  = { position->x - lastPos.x, position->y - lastPos.y, position->z - lastPos.z };
 	float headingMag = sqrt(heading.x * heading.x + heading.y * heading.y + heading.z * heading.z);
 
 	velocity->x = GPS_STATE.Speed * heading.x / headingMag;
@@ -64,6 +67,31 @@ int gpsGetReadings(vec3f_t* position, vec3f_t* velocity)
 	LAST_CHK_SUM = GPS_STATE.checksum;
 
 	return GPS_STATE.Fix;
+}
+//-----------------------------------------------------------------------------
+float gpsDistToWaypoint(vec3f_t* position, gpsWaypointCont_t* waypoint)
+{
+	float dx = position->x - waypoint->self.location.x;
+	float dy = position->y - waypoint->self.location.y;
+	return sqrt(dx * dx + dy * dy);
+}
+//-----------------------------------------------------------------------------
+float gpsDistToWaypoint3D(vec3f_t* position, gpsWaypointCont_t* waypoint)
+{
+	vec3f_t h = gpsHeadingToWaypoint(position, waypoint);
+
+	return sqrt(h.x * h.x + h.y * h.y + h.z * h.z);
+}
+//-----------------------------------------------------------------------------
+vec3f_t gpsHeadingToWaypoint(vec3f_t* position, gpsWaypointCont_t* waypoint)
+{
+	vec3f_t heading = {
+		position->x - waypoint->self.location.x,
+		position->y - waypoint->self.location.y,
+		position->z - waypoint->self.location.z,
+	};
+
+	return heading;
 }
 //-----------------------------------------------------------------------------
 int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints)
@@ -80,25 +108,25 @@ int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints)
 		return -2;
 	}
 
-	if(!(*waypoints = malloc(sizeof(gpsWaypointCont_t) * header.waypoints))){
+	if(!(*waypoints = (gpsWaypointCont_t*)malloc(sizeof(gpsWaypointCont_t) * header.waypoints))){
 		return -3;
 	}
 
 	gpsWaypointCont_t* last = NULL;
 	for(int i = 0; i < header.waypoints; ++i){
-		if(read(fd, *waypoints + i, sizeof(gpsWaypoint_t)) != sizeof(gpsWaypoint_t)){
+		if(read(fd, (*waypoints) + i, sizeof(gpsWaypoint_t)) != sizeof(gpsWaypoint_t)){
 			free(*waypoints);
 			close(fd);
 			return -4;
 		}
 
-		*waypoints[i].next = NULL;
+		(*waypoints)[i].next = NULL;
 
 		if(last){
-			last->next = *waypoints + i;
+			last->next = (*waypoints) + i;
 		}
 
-		last = *waypoints + i;
+		last = (*waypoints) + i;
 	}
 
 	close(fd);
@@ -108,5 +136,14 @@ int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints)
 //-----------------------------------------------------------------------------
 int gpsRouteAdvance(vec3f_t* position, gpsWaypointCont_t** current, uint8_t lapFlag)
 {
+	if(!position) return -1;
+	if(!current) return -2;
 
+	gpsDistToWaypoint* waypoint = *current;
+	if(gpsDistToWaypoint(position, waypoint) <= waypoint->self.tolerance){
+		*current = waypoint->next;
+		return 1;
+	}
+
+	return 0;
 }

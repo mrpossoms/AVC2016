@@ -1,7 +1,7 @@
 CMP=g++
 CFLAGS=
-INC=-I./../
-LIB=-L/usr/lib
+INC=-I./../ -I./../video -I/usr/local/include
+LIB=-L/usr/lib -L/usr/local/lib
 SRC=./../system.c ./../timer.c gps.c imu.c aggergate.c 
 LINK=-lm -lNEMA -lpthread -lindicurses -lncurses
 

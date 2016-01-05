@@ -51,9 +51,10 @@ typedef struct{
 	uint8_t flags; 
 } gpsWaypoint_t;
 
-typedef struct{
+struct __GpsWaypoint;
+typedef struct __GpsWaypoint{
 	gpsWaypoint_t  self;
-	gpsWaypoint_t* next;
+	struct __GpsWaypoint* next;
 } gpsWaypointCont_t;
 
 #endif
