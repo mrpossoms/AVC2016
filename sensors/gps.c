@@ -65,3 +65,48 @@ int gpsGetReadings(vec3f_t* position, vec3f_t* velocity)
 
 	return GPS_STATE.Fix;
 }
+//-----------------------------------------------------------------------------
+int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints)
+{
+	int fd = open(path, O_RDONLY);
+
+	if(fd <= 0){
+		return -1;
+	}
+
+	gpsRouteHeader_t header = {};
+
+	if(read(fd, &header, sizeof(header)) != sizeof(header)){
+		return -2;
+	}
+
+	if(!(*waypoints = malloc(sizeof(gpsWaypointCont_t) * header.waypoints))){
+		return -3;
+	}
+
+	gpsWaypointCont_t* last = NULL;
+	for(int i = 0; i < header.waypoints; ++i){
+		if(read(fd, *waypoints + i, sizeof(gpsWaypoint_t)) != sizeof(gpsWaypoint_t)){
+			free(*waypoints);
+			close(fd);
+			return -4;
+		}
+
+		*waypoints[i].next = NULL;
+
+		if(last){
+			last->next = *waypoints + i;
+		}
+
+		last = *waypoints + i;
+	}
+
+	close(fd);
+
+	return 0;
+}
+//-----------------------------------------------------------------------------
+int gpsRouteAdvance(vec3f_t* position, gpsWaypointCont_t** current, uint8_t lapFlag)
+{
+
+}
