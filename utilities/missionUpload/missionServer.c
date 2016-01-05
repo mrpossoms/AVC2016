@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 	while(1){
 
 		int connfd = accept(listenfd, (struct sockaddr*)NULL, NULL); 
-		int missionfd = open(argv[1], O_CREAT | O_WRONLY, 666);
+		int missionfd = open(argv[1], O_CREAT | O_WRONLY, 0666);
 
 		gpsRouteHeader_t header = {};
 		gpsWaypoint_t* waypoints = NULL;
