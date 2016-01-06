@@ -23,13 +23,18 @@ int main(int argc, char* argv[])
 	err = senInit("/dev/i2c-1", "/dev/ttyAMA0", "./imu.cal");
 	if(err) return err;
 
+	// load a route
+	err = gpsRouteLoad(argv[1], &SYS.route.start);
+	if(err) return err;
+	SYS.route.currentWaypoint = SYS.route.start;
+
 	// setup all the decision agents
 	agentInitAgents();
 
 	while(1){
 		senUpdate(&SYS.body);
 
-		
+		AGENT_STEERING.action(NULL, NULL);
 
 		timerUpdate();
 	}
