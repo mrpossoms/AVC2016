@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <assert.h>
 #include <strings.h>
+#include <syslog.h>
 
 #include "types.h"
 
@@ -33,52 +34,63 @@ int main(int argc, char *argv[])
 
 	// at this point the child continues
 	pid_t leader = setsid(); // detach, create a new session
+	openlog("missionUpload", 0, 0);
 
-	if(umask(0)){
-		return -1;
-	}
+	umask(022);
 
 	if(chdir(argv[1])){
-		return -2;
+		syslog(0, "%s: failed to change dir.", argv[0]);
+		return -1;
 	}
 
 	// close open fds inherited from the parent
 	for(int i = sysconf(_SC_OPEN_MAX); i--;){
-//		close(i);
+		close(i);
 	}
 
 	listenfd = socket(AF_INET, SOCK_STREAM, 0);
+
+	if(listenfd < 0){
+		syslog(0, "%s: failed to open socket.", argv[0]);
+		return -2;
+	}
 
 	bzero(&serv_addr, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_addr.s_addr = INADDR_ANY;
 	serv_addr.sin_port = htons(1339); 
 
-	assert(!bind(listenfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))); 
+	if(bind(listenfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))){
+		syslog(0, "%s: failed bind to port 1339.", argv[0]);
+		return -3;
+	} 
 	assert(!listen(listenfd, 5)); 
-	printf("Bound and listening\n");
+	syslog(0, "%s: Bound and listening", argv[0]);
+
+	char filepath[128];
+	sprintf(filepath, "%smission.gps", argv[1]);
 
 	while(1){
 
 		int connfd = accept(listenfd, (struct sockaddr*)NULL, NULL); 
-		int missionfd = open(argv[1], O_CREAT | O_WRONLY, 0666);
+		int missionfd = open(filepath, O_CREAT | O_WRONLY, 0666);
 
 		gpsRouteHeader_t header = {};
 		gpsWaypoint_t* waypoints = NULL;
 
-		printf("connected!\n");
+		syslog(0, "connected!");
 
  		read(connfd, &header, sizeof(header));
 		write(missionfd, &header, sizeof(header));
 
  		waypoints = malloc(sizeof(gpsWaypoint_t) * header.waypoints);
 
-		printf("\nRoute with %d waypoints\n", header.waypoints);
+		syslog(0, "\nRoute with %d waypoints\n", header.waypoints);
 
  		for(int i = 0; i < header.waypoints; ++i){
  			read(connfd, waypoints + i, sizeof(gpsWaypoint_t));
 			vec3f_t pos = waypoints[i].location;
-			printf("\t(%f, %f)\n", pos.x, pos.y);
+			syslog(0, "\t(%f, %f)\n", pos.x, pos.y);
 
 			write(missionfd, waypoints + i, sizeof(gpsWaypoint_t));
  		}
@@ -87,7 +99,6 @@ int main(int argc, char *argv[])
 
 		close(connfd);
 		close(missionfd);
-		sleep(1);
 	}
 
 	return 0;
