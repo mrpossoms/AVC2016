@@ -1,4 +1,4 @@
-#include "decisionState.h"
+#include "agent.h"
 #include <stdlib.h>
 
 int agentAddAdjState(agent_t* dst, agent_t* adj)
@@ -13,7 +13,7 @@ int agentAddAdjState(agent_t* dst, agent_t* adj)
 	}
 	else{
 		++dst->adjCount;
-		dst->adjStates = realloc(dst->adjStates, sizeof(agent_t*) * dst->adjCount);
+		dst->adjStates = (agent_t**)realloc(dst->adjStates, sizeof(agent_t*) * dst->adjCount);
 		
 		if(!dst->adjStates) return -3;
 	}

@@ -9,9 +9,12 @@ extern "C" {
 
 // agent decarations
 extern agent_t AGENT_TEMPLATE;
+extern agent_t AGENT_STEERING;
 
 // list of all agent objects
 extern agent_t* AGENTS_ALL[];
+
+void agentInitAgents();
 
 #ifdef __cplusplus
 }

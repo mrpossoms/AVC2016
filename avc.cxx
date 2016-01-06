@@ -4,8 +4,11 @@
 #include <fcntl.h>
 #include <stdio.h>
 
+#include "system.h"
+#include "timer.h"
 #include "controls/servos.h"
-#include "imu.h"
+#include "sensors/aggergate.h"
+#include "decision/agents.h"
 
 // File descriptors
 int FD_IMU;
@@ -13,16 +16,23 @@ int FD_IMU;
 int main(int argc, char* argv[])
 {
 	// start servo controlling
-	int res = conInit();
-	if(res) return res;
+	int err = conInit();
+	if(err) return err;
 
-	// open I2C bus	
-	FD_IMU = open("/dev/i2c-1", O_RDWR);	
-	if(FD_IMU <= 0){
-		fprintf(stderr, "Error, failed to open I2C bus\n");
+	// start up IMU and GPS sensors
+	err = senInit("/dev/i2c-1", "/dev/ttyAMA0", "./imu.cal");
+	if(err) return err;
+
+	// setup all the decision agents
+	agentInitAgents();
+
+	while(1){
+		senUpdate(&SYS.body);
+
+		
+
+		timerUpdate();
 	}
-
-	conSet(0, 50);	
 
 	return 0;
 }

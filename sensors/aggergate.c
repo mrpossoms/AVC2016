@@ -48,6 +48,12 @@ int senUpdate(fusedObjState_t* body)
 {
 	imuUpdateState(FD_IMU, &body->imu);
 
+	// update the heading according to magnetometer readings
+	body->measured.heading.x = body->imu.rawReadings.mag.x;
+	body->measured.heading.y = body->imu.rawReadings.mag.y;
+	body->measured.heading.z = body->imu.rawReadings.mag.z;
+	body->measured.heading = vec3fNorm(&body->measured.heading);
+
 	if(gpsHasNewReadings()){
 		float dt = SYS.timeUp - body->lastMeasureTime;
 		vec3f_t lastPos = body->measured.position;

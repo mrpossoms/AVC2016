@@ -2,6 +2,7 @@
 
 agent_t* AGENTS_ALL[] = {
 	&AGENT_TEMPLATE,
+	&AGENT_STEERING,
 };
 
 void agentInitAgents()

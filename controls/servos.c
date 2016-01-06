@@ -33,7 +33,7 @@ int conInit()
 int conSet(int servo, int percent)
 {
 	char str[12] = {};
-	sprintf(str, "%d=%d%\n", servo, percent);
+	sprintf(str, "%d=%d%%\n", servo, percent);
 	write(SERVO_FD, str, strlen(str));
 	return 0;
 }

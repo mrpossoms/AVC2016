@@ -1,8 +1,8 @@
 CMP=g++
 CFLAGS=
-INC=-I./../ -I./sensors -I./controls
-LIB=
-SRC=./controls/*.c ./sensors/*.c ./*.c avc.cxx
+INC=-I./ -I/usr/local/include
+LIB=-L/usr/local/lib
+SRC=./controls/*.c ./sensors/*.c ./decision/*.c ./decision/states/*.c  ./comms/*.c system.c timer.c avc.cxx
 LINK=-lm -lpthread -lNEMA
 
 

@@ -42,20 +42,26 @@ int gpsHasNewReadings()
 	return LAST_CHK_SUM != GPS_STATE.checksum;
 }
 //-----------------------------------------------------------------------------
-int gpsGetReadings(vec3f_t* position, vec3f_t* velocity)
+static void latLon2meters(vec3f_t* coord)
 {
 	const float dia = 6371000 * 2;
-
-	float latRad = GPS_STATE.Lat * (M_PI / 180.0f);	
-	float lonRad = GPS_STATE.Lon * (M_PI / 180.0f);	
+	float latRad = coord->y * (M_PI / 180.0f);	
+	float lonRad = coord->x * (M_PI / 180.0f);	
 
 	// circumferance = d * pi
 
+	coord->x = dia * lonRad;
+	coord->y = dia * latRad;	
+}
+//-----------------------------------------------------------------------------
+int gpsGetReadings(vec3f_t* position, vec3f_t* velocity)
+{
 	vec3f_t lastPos = *position;	
 
-	position->x = dia * lonRad;
-	position->y = dia * latRad;
+	position->x = GPS_STATE.Lat;
+	position->y = GPS_STATE.Lon;
 	position->z = GPS_STATE.Altitude;
+	latLon2meters(position);
 
 	vec3f_t heading  = { position->x - lastPos.x, position->y - lastPos.y, position->z - lastPos.z };
 	float headingMag = sqrt(heading.x * heading.x + heading.y * heading.y + heading.z * heading.z);
@@ -120,6 +126,7 @@ int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints)
 			return -4;
 		}
 
+		latLon2meters(&(*waypoints)[i].self.location);
 		(*waypoints)[i].next = NULL;
 
 		if(last){
@@ -139,7 +146,7 @@ int gpsRouteAdvance(vec3f_t* position, gpsWaypointCont_t** current, uint8_t lapF
 	if(!position) return -1;
 	if(!current) return -2;
 
-	gpsDistToWaypoint* waypoint = *current;
+	gpsWaypointCont_t* waypoint = *current;
 	if(gpsDistToWaypoint(position, waypoint) <= waypoint->self.tolerance){
 		*current = waypoint->next;
 		return 1;

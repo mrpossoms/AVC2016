@@ -19,6 +19,7 @@ typedef struct{
 typedef struct{
 	vec3f_t position;
 	vec3f_t velocity;
+	vec3f_t heading;
 }objectState_t;
 
 typedef struct{
@@ -35,6 +36,10 @@ typedef struct{
 
 	// sensor measurements and estimates
 	fusedObjState_t body;
+
+	struct{
+		gpsWaypointCont_t *start, *currentWaypoint;
+	} route;
 
 	float timeUp; // time in seconds the system has been running
 } system_t;
