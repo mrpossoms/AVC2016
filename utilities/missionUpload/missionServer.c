@@ -1,4 +1,5 @@
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <stdio.h>
@@ -20,6 +21,30 @@ int main(int argc, char *argv[])
 	if(argc < 2){
 		printf("Usage:\n\tmissionUpload [path to file]\n");
 		return 1;
+	}
+
+	// spawn the child process
+	pid_t pid = fork();
+
+	if(pid){ // if i'm the parent then terminate
+		printf("%s started\n", argv[0]);
+		return 0;
+	}
+
+	// at this point the child continues
+	pid_t leader = setsid(); // detach, create a new session
+
+	if(umask(0)){
+		return -1;
+	}
+
+	if(chdir(argv[1])){
+		return -2;
+	}
+
+	// close open fds inherited from the parent
+	for(int i = sysconf(_SC_OPEN_MAX); i--;){
+//		close(i);
 	}
 
 	listenfd = socket(AF_INET, SOCK_STREAM, 0);

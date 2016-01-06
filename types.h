@@ -68,7 +68,7 @@ inline vec3f_t vec3fSub(vec3f_t* v1, vec3f_t* v2)
 	return res;
 }
 
-inline vec3f_t vec3fMul(vec3f_t* v, float s)
+inline vec3f_t vec3fScl(vec3f_t* v, float s)
 {
 	vec3f_t res = {
 		v->x * s,
