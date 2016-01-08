@@ -50,6 +50,7 @@ int main(int argc, char* argv[])
 
 
 		int bytes = recv(sock, &msg, sizeof(msg), 0);
+		printf("Got something\n");
 		if(bytes == sizeof(msg)){
 			conSet(1, msg.throttle);
 			conSet(0, msg.steering);
