@@ -9,6 +9,7 @@
 #include "controls/servos.h"
 #include "sensors/aggergate.h"
 #include "decision/agents.h"
+#include "utilities/diagnostics/diagnostics.h"
 
 // File descriptors
 int FD_IMU;
@@ -22,6 +23,9 @@ int main(int argc, char* argv[])
 	// start up IMU and GPS sensors
 	err = senInit("/dev/i2c-1", "/dev/ttyAMA0", "./imu.cal");
 	if(err) return err;
+
+	// sensors are started, start diagnostic endpoint
+	diagHost(1340);
 
 	// load a route
 	err = gpsRouteLoad(argv[1], &SYS.route.start);
