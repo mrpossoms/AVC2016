@@ -5,6 +5,13 @@
 #include "system.h"
 #include "aggergate.h"
 #include "timer.h"
+#include "utilities/diagnostics/diagnostics.h"
+
+vec3f_t normalAngle(float angle)
+{
+	vec3f_t n = { cos(angle), sin(angle), 0 };
+	return n;
+}
 
 int main(int argc, char* argv[])
 {
@@ -18,10 +25,34 @@ int main(int argc, char* argv[])
 
 	gpsWaypointCont_t* waypoints;
 	assert(!gpsRouteLoad(argv[3], &waypoints));
+	assert(!diagHost(1340));
 	printf("Loaded GPS route!\n");
 	for(gpsWaypointCont_t* w = waypoints; w; w = w->next){
 		printf("Waypoint %d (%f, %f)\n", w->self.nextWaypoint, w->self.location.x, w->self.location.y);
 	}
+
+	float qtr = M_PI / 4;
+	vec3f_t headings[] = {
+		normalAngle(qtr * 2), // N
+		normalAngle(qtr * 3), // NW
+		normalAngle(qtr * 4), // W
+		normalAngle(qtr * 5), // SW
+		normalAngle(qtr * 6), // S
+		normalAngle(qtr * 7), // SE
+		normalAngle(qtr * 8), // E
+		normalAngle(qtr * 9), // NE
+	};
+
+	const char* cardinals[] = {
+		"N",
+		"NW",
+		"W",
+		"SW",
+		"S",
+		"SE",
+		"E",
+		"NE",
+	};
 
 	sleep(2);
 
@@ -72,6 +103,19 @@ int main(int argc, char* argv[])
 		sprintf(buf, "acc (%d, %d, %d) mag (%d, %d, %d)", acc.x, acc.y, acc.z, mag.x, mag.y, mag.z);
 		icText(2, 2, buf);
 		
+		int bi = 0;
+		float bd = vec3fDot(&SYS.body.measured.heading, headings);
+		for(int i = 8; i--;){
+			float d = vec3fDot(&SYS.body.measured.heading, headings + i);
+			if(d > bd){
+				bd = d;
+				bi = i;
+			}
+		}
+
+		sprintf(buf, "Compass: %s", cardinals[bi]);
+		icText(2, 3, buf);
+
 		icPresent();
 
 		timerUpdate();

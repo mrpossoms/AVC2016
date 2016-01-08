@@ -10,9 +10,6 @@
 #include "sensors/aggergate.h"
 #include "decision/agents.h"
 
-// File descriptors
-int FD_IMU;
-
 int main(int argc, char* argv[])
 {
 	// start servo controlling

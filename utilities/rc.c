@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
 	int sock = socket(AF_INET, SOCK_DGRAM, 0);
 	struct sockaddr_in addr = { };	
 	addr.sin_family      = AF_INET;
-	addr.sin_port        = htons(atoi(argv[1]));
+	addr.sin_port        = htons(1338);
 	addr.sin_addr.s_addr = INADDR_ANY;
 
 	fcntl(sock, F_SETFD, fcntl(sock, F_GETFD) | FD_CLOEXEC);
