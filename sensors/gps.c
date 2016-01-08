@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <pthread.h>
+#include <stdio.h>
 
 #include <libNEMA.h>
 
@@ -58,8 +59,8 @@ int gpsGetReadings(vec3f_t* position, vec3f_t* velocity)
 {
 	vec3f_t lastPos = *position;	
 
-	position->x = GPS_STATE.Lat;
-	position->y = GPS_STATE.Lon;
+	position->x = GPS_STATE.Lon;
+	position->y = GPS_STATE.Lat;
 	position->z = GPS_STATE.Altitude;
 	latLon2meters(position);
 
@@ -118,6 +119,8 @@ int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints)
 		return -3;
 	}
 
+	printf("loading %d waypoints\n", header.waypoints);
+
 	gpsWaypointCont_t* last = NULL;
 	for(int i = 0; i < header.waypoints; ++i){
 		if(read(fd, (*waypoints) + i, sizeof(gpsWaypoint_t)) != sizeof(gpsWaypoint_t)){
@@ -126,7 +129,10 @@ int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints)
 			return -4;
 		}
 
+		printf("\t(%f lat, %f lon) -> ", (*waypoints)[i].self.location.x, (*waypoints)[i].self.location.y);
 		latLon2meters(&(*waypoints)[i].self.location);
+
+		printf("(%fm, %fm)\n", (*waypoints)[i].self.location.x, (*waypoints)[i].self.location.y);
 		(*waypoints)[i].next = NULL;
 
 		if(last){

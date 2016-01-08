@@ -15,7 +15,14 @@ static float angleToNextWayPoint(objectState_t* o, gpsWaypointCont_t* waypoint)
 	if(!memcmp(&o->position, &zero, sizeof(vec3f_t))) return 0;
  
 	vec3f_t toWaypoint = vec3fSub(&o->position, &waypoint->self.location);
-	return vec3fAng(&o->heading, &toWaypoint);
+	vec3f_t tempHeading = o->heading;	
+
+	toWaypoint.z = tempHeading.z= 0;
+	
+
+	printf("delta %f, %f\n", toWaypoint.x, toWaypoint.y);
+
+	return vec3fAng(&tempHeading, &toWaypoint);
 }
 
 static float utility(agent_t* current, void* args)
@@ -33,6 +40,11 @@ static float utility(agent_t* current, void* args)
 static void* action(agent_t* lastState, void* args)
 {
 	float ang = angleToNextWayPoint(&SYS.body.measured, SYS.route.currentWaypoint);
+
+	vec3f_t pos = SYS.body.measured.position, way = SYS.route.currentWaypoint->self.location;
+	vec3f_t head = SYS.body.measured.heading;
+
+	printf("Heading (%f, %f) Pos (%f, %f) Way (%f, %f) ang %f\n", head.x, head.y, pos.x, pos.y, way.x, way.y, ang);
 
 	// bound the steering angle
 	if(ang >  M_PI / 4){ ang =  M_PI / 4; }
