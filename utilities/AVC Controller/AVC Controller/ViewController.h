@@ -7,7 +7,7 @@
 //
 
 #import <UIKit/UIKit.h>
-#import "ThumbStickView.h"
+#import "ThumbStickControl.h"
 
 @interface ViewController : UIViewController <ThumbStickDelegate>
 

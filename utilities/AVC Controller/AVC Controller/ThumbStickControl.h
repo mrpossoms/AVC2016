@@ -8,14 +8,14 @@
 
 #import <UIKit/UIKit.h>
 
-@class ThumbStickView;
+@class ThumbStickControl;
 @protocol ThumbStickDelegate
 
-- (void)didThumbMoveWithValues:(CGPoint)values asSender:(ThumbStickView*)sender;
+- (void)didThumbMoveWithValues:(CGPoint)values asSender:(ThumbStickControl*)sender;
 
 @end
 
-@interface ThumbStickView : UIView
+@interface ThumbStickControl : UIView
 
 @property BOOL xAxisDisabled, yAxisDisabled;
 @property (weak) id<ThumbStickDelegate> delegate;

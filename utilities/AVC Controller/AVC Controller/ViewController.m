@@ -7,6 +7,7 @@
 //
 
 #import "ViewController.h"
+#import "clientAddress.h"
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -14,9 +15,10 @@
 
 @interface ViewController ()
 
-@property (weak, nonatomic) IBOutlet ThumbStickView *throttleStick;
-@property (weak, nonatomic) IBOutlet ThumbStickView *steerStick;
+@property (weak, nonatomic) IBOutlet ThumbStickControl *throttleStick;
+@property (weak, nonatomic) IBOutlet ThumbStickControl *steerStick;
 @property (weak, nonatomic) IBOutlet UITextField *ipAddressText;
+@property (weak, nonatomic) IBOutlet UIActivityIndicatorView *resolvingIndicator;
 
 @end
 
@@ -26,7 +28,7 @@ typedef struct{
     uint8_t  steering;
 } rcMessage_t;
 
-struct sockaddr_in HOST;
+struct sockaddr_in* HOST_ADDRESS;
 rcMessage_t STATE = { 0, 50, 50 };
 
 @implementation ViewController
@@ -44,8 +46,8 @@ void transmit(){
         &STATE,
         sizeof(rcMessage_t),
         0,
-        (const struct sockaddr*)&HOST,
-        sizeof(HOST)
+        (const struct sockaddr*)&HOST_ADDRESS,
+        sizeof(HOST_ADDRESS)
     );
 }
 
@@ -57,7 +59,7 @@ void transmit(){
     self.throttleStick.xAxisDisabled = YES;
     self.steerStick.yAxisDisabled    = YES;
     
-    [self.throttleStick setRangeForAxis:1 withMin:60 andMax:40];
+    [self.throttleStick setRangeForAxis:1 withMin:75 andMax:25];
     [self.steerStick setRangeForAxis:0 withMin:25 andMax:75];
     
     self.throttleStick.delegate = self;
@@ -72,10 +74,10 @@ void transmit(){
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
     
-    
+    [self.resolvingIndicator stopAnimating];
 }
 
-- (void)didThumbMoveWithValues:(CGPoint)values asSender:(ThumbStickView *)sender
+- (void)didThumbMoveWithValues:(CGPoint)values asSender:(ThumbStickControl *)sender
 {
     if(sender == self.throttleStick){
         STATE.throttle = values.y;
@@ -89,29 +91,45 @@ void transmit(){
 }
 
 - (IBAction)didChangeIpAddress:(id)sender {
-    struct hostent* he = NULL;
     
-    if(!(he = gethostbyname([self.ipAddressText.text UTF8String]))){
-        UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Error" message:@"Host name could not be resolved" preferredStyle:UIAlertControllerStyleAlert];
+    [self.resolvingIndicator startAnimating];
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        struct hostent* he = NULL;
+        const char* hostname = [self.ipAddressText.text UTF8String];
         
-        UIAlertAction* defaultAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault
-                                                              handler:^(UIAlertAction * action) {}];
-        
-        [alert addAction:defaultAction];
-        [self presentViewController:alert animated:YES completion:^{
-            // NOOP
-        }];
-        
-        return;
-    }
-    else{
+        if(!(he = gethostbyname(hostname))){
+            [self.resolvingIndicator stopAnimating];
+            
+            UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Error"
+                                                                           message:[NSString stringWithFormat:@"Couldn't resolve host '%s'", hostname]
+                                                                    preferredStyle:UIAlertControllerStyleAlert];
+            [alert addAction:[UIAlertAction actionWithTitle:@"OK"
+                                                      style:UIAlertActionStyleCancel
+                                                    handler:^(UIAlertAction * _Nonnull action) { }]];
+            [self presentViewController:alert animated:YES completion:^{ }];
+            
+            free(HOST_ADDRESS);
+            HOST_ADDRESS = NULL;
+            
+            return;
+        }
+
+        if(!HOST_ADDRESS){
+            HOST_ADDRESS = malloc(sizeof(struct sockaddr_in));
+        }
+            
+        HOST_ADDRESS->sin_family = AF_INET;
+        HOST_ADDRESS->sin_port   = htons(1338);
         unsigned char* addr = (unsigned char*)he->h_addr_list[0];
+        memcpy((void*)&(HOST_ADDRESS->sin_addr), addr, he->h_length);
+        
         self.ipAddressText.text = [NSString stringWithFormat:@"%d.%d.%d.%d", addr[0], addr[1], addr[2], addr[3]];
-    }
+        [self.resolvingIndicator stopAnimating];
+    });
     
-    HOST.sin_family = AF_INET;
-    HOST.sin_port   = htons(1338);
-    memcpy((void*)&(HOST.sin_addr), he->h_addr_list[0], he->h_length);
+
+    
 }
 
 - (void)dismiss {

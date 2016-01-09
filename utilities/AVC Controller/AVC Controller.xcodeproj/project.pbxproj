@@ -7,16 +7,30 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		06031F131C39A85E002EA52F /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 06031F121C39A85E002EA52F /* MapKit.framework */; };
+		06031F151C39A869002EA52F /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 06031F141C39A869002EA52F /* CoreLocation.framework */; };
+		06031F181C39AA0E002EA52F /* RouteViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 06031F171C39AA0E002EA52F /* RouteViewController.m */; };
+		06031F1B1C39AE8B002EA52F /* Waypoint.m in Sources */ = {isa = PBXBuildFile; fileRef = 06031F1A1C39AE8B002EA52F /* Waypoint.m */; };
 		0628E0F21C32F4CE00640110 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 0628E0F11C32F4CE00640110 /* main.m */; };
 		0628E0F51C32F4CE00640110 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 0628E0F41C32F4CE00640110 /* AppDelegate.m */; };
 		0628E0F81C32F4CE00640110 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0628E0F71C32F4CE00640110 /* ViewController.m */; };
 		0628E0FB1C32F4CE00640110 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0628E0F91C32F4CE00640110 /* Main.storyboard */; };
 		0628E0FD1C32F4CE00640110 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0628E0FC1C32F4CE00640110 /* Assets.xcassets */; };
 		0628E1001C32F4CE00640110 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0628E0FE1C32F4CE00640110 /* LaunchScreen.storyboard */; };
-		06565B591C331EA3008919CF /* ThumbStickView.m in Sources */ = {isa = PBXBuildFile; fileRef = 06565B581C331EA3008919CF /* ThumbStickView.m */; };
+		06565B591C331EA3008919CF /* ThumbStickControl.m in Sources */ = {isa = PBXBuildFile; fileRef = 06565B581C331EA3008919CF /* ThumbStickControl.m */; };
+		0665882B1C3EF52B00EB5E40 /* diagnostics.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0665882A1C3EF52B00EB5E40 /* diagnostics.storyboard */; };
+		066588651C407A5200EB5E40 /* PointPlotControl.m in Sources */ = {isa = PBXBuildFile; fileRef = 066588641C407A5200EB5E40 /* PointPlotControl.m */; };
+		066588681C40D17000EB5E40 /* diagnosticViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 066588671C40D17000EB5E40 /* diagnosticViewController.m */; };
+		0665886B1C40D28400EB5E40 /* SensorReadings.m in Sources */ = {isa = PBXBuildFile; fileRef = 0665886A1C40D28400EB5E40 /* SensorReadings.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		06031F121C39A85E002EA52F /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
+		06031F141C39A869002EA52F /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
+		06031F161C39AA0E002EA52F /* RouteViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RouteViewController.h; sourceTree = "<group>"; };
+		06031F171C39AA0E002EA52F /* RouteViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RouteViewController.m; sourceTree = "<group>"; };
+		06031F191C39AE8B002EA52F /* Waypoint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Waypoint.h; sourceTree = "<group>"; };
+		06031F1A1C39AE8B002EA52F /* Waypoint.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Waypoint.m; sourceTree = "<group>"; };
 		0628E0ED1C32F4CE00640110 /* AVC Controller.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "AVC Controller.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0628E0F11C32F4CE00640110 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		0628E0F31C32F4CE00640110 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -27,8 +41,16 @@
 		0628E0FC1C32F4CE00640110 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0628E0FF1C32F4CE00640110 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		0628E1011C32F4CE00640110 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		06565B571C331EA3008919CF /* ThumbStickView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ThumbStickView.h; sourceTree = "<group>"; };
-		06565B581C331EA3008919CF /* ThumbStickView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ThumbStickView.m; sourceTree = "<group>"; };
+		06565B571C331EA3008919CF /* ThumbStickControl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ThumbStickControl.h; sourceTree = "<group>"; };
+		06565B581C331EA3008919CF /* ThumbStickControl.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ThumbStickControl.m; sourceTree = "<group>"; };
+		0665882A1C3EF52B00EB5E40 /* diagnostics.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = diagnostics.storyboard; sourceTree = "<group>"; };
+		066588631C407A5200EB5E40 /* PointPlotControl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PointPlotControl.h; sourceTree = "<group>"; };
+		066588641C407A5200EB5E40 /* PointPlotControl.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PointPlotControl.m; sourceTree = "<group>"; };
+		066588661C40D17000EB5E40 /* diagnosticViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = diagnosticViewController.h; sourceTree = "<group>"; };
+		066588671C40D17000EB5E40 /* diagnosticViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = diagnosticViewController.m; sourceTree = "<group>"; };
+		066588691C40D28400EB5E40 /* SensorReadings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SensorReadings.h; sourceTree = "<group>"; };
+		0665886A1C40D28400EB5E40 /* SensorReadings.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SensorReadings.m; sourceTree = "<group>"; };
+		06A798CF1C3A0A47006897E8 /* clientAddress.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = clientAddress.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -36,6 +58,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				06031F151C39A869002EA52F /* CoreLocation.framework in Frameworks */,
+				06031F131C39A85E002EA52F /* MapKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -45,6 +69,8 @@
 		0628E0E41C32F4CE00640110 = {
 			isa = PBXGroup;
 			children = (
+				06031F141C39A869002EA52F /* CoreLocation.framework */,
+				06031F121C39A85E002EA52F /* MapKit.framework */,
 				0628E0EF1C32F4CE00640110 /* AVC Controller */,
 				0628E0EE1C32F4CE00640110 /* Products */,
 			);
@@ -61,6 +87,7 @@
 		0628E0EF1C32F4CE00640110 /* AVC Controller */ = {
 			isa = PBXGroup;
 			children = (
+				066588621C4079EB00EB5E40 /* controls */,
 				0628E0F31C32F4CE00640110 /* AppDelegate.h */,
 				0628E0F41C32F4CE00640110 /* AppDelegate.m */,
 				0628E0F61C32F4CE00640110 /* ViewController.h */,
@@ -70,8 +97,16 @@
 				0628E0FE1C32F4CE00640110 /* LaunchScreen.storyboard */,
 				0628E1011C32F4CE00640110 /* Info.plist */,
 				0628E0F01C32F4CE00640110 /* Supporting Files */,
-				06565B571C331EA3008919CF /* ThumbStickView.h */,
-				06565B581C331EA3008919CF /* ThumbStickView.m */,
+				06031F161C39AA0E002EA52F /* RouteViewController.h */,
+				06031F171C39AA0E002EA52F /* RouteViewController.m */,
+				06031F191C39AE8B002EA52F /* Waypoint.h */,
+				06031F1A1C39AE8B002EA52F /* Waypoint.m */,
+				06A798CF1C3A0A47006897E8 /* clientAddress.h */,
+				0665882A1C3EF52B00EB5E40 /* diagnostics.storyboard */,
+				066588661C40D17000EB5E40 /* diagnosticViewController.h */,
+				066588671C40D17000EB5E40 /* diagnosticViewController.m */,
+				066588691C40D28400EB5E40 /* SensorReadings.h */,
+				0665886A1C40D28400EB5E40 /* SensorReadings.m */,
 			);
 			path = "AVC Controller";
 			sourceTree = "<group>";
@@ -82,6 +117,17 @@
 				0628E0F11C32F4CE00640110 /* main.m */,
 			);
 			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		066588621C4079EB00EB5E40 /* controls */ = {
+			isa = PBXGroup;
+			children = (
+				06565B571C331EA3008919CF /* ThumbStickControl.h */,
+				06565B581C331EA3008919CF /* ThumbStickControl.m */,
+				066588631C407A5200EB5E40 /* PointPlotControl.h */,
+				066588641C407A5200EB5E40 /* PointPlotControl.m */,
+			);
+			name = controls;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -142,6 +188,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0628E1001C32F4CE00640110 /* LaunchScreen.storyboard in Resources */,
+				0665882B1C3EF52B00EB5E40 /* diagnostics.storyboard in Resources */,
 				0628E0FD1C32F4CE00640110 /* Assets.xcassets in Resources */,
 				0628E0FB1C32F4CE00640110 /* Main.storyboard in Resources */,
 			);
@@ -154,8 +201,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				06565B591C331EA3008919CF /* ThumbStickView.m in Sources */,
+				06565B591C331EA3008919CF /* ThumbStickControl.m in Sources */,
+				066588681C40D17000EB5E40 /* diagnosticViewController.m in Sources */,
+				066588651C407A5200EB5E40 /* PointPlotControl.m in Sources */,
+				0665886B1C40D28400EB5E40 /* SensorReadings.m in Sources */,
 				0628E0F81C32F4CE00640110 /* ViewController.m in Sources */,
+				06031F1B1C39AE8B002EA52F /* Waypoint.m in Sources */,
+				06031F181C39AA0E002EA52F /* RouteViewController.m in Sources */,
 				0628E0F51C32F4CE00640110 /* AppDelegate.m in Sources */,
 				0628E0F21C32F4CE00640110 /* main.m in Sources */,
 			);
@@ -269,6 +321,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				HEADER_SEARCH_PATHS = ./../../;
 				INFOPLIST_FILE = "AVC Controller/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "PossomGames.AVC-Controller";
@@ -280,6 +333,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				HEADER_SEARCH_PATHS = ./../../;
 				INFOPLIST_FILE = "AVC Controller/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "PossomGames.AVC-Controller";

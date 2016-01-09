@@ -8,9 +8,9 @@
 
 @import CoreGraphics;
 
-#import "ThumbStickView.h"
+#import "ThumbStickControl.h"
 
-@interface ThumbStickView(){
+@interface ThumbStickControl(){
     float axisMinMax[2][2];
 }
 
@@ -20,7 +20,7 @@
 
 @end
 
-@implementation ThumbStickView
+@implementation ThumbStickControl
 
 - (void)setStickPos:(CGPoint)stickPos
 {
@@ -47,14 +47,6 @@
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
     self.currentTouch = [touches anyObject];
-
-    CGPoint point = [self.currentTouch locationInView:self];
-    if(point.x < self.bounds.origin.x) point.x = self.bounds.origin.x;
-    if(point.x > self.bounds.origin.x + self.bounds.size.width) point.x = self.bounds.origin.x + self.bounds.size.width;
-    if(point.y < self.bounds.origin.y) point.y = self.bounds.origin.y;
-    if(point.y > self.bounds.origin.y + self.bounds.size.height) point.x = self.bounds.origin.y + self.bounds.size.height;
-    
-    self.stickPos = point;
 }
 
 - (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
@@ -68,13 +60,9 @@
     self.stickPos = point;
 }
 
-- (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
-{
-    self.stickPos = [self viewCenter];    
-}
-
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
+    self.currentTouch = nil;
     self.stickPos = [self viewCenter];
 }
 
