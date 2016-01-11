@@ -22,6 +22,7 @@
 		066588651C407A5200EB5E40 /* PointPlotControl.m in Sources */ = {isa = PBXBuildFile; fileRef = 066588641C407A5200EB5E40 /* PointPlotControl.m */; };
 		066588681C40D17000EB5E40 /* diagnosticViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 066588671C40D17000EB5E40 /* diagnosticViewController.m */; };
 		0665886B1C40D28400EB5E40 /* SensorReadings.m in Sources */ = {isa = PBXBuildFile; fileRef = 0665886A1C40D28400EB5E40 /* SensorReadings.m */; };
+		0665886E1C43428700EB5E40 /* Errors.m in Sources */ = {isa = PBXBuildFile; fileRef = 0665886D1C43428700EB5E40 /* Errors.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -50,6 +51,8 @@
 		066588671C40D17000EB5E40 /* diagnosticViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = diagnosticViewController.m; sourceTree = "<group>"; };
 		066588691C40D28400EB5E40 /* SensorReadings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SensorReadings.h; sourceTree = "<group>"; };
 		0665886A1C40D28400EB5E40 /* SensorReadings.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SensorReadings.m; sourceTree = "<group>"; };
+		0665886C1C43428700EB5E40 /* Errors.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Errors.h; sourceTree = "<group>"; };
+		0665886D1C43428700EB5E40 /* Errors.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Errors.m; sourceTree = "<group>"; };
 		06A798CF1C3A0A47006897E8 /* clientAddress.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = clientAddress.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -107,6 +110,8 @@
 				066588671C40D17000EB5E40 /* diagnosticViewController.m */,
 				066588691C40D28400EB5E40 /* SensorReadings.h */,
 				0665886A1C40D28400EB5E40 /* SensorReadings.m */,
+				0665886C1C43428700EB5E40 /* Errors.h */,
+				0665886D1C43428700EB5E40 /* Errors.m */,
 			);
 			path = "AVC Controller";
 			sourceTree = "<group>";
@@ -201,6 +206,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0665886E1C43428700EB5E40 /* Errors.m in Sources */,
 				06565B591C331EA3008919CF /* ThumbStickControl.m in Sources */,
 				066588681C40D17000EB5E40 /* diagnosticViewController.m in Sources */,
 				066588651C407A5200EB5E40 /* PointPlotControl.m in Sources */,

@@ -6,8 +6,13 @@
 //  Copyright © 2016 PossomGames. All rights reserved.
 //
 
+#include <sys/socket.h>
+
 #import "diagnosticViewController.h"
+#import "Errors.h"
+
 #include "system.h"
+#include "clientAddress.h"
 
 @interface diagnosticViewController ()
 
@@ -18,6 +23,7 @@
 @implementation diagnosticViewController
 
 system_t SYS;
+int SOCK;
 
 - (void)viewDidLoad {
     [super viewDidLoad];
@@ -39,6 +45,28 @@ system_t SYS;
     [self dismissViewControllerAnimated:YES completion:^{
         // no-op
     }];
+}
+
+- (void)viewDidAppear:(BOOL)animated
+{
+    if(!HOST_ADDRESS){
+        UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Error"
+                                                                       message:@"No host specified, return to the control view to enter one"
+                                                                preferredStyle:UIAlertControllerStyleAlert];
+        [alert addAction:[UIAlertAction actionWithTitle:@"Go back"
+                                                  style:UIAlertActionStyleCancel
+                                                handler:^(UIAlertAction * _Nonnull action) {
+                                                    [self dismissViewControllerAnimated:YES completion:^{ }];
+                                                }]];
+        [self presentViewController:alert animated:YES completion:^{ }];
+        return;
+    }
+    
+    SOCK = socket(AF_INET, SOCK_STREAM, 0);
+    if(connect(SOCK, (const struct sockaddr*)HOST_ADDRESS, sizeof(*HOST_ADDRESS))){
+        [Errors presentWithTitle:@"Could not connect to diagnostic server" onViewController:self];
+        return;
+    }
 }
 
 - (UITableViewCell*)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath

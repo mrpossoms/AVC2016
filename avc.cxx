@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
 	while(1){
 		// senUpdate(&SYS.body);
 
-		AGENT_STEERING.action(NULL, NULL);
+		// AGENT_STEERING.action(NULL, NULL);
 
 		timerUpdate();
 	}
