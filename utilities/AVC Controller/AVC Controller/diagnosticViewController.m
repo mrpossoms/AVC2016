@@ -52,7 +52,6 @@ int SOCK;
 
 - (void)viewDidAppear:(BOOL)animated
 {
-    int err = 0;
     struct sockaddr_in host = {};
     
     if(SOCK) close(SOCK);
@@ -74,19 +73,21 @@ int SOCK;
     host.sin_port = htons(1340);
     
     SOCK = socket(AF_INET, SOCK_STREAM, 0);
-    if((err = connect(SOCK, (const struct sockaddr*)&host, sizeof(host)))){
-        [Errors presentWithTitle:@"Could not connect to diagnostic server" onViewController:self];
-        return;
-    }
     
     dispatch_async(self.pollQueue, ^{
         while(1){
-            write(SOCK, ".", 1);
+            int err;
+            if((err = connect(SOCK, (const struct sockaddr*)&host, sizeof(host)))){
+                [Errors presentWithTitle:@"Could not connect to diagnostic server" onViewController:self];
+//                return;
+            }
             read(SOCK, &SYS.body, sizeof(fusedObjState_t));
+            close(SOCK);
+            
+            sleep(1);
             
             self.data.data = SYS.body;
             [self.tableView reloadData];
-            sleep(1);
         }
     });
 }
