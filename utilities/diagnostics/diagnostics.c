@@ -52,6 +52,8 @@ static void* handler(void* params)
 		// for each connection that requested something
 		for(int i = usedConnections; i--;){
 			int fd = connections[i];
+			char byte;
+			while(read(fd, &byte, 1));
 			if(FD_ISSET(fd, &readFd)){
 				write(fd, &SYS.body, sizeof(fusedObjState_t));
 			}

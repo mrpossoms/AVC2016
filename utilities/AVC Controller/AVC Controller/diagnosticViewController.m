@@ -17,6 +17,7 @@
 @interface diagnosticViewController ()
 
 @property (weak, nonatomic) IBOutlet UITableView *tableView;
+@property dispatch_queue_t pollQueue;
 
 @end
 
@@ -34,6 +35,8 @@ int SOCK;
     
     self.tableView.delegate   = self;
     self.tableView.dataSource = self;
+    
+    self.pollQueue = dispatch_queue_create("MESSAGE_POLL_QUEUE", NULL);
 }
 
 - (void)didReceiveMemoryWarning {
@@ -49,6 +52,11 @@ int SOCK;
 
 - (void)viewDidAppear:(BOOL)animated
 {
+    int err = 0;
+    struct sockaddr_in host = {};
+    
+    if(SOCK) close(SOCK);
+    
     if(!HOST_ADDRESS){
         UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Error"
                                                                        message:@"No host specified, return to the control view to enter one"
@@ -62,11 +70,25 @@ int SOCK;
         return;
     }
     
+    host = *HOST_ADDRESS;
+    host.sin_port = htons(1340);
+    
     SOCK = socket(AF_INET, SOCK_STREAM, 0);
-    if(connect(SOCK, (const struct sockaddr*)HOST_ADDRESS, sizeof(*HOST_ADDRESS))){
+    if((err = connect(SOCK, (const struct sockaddr*)&host, sizeof(host)))){
         [Errors presentWithTitle:@"Could not connect to diagnostic server" onViewController:self];
         return;
     }
+    
+    dispatch_async(self.pollQueue, ^{
+        while(1){
+            write(SOCK, ".", 1);
+            read(SOCK, &SYS.body, sizeof(fusedObjState_t));
+            
+            self.data.data = SYS.body;
+            [self.tableView reloadData];
+            sleep(1);
+        }
+    });
 }
 
 - (UITableViewCell*)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
