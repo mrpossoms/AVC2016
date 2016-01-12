@@ -13,12 +13,15 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
+#define STORED_IP_ADDR @"LAST-IP-ADDRESS"
+
 @interface ViewController ()
 
 @property (weak, nonatomic) IBOutlet ThumbStickControl *throttleStick;
 @property (weak, nonatomic) IBOutlet ThumbStickControl *steerStick;
 @property (weak, nonatomic) IBOutlet UITextField *ipAddressText;
 @property (weak, nonatomic) IBOutlet UIActivityIndicatorView *resolvingIndicator;
+@property (nonatomic) NSString* ipAddress;
 
 @end
 
@@ -51,6 +54,48 @@ void transmit(){
     );
 }
 
+- (void)setIpAddress:(NSString *)ipAddress
+{
+    if(!ipAddress) return; // do nothing
+    
+    [self.resolvingIndicator startAnimating];
+    _ipAddress = ipAddress;
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        struct hostent* he = NULL;
+        const char* hostname = [ipAddress UTF8String];
+        
+        if(!(he = gethostbyname(hostname))){
+            [self.resolvingIndicator stopAnimating];
+            
+            UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Error"
+                                                                           message:[NSString stringWithFormat:@"Couldn't resolve host '%s'", hostname]
+                                                                    preferredStyle:UIAlertControllerStyleAlert];
+            [alert addAction:[UIAlertAction actionWithTitle:@"OK"
+                                                      style:UIAlertActionStyleCancel
+                                                    handler:^(UIAlertAction * _Nonnull action) { }]];
+            [self presentViewController:alert animated:YES completion:^{ }];
+            
+            free(HOST_ADDRESS);
+            HOST_ADDRESS = NULL;
+            
+            return;
+        }
+        
+        if(!HOST_ADDRESS){
+            HOST_ADDRESS = malloc(sizeof(struct sockaddr_in));
+        }
+        
+        HOST_ADDRESS->sin_family = AF_INET;
+        HOST_ADDRESS->sin_port   = htons(1338);
+        unsigned char* addr = (unsigned char*)he->h_addr_list[0];
+        memcpy((void*)&(HOST_ADDRESS->sin_addr), addr, he->h_length);
+        
+        self.ipAddressText.text = [NSString stringWithFormat:@"%d.%d.%d.%d", addr[0], addr[1], addr[2], addr[3]];
+        [self.resolvingIndicator stopAnimating];
+    });
+}
+
 - (void)viewDidLayoutSubviews
 {
     [self.throttleStick reset];
@@ -75,6 +120,7 @@ void transmit(){
     // Do any additional setup after loading the view, typically from a nib.
     
     [self.resolvingIndicator stopAnimating];
+    self.ipAddress = [[NSUserDefaults standardUserDefaults] objectForKey: STORED_IP_ADDR];
 }
 
 - (void)didThumbMoveWithValues:(CGPoint)values asSender:(ThumbStickControl *)sender
@@ -90,46 +136,10 @@ void transmit(){
     transmit();
 }
 
-- (IBAction)didChangeIpAddress:(id)sender {
-    
-    [self.resolvingIndicator startAnimating];
-    
-    dispatch_async(dispatch_get_main_queue(), ^{
-        struct hostent* he = NULL;
-        const char* hostname = [self.ipAddressText.text UTF8String];
-        
-        if(!(he = gethostbyname(hostname))){
-            [self.resolvingIndicator stopAnimating];
-            
-            UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Error"
-                                                                           message:[NSString stringWithFormat:@"Couldn't resolve host '%s'", hostname]
-                                                                    preferredStyle:UIAlertControllerStyleAlert];
-            [alert addAction:[UIAlertAction actionWithTitle:@"OK"
-                                                      style:UIAlertActionStyleCancel
-                                                    handler:^(UIAlertAction * _Nonnull action) { }]];
-            [self presentViewController:alert animated:YES completion:^{ }];
-            
-            free(HOST_ADDRESS);
-            HOST_ADDRESS = NULL;
-            
-            return;
-        }
-
-        if(!HOST_ADDRESS){
-            HOST_ADDRESS = malloc(sizeof(struct sockaddr_in));
-        }
-            
-        HOST_ADDRESS->sin_family = AF_INET;
-        HOST_ADDRESS->sin_port   = htons(1338);
-        unsigned char* addr = (unsigned char*)he->h_addr_list[0];
-        memcpy((void*)&(HOST_ADDRESS->sin_addr), addr, he->h_length);
-        
-        self.ipAddressText.text = [NSString stringWithFormat:@"%d.%d.%d.%d", addr[0], addr[1], addr[2], addr[3]];
-        [self.resolvingIndicator stopAnimating];
-    });
-    
-
-    
+- (IBAction)didChangeIpAddress:(id)sender
+{
+    self.ipAddress = self.ipAddressText.text;
+    [[NSUserDefaults standardUserDefaults] setObject:self.ipAddress forKey:STORED_IP_ADDR];
 }
 
 - (void)dismiss {

@@ -8,15 +8,19 @@
 
 #import "PointPlotControl.h"
 
+@interface PointPlotControl()
+
+@end
+
 @implementation PointPlotControl
 
 - (void)commonInit
 {
     static const CGFloat black[] = { 0, 0, 0, 1 };
+    static const CGFloat white[] = { 1, 1, 1, 1 };
     
     pointColor = black;
-    _min = CGVectorMake(-1, -1);
-    _max = CGVectorMake( 1,  1);
+    clearColor = white;
 }
 
 - (instancetype)init
@@ -39,21 +43,89 @@
     return self;
 }
 
+- (BOOL)findMinMax
+{
+    if(!points) return NO;
+    
+    max = min = points[0];
+    
+    for(NSUInteger i = pointCount; i--;){
+        if(points[i].x > max.x){
+            max.x = points[i].x;
+        }
+        if(points[i].y > max.y){
+            max.y = points[i].y;
+        }
+
+        if(points[i].x < min.x){
+            min.x = points[i].x;
+        }
+        if(points[i].y < min.y){
+            min.y = points[i].y;
+        }
+    }
+    
+    return YES;
+}
+
 - (void)drawRect:(CGRect)rect
 {
     CGContextRef ctx = UIGraphicsGetCurrentContext();
+
+    CGContextClearRect(ctx, rect);
+    CGContextSetFillColor(ctx, clearColor);
+    CGContextFillRect(ctx, rect);
+
+    CGPoint center  = { rect.size.width / 2, rect.size.height / 2 };
+    CGVector radius = { center.x, center.y };
+    const CGFloat strokeColor[] = { 0.75, 0.75, 0.75, 1.0 };
+    CGContextSetStrokeColor(ctx, strokeColor);
     
-    if(self.shouldClearOnRedraw){
-        CGContextClearRect(ctx, rect);
-    }
-        
+    CGPoint verticalAxis[]   = { { center.x, 0 }, { center.x, rect.size.height } };
+    CGPoint horizontalAxis[] = { { 0, center.y }, { rect.size.width, center.y } };
+    CGContextStrokeLineSegments(ctx, verticalAxis, 2);
+    CGContextStrokeLineSegments(ctx, horizontalAxis, 2);
+    
+    
+    if(![self findMinMax]) return;
+    
+    const float s = 1.25f;
+    min.x *= s; min.y *= s;
+    max.x *= s; max.y *= s;
+    
     CGContextSetFillColor(ctx, pointColor);
-    
     for(NSUInteger i = pointCount; i--;){
         CGPoint point = points[i];
+
+        CGPoint norm = CGPointMake(
+           ((point.x - ((max.x + min.x) / 2)) / ((max.x - min.x) / 2)) + 1,
+           ((point.y - ((max.y + min.y) / 2)) / ((max.y - min.y) / 2)) + 1
+        );
         
-        CGContextFillRect(ctx, CGRectMake(point.x - 1, point.y - 1, 2, 2));
+        
+        CGPoint transformed = { norm.x * radius.dx, norm.y * radius.dy };
+        CGContextFillRect(ctx, CGRectMake(transformed.x - 1, transformed.y - 1, 2, 2));
     }
+    
+    NSMutableParagraphStyle* style = [[[NSParagraphStyle alloc] init] mutableCopy];
+    NSDictionary* attrs = nil;
+    style.alignment = NSTextAlignmentLeft;
+    CGFloat textBoxWidth = radius.dx / 2;
+    [[NSString stringWithFormat:@"%f", min.x] drawInRect:CGRectMake(horizontalAxis[0].x, horizontalAxis[0].y, textBoxWidth, 20) withAttributes:attrs];
+    
+    style.alignment = NSTextAlignmentRight;
+    [[NSString stringWithFormat:@"%f", max.x] drawInRect:CGRectMake(horizontalAxis[1].x - textBoxWidth, horizontalAxis[1].y, textBoxWidth, 20) withAttributes:attrs];
+
+    style.alignment = NSTextAlignmentLeft;
+    [[NSString stringWithFormat:@"%f", min.x] drawInRect:CGRectMake(verticalAxis[0].x, verticalAxis[0].y, textBoxWidth, 20) withAttributes:attrs];
+    
+    style.alignment = NSTextAlignmentRight;
+    [[NSString stringWithFormat:@"%f", max.x] drawInRect:CGRectMake(verticalAxis[1].x, verticalAxis[1].y - 20, textBoxWidth, 20) withAttributes:attrs];
+}
+
++ (instancetype)plotWithFrame:(CGRect)frame
+{
+    return [[PointPlotControl alloc] initWithFrame:frame];
 }
 
 @end

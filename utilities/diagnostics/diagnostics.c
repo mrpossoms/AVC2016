@@ -26,7 +26,9 @@ static void* handler(void* params)
 	int listenfd = *((int*)params); // listening fd
 	
 	while(1){
+		printf("Waiting for connection\n");
 		int newConnection = accept(listenfd, NULL, NULL);
+		printf("Connected!\n");
 		write(newConnection, &SYS.body, sizeof(fusedObjState_t));
 		close(newConnection);
 	}

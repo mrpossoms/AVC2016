@@ -10,12 +10,15 @@
 #import <Foundation/Foundation.h>
 
 @interface PointPlotControl : UIView{
+    @public
     CGPoint*       points;
     NSUInteger     pointCount;
-    const CGFloat* pointColor;
+    const CGFloat *pointColor, *clearColor;
+    
+    @private
+    CGPoint min, max;
 }
 
-@property CGVector min, max;
-@property BOOL   shouldClearOnRedraw;
++ (instancetype)plotWithFrame:(CGRect)frame;
 
 @end

@@ -9,7 +9,7 @@
 #import <UIKit/UIKit.h>
 #import "SensorReadings.h"
 
-@interface diagnosticViewController : UIViewController <UITableViewDataSource, UITableViewDelegate>
+@interface diagnosticViewController : UIViewController <UITableViewDataSource, UITableViewDelegate, UIScrollViewDelegate>
 
 @property SensorReadings* data;
 

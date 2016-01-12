@@ -9,13 +9,20 @@
 #include <sys/socket.h>
 
 #import "diagnosticViewController.h"
+#import "PointPlotControl.h"
 #import "Errors.h"
 
 #include "system.h"
 #include "clientAddress.h"
 
-@interface diagnosticViewController ()
+@interface diagnosticViewController (){
+    CGPoint magSamplesXY[256];
+    uint8_t magIndex;
+}
 
+@property PointPlotControl* magPlotXY;
+
+@property (weak, nonatomic) IBOutlet UIScrollView *scrollView;
 @property (weak, nonatomic) IBOutlet UITableView *tableView;
 @property dispatch_queue_t pollQueue;
 
@@ -24,7 +31,6 @@
 @implementation diagnosticViewController
 
 system_t SYS;
-int SOCK;
 
 - (void)viewDidLoad {
     [super viewDidLoad];
@@ -33,10 +39,24 @@ int SOCK;
     sen.data = SYS.body;
     self.data = sen;
     
+    self.scrollView.delegate = self;
+    
     self.tableView.delegate   = self;
     self.tableView.dataSource = self;
     
     self.pollQueue = dispatch_queue_create("MESSAGE_POLL_QUEUE", NULL);
+}
+
+- (void)viewDidLayoutSubviews
+{
+    CGSize parentSize = self.scrollView.frame.size;
+    
+    self.scrollView.contentSize = CGSizeMake(parentSize.width, parentSize.height * 2);
+    self.magPlotXY = [PointPlotControl plotWithFrame:CGRectMake(0, 0, parentSize.width, parentSize.height)];
+    [self.scrollView addSubview:self.magPlotXY];
+    
+    [self.scrollView addSubview:[PointPlotControl plotWithFrame:CGRectMake(0, parentSize.height, parentSize.width, parentSize.height)]];
+
 }
 
 - (void)didReceiveMemoryWarning {
@@ -54,8 +74,6 @@ int SOCK;
 {
     struct sockaddr_in host = {};
     
-    if(SOCK) close(SOCK);
-    
     if(!HOST_ADDRESS){
         UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Error"
                                                                        message:@"No host specified, return to the control view to enter one"
@@ -72,21 +90,35 @@ int SOCK;
     host = *HOST_ADDRESS;
     host.sin_port = htons(1340);
     
-    SOCK = socket(AF_INET, SOCK_STREAM, 0);
-    
+
     dispatch_async(self.pollQueue, ^{
         while(1){
             int err;
-            if((err = connect(SOCK, (const struct sockaddr*)&host, sizeof(host)))){
-                [Errors presentWithTitle:@"Could not connect to diagnostic server" onViewController:self];
+            int sock = socket(AF_INET, SOCK_STREAM, 0);
+            if((err = connect(sock, (const struct sockaddr*)&host, sizeof(host)))){
+//                [Errors presentWithTitle:@"Could not connect to diagnostic server" onViewController:self];
 //                return;
             }
-            read(SOCK, &SYS.body, sizeof(fusedObjState_t));
-            close(SOCK);
+            err = read(sock, &SYS.body, sizeof(fusedObjState_t));
             
-            sleep(1);
+            magSamplesXY[magIndex++] = CGPointMake(SYS.body.imu.rawReadings.mag.x, SYS.body.imu.rawReadings.mag.y);
+            
+            close(sock);
+            
+//            sleep(1);
+            usleep(100000);
             
             self.data.data = SYS.body;
+            
+            self.magPlotXY->points = magSamplesXY;
+            if(self.magPlotXY->pointCount < magIndex){
+                self.magPlotXY->pointCount = magIndex;
+            }
+            
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self.magPlotXY setNeedsDisplay];
+            });
+
             [self.tableView reloadData];
         }
     });
