@@ -25,6 +25,7 @@
 @property (weak, nonatomic) IBOutlet UIScrollView *scrollView;
 @property (weak, nonatomic) IBOutlet UITableView *tableView;
 @property dispatch_queue_t pollQueue;
+@property BOOL shouldPoll;
 
 @end
 
@@ -70,6 +71,11 @@ system_t SYS;
     }];
 }
 
+- (void)viewWillAppear:(BOOL)animated
+{
+    self.shouldPoll = YES;
+}
+
 - (void)viewDidAppear:(BOOL)animated
 {
     struct sockaddr_in host = {};
@@ -89,24 +95,44 @@ system_t SYS;
     
     host = *HOST_ADDRESS;
     host.sin_port = htons(1340);
-    
 
     dispatch_async(self.pollQueue, ^{
-        while(1){
-            int err;
-            int sock = socket(AF_INET, SOCK_STREAM, 0);
-            if((err = connect(sock, (const struct sockaddr*)&host, sizeof(host)))){
-//                [Errors presentWithTitle:@"Could not connect to diagnostic server" onViewController:self];
-//                return;
+        CFAbsoluteTime last = CFAbsoluteTimeGetCurrent();
+        int sock = socket(AF_INET, SOCK_STREAM, 0);
+        int err;
+
+        if((err = connect(sock, (const struct sockaddr*)&host, sizeof(host)))){
+            NSLog(@"Connection failed");
+            [Errors presentWithTitle:@"Could not connect to diagnostic server" onViewController:self];
+            return;
+        }
+        
+        while(self.shouldPoll){
+            CFAbsoluteTime now = CFAbsoluteTimeGetCurrent();
+            
+            if(now - last < 0.5){
+                usleep(100000);
+                continue;
             }
-            err = read(sock, &SYS.body, sizeof(fusedObjState_t));
+            NSLog(@"Polling");
+            
+            write(sock, "X", 1);
+            
+            fd_set readfd;
+            struct timeval timeout = { 1, 0 };
+            FD_ZERO(&readfd);
+            FD_SET(sock, &readfd);
+            
+            if(select(sock + 1, &readfd, NULL, NULL, &timeout) > 0){
+                int bytes = read(sock, &SYS.body, sizeof(fusedObjState_t));
+                assert(bytes == sizeof(fusedObjState_t));
+            }
             
             magSamplesXY[magIndex++] = CGPointMake(SYS.body.imu.rawReadings.mag.x, SYS.body.imu.rawReadings.mag.y);
             
             close(sock);
             
 //            sleep(1);
-            usleep(100000);
             
             self.data.data = SYS.body;
             
@@ -117,11 +143,17 @@ system_t SYS;
             
             dispatch_async(dispatch_get_main_queue(), ^{
                 [self.magPlotXY setNeedsDisplay];
+                [self.tableView reloadData];
             });
-
-            [self.tableView reloadData];
+            
+            last = now;
         }
     });
+}
+
+- (void)viewWillDisappear:(BOOL)animated
+{
+    self.shouldPoll = NO;
 }
 
 - (UITableViewCell*)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath

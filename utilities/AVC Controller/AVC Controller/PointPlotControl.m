@@ -98,8 +98,8 @@
         CGPoint point = points[i];
 
         CGPoint norm = CGPointMake(
-           ((point.x - ((max.x + min.x) / 2)) / ((max.x - min.x) / 2)) + 1,
-           ((point.y - ((max.y + min.y) / 2)) / ((max.y - min.y) / 2)) + 1
+           (point.x - min.x) * 2 / (max.x - min.x) - 1,
+           (point.y - min.y) * 2 / (max.y - min.y) - 1
         );
         
         
