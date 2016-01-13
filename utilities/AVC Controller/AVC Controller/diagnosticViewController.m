@@ -103,7 +103,9 @@ system_t SYS;
 
         if((err = connect(sock, (const struct sockaddr*)&host, sizeof(host)))){
             NSLog(@"Connection failed");
-            [Errors presentWithTitle:@"Could not connect to diagnostic server" onViewController:self];
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [Errors presentWithTitle:@"Could not connect to diagnostic server" onViewController:self];
+            });
             return;
         }
         
@@ -125,17 +127,11 @@ system_t SYS;
             
             if(select(sock + 1, &readfd, NULL, NULL, &timeout) > 0){
                 int bytes = read(sock, &SYS.body, sizeof(fusedObjState_t));
-                assert(bytes == sizeof(fusedObjState_t));
             }
             
             magSamplesXY[magIndex++] = CGPointMake(SYS.body.imu.rawReadings.mag.x, SYS.body.imu.rawReadings.mag.y);
             
-            close(sock);
-            
-//            sleep(1);
-            
             self.data.data = SYS.body;
-            
             self.magPlotXY->points = magSamplesXY;
             if(self.magPlotXY->pointCount < magIndex){
                 self.magPlotXY->pointCount = magIndex;
@@ -148,6 +144,8 @@ system_t SYS;
             
             last = now;
         }
+        
+        close(sock);
     });
 }
 
