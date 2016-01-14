@@ -16,5 +16,6 @@
 
 @property (readonly) NSString *estPosition, *estVelocity, *estHeading;
 @property (readonly) NSString *mesPosition, *mesVelocity, *mesHeading;
+@property (readonly) NSString *hasGpsFix;
 
 @end

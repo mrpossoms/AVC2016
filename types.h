@@ -114,7 +114,7 @@ inline float vec3fAng(vec3f_t* a, vec3f_t* b)
 {
 	vec3f_t an = vec3fNorm(a);
 	vec3f_t bn = vec3fNorm(b);
-	return acosf(vec3fDot(an, bn));
+	return acosf(vec3fDot(&an, &bn));
 }
 
 #endif

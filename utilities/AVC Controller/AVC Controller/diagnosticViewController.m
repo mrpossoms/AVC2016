@@ -170,11 +170,13 @@ system_t SYS;
     NSString* titles[] = {
         @"Measured position", @"Measured velocity", @"Measured heading",
         @"Estimated position", @"Estimated velocity", @"Estimated heading",
+        @"GPS Fix"
     };
     
     NSString* descriptions[] = {
         self.data.mesPosition, self.data.mesVelocity, self.data.mesHeading,
         self.data.estPosition, self.data.estVelocity, self.data.estHeading,
+        self.data.hasGpsFix
     };
     
     cell.textLabel.text       = titles[indexPath.row];
