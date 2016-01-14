@@ -56,8 +56,8 @@ system_t SYS;
     self.scrollView.contentSize = CGSizeMake(parentSize.width, parentSize.height * 2);
     self.magPlotXY = [PointPlotControl plotWithFrame:CGRectMake(0, 0, parentSize.width, parentSize.height)];
     self.headingPlotXY = [PointPlotControl plotWithFrame:CGRectMake(0, parentSize.height, parentSize.width, parentSize.height)];
-    [self.scrollView addSubview:self.magPlotXY];
     
+    [self.scrollView addSubview:self.magPlotXY];
     [self.scrollView addSubview:self.headingPlotXY];
 
 }
@@ -147,6 +147,7 @@ system_t SYS;
             
             dispatch_async(dispatch_get_main_queue(), ^{
                 [self.magPlotXY setNeedsDisplay];
+                [self.headingPlotXY setNeedsDisplay];
                 [self.tableView reloadData];
             });
             
