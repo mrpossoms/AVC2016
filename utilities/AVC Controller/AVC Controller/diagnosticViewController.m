@@ -17,10 +17,11 @@
 
 @interface diagnosticViewController (){
     CGPoint magSamplesXY[256];
+    CGPoint headingSamplesXY[256];
     uint8_t magIndex;
 }
 
-@property PointPlotControl* magPlotXY;
+@property PointPlotControl* magPlotXY, *headingPlotXY;
 
 @property (weak, nonatomic) IBOutlet UIScrollView *scrollView;
 @property (weak, nonatomic) IBOutlet UITableView *tableView;
@@ -54,9 +55,10 @@ system_t SYS;
     
     self.scrollView.contentSize = CGSizeMake(parentSize.width, parentSize.height * 2);
     self.magPlotXY = [PointPlotControl plotWithFrame:CGRectMake(0, 0, parentSize.width, parentSize.height)];
+    self.headingPlotXY = [PointPlotControl plotWithFrame:CGRectMake(0, parentSize.height, parentSize.width, parentSize.height)];
     [self.scrollView addSubview:self.magPlotXY];
     
-    [self.scrollView addSubview:[PointPlotControl plotWithFrame:CGRectMake(0, parentSize.height, parentSize.width, parentSize.height)]];
+    [self.scrollView addSubview:self.headingPlotXY];
 
 }
 
@@ -129,12 +131,18 @@ system_t SYS;
                 int bytes = read(sock, &SYS.body, sizeof(fusedObjState_t));
             }
             
-            magSamplesXY[magIndex++] = CGPointMake(SYS.body.imu.rawReadings.mag.x, SYS.body.imu.rawReadings.mag.y);
+            magSamplesXY[magIndex] = CGPointMake(SYS.body.imu.rawReadings.mag.x, SYS.body.imu.rawReadings.mag.y);
+            headingSamplesXY[magIndex++] = CGPointMake(SYS.body.measured.heading.x, SYS.body.measured.heading.y);
             
             self.data.data = SYS.body;
             self.magPlotXY->points = magSamplesXY;
             if(self.magPlotXY->pointCount < magIndex){
                 self.magPlotXY->pointCount = magIndex;
+            }
+            
+            self.headingPlotXY->points = headingSamplesXY;
+            if(self.headingPlotXY->pointCount < magIndex){
+                self.headingPlotXY->pointCount = magIndex;
             }
             
             dispatch_async(dispatch_get_main_queue(), ^{
