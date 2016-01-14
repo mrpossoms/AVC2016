@@ -206,14 +206,33 @@ void imuUpdateState(int fd, imuState_t* state)
 	filterReading(state);
 
 	if(state->isCalibrated){
-		vec3i16_t* accMin = &state->calibrationMinMax[0].linear;
-		vec3i16_t* accMax = &state->calibrationMinMax[1].linear;
+		vec3i16_t* accMin = &state->calMinMax[0].linear;
+		vec3i16_t* accMax = &state->calMinMax[1].linear;
+		vec3i16_t* magMin = &state->calMinMax[0].mag;
+		vec3i16_t* magMax = &state->calMinMax[1].mag;
+
+		// update the mag window
+		int updatedMagWindow = 0;
+		if     (reading.mag.x > magMax->x){ magMax->x = reading.mag.x; updatedMagWindow = 1; }
+		else if(reading.mag.x < magMin->x){ magMin->x = reading.mag.x; updatedMagWindow = 1; }
+		if     (reading.mag.y > magMax->y){ magMax->y = reading.mag.y; updatedMagWindow = 1; }
+		else if(reading.mag.y < magMin->y){ magMin->y = reading.mag.y; updatedMagWindow = 1; }
+
+		if(updatedMagWindow){
+			int calFd = open("./imu.cal", O_WRONLY);
+			write(calFd, &state->calMinMax, sizeof(state->calMinMax));
+			close(calFd);
+		}
 
 		// map the readings to the 1G calibration window that was obtained
 		// from the calibration profile
 		state->adjReadings.linear.x = G * map(reading.linear.x, accMin->x, accMax->x);
 		state->adjReadings.linear.y = G * map(reading.linear.y, accMin->y, accMax->y);
 		state->adjReadings.linear.z = G * map(reading.linear.z, accMin->z, accMax->z);
+
+		state->adjReadings.mag.x = map(reading.mag.x, magMin->x, magMax->x);
+		state->adjReadings.mag.y = map(reading.mag.y, magMin->y, magMax->y);
+		state->adjReadings.mag.x = map(reading.mag.x, magMin->z, magMax->z);
 	}
 	else{
 		// no calibration, just spit out the literal value
@@ -258,23 +277,22 @@ int imuPerformCalibration(int fd_storage, int fd_imu, imuState_t* state)
 	getchar();
 
 	printf("Calibrating accelerometer\n");
-	state->calibrationMinMax[0].linear.x = axisAcc('x', 0, fd_imu);
-	state->calibrationMinMax[1].linear.x = axisAcc('x', 1, fd_imu);
-	state->calibrationMinMax[0].linear.y = axisAcc('y', 0, fd_imu);
-	state->calibrationMinMax[1].linear.y = axisAcc('y', 1, fd_imu);
-	state->calibrationMinMax[0].linear.z = axisAcc('z', 0, fd_imu);
-	state->calibrationMinMax[1].linear.z = axisAcc('z', 1, fd_imu); 
+	state->calMinMax[0].linear.x = axisAcc('x', 0, fd_imu);
+	state->calMinMax[1].linear.x = axisAcc('x', 1, fd_imu);
+	state->calMinMax[0].linear.y = axisAcc('y', 0, fd_imu);
+	state->calMinMax[1].linear.y = axisAcc('y', 1, fd_imu);
+	state->calMinMax[0].linear.z = axisAcc('z', 0, fd_imu);
+	state->calMinMax[1].linear.z = axisAcc('z', 1, fd_imu);
 
 	// store the results
-	write(fd_storage, &state->calibrationMinMax, sizeof(sensorStatei_t) * 2);
+	write(fd_storage, &state->calMinMax, sizeof(state->calMinMax));
 
 	return 0;
 }
 
 int imuLoadCalibrationProfile(int fd_storage, imuState_t* state)
 {
-	int isOk = read(fd_storage, &state->calibrationMinMax, sizeof(sensorStatei_t) * 2) == sizeof(sensorStatei_t) * 2;
-
+	int isOk = read(fd_storage, &state->calMinMax, sizeof(state->calMinMax)) == sizeof(state->calMinMax);
 	if(isOk){
 		state->isCalibrated = 1;
 	}

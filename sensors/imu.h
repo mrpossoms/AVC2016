@@ -49,7 +49,7 @@ typedef struct{
 	sensorStatei_t  rawReadings;
 	sensorStatef_t  adjReadings;
 	readingFilter_t windows;
-	sensorStatei_t  calibrationMinMax[2];
+	sensorStatei_t  calMinMax[2];
 	sensorStatei_t  standardDeviations;
 	int             isCalibrated;
 }imuState_t;
