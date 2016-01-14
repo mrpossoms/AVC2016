@@ -30,12 +30,14 @@ static void* handler(void* params)
 	struct timeval timeoutLong  = { 1, 0 };
 	struct timeval timeoutShort = { 1, 1000 };
 
+	printf("Waiting for connections on %d", listenfd);
+
 	while(1){
 		fd_set readFd;
 		FD_ZERO(&readFd);
 		FD_SET(listenfd, &readFd);
 
-		if(select(listenfd + 1, &readFd, 0, 0, &timeoutShort) > 0){
+		if(select(listenfd + 1, &readFd, 0, 0, &timeoutLong) > 0){
 			int newConnection = accept(listenfd, NULL, NULL);
 
 			if(newConnection >= 0){
@@ -50,6 +52,7 @@ static void* handler(void* params)
 		
 		FD_ZERO(&readFd);
 		for(int i = usedConnections; i--;){
+			
 			FD_SET(connections[i], &readFd);
 		}
 		if(maxFd <= 0){
@@ -68,6 +71,7 @@ static void* handler(void* params)
 
 			if(FD_ISSET(fd, &readFd)){
 				read(fd, &byte, 1);
+				write(fd, &SYS.body, sizeof(fusedObjState_t));
 			}
 		}
 	}
