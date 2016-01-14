@@ -10,6 +10,8 @@
 
 @interface PointPlotControl()
 
+@property BOOL minMaxSet;
+
 @end
 
 @implementation PointPlotControl
@@ -47,7 +49,10 @@
 {
     if(!points) return NO;
     
-    max = min = points[0];
+    if(!self.minMaxSet){
+        self.minMaxSet = YES;
+        max = min = points[0];
+    }
     
     for(NSUInteger i = pointCount; i--;){
         if(points[i].x > max.x){
@@ -89,9 +94,9 @@
     
     if(![self findMinMax]) return;
     
-    const float s = 1.25f;
-    min.x *= s; min.y *= s;
-    max.x *= s; max.y *= s;
+//    const float s = 1.25f;
+//    min.x *= s; min.y *= s;
+//    max.x *= s; max.y *= s;
     
     CGContextSetFillColor(ctx, pointColor);
     for(NSUInteger i = pointCount; i--;){
@@ -103,7 +108,7 @@
         );
         
         
-        CGPoint transformed = { norm.x * radius.dx, norm.y * radius.dy };
+        CGPoint transformed = { norm.x * radius.dx + radius.dx, norm.y * radius.dy + radius.dy};
         CGContextFillRect(ctx, CGRectMake(transformed.x - 1, transformed.y - 1, 2, 2));
     }
     

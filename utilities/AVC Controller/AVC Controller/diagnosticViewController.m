@@ -112,13 +112,13 @@ system_t SYS;
         while(self.shouldPoll){
             CFAbsoluteTime now = CFAbsoluteTimeGetCurrent();
             
-            if(now - last < 0.5){
+            if(now - last < 0.1){
                 usleep(100000);
                 continue;
             }
             NSLog(@"Polling");
             
-            write(sock, "X", 1);
+            int written = write(sock, "X", 1);
             
             fd_set readfd;
             struct timeval timeout = { 1, 0 };
