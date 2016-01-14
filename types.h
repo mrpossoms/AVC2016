@@ -112,7 +112,9 @@ inline vec3f_t vec3fNorm(vec3f_t* v)
 
 inline float vec3fAng(vec3f_t* a, vec3f_t* b)
 {
-	return acosf(vec3fDot(a, b) / (vec3fMag(a) * vec3fMag(b)));
+	vec3f_t an = vec3fNorm(a);
+	vec3f_t bn = vec3fNorm(b);
+	return acosf(vec3fDot(an, bn));
 }
 
 #endif
