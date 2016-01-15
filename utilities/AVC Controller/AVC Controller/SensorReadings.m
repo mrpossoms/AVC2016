@@ -50,4 +50,9 @@
     return [self stringForVecF:self.data.estimated.heading];
 }
 
+- (NSString*)hasGpsFix
+{
+    return @"IDK";
+}
+
 @end
