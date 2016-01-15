@@ -21,13 +21,17 @@ static float angleToNextWayPoint(objectState_t* o, gpsWaypointCont_t* waypoint)
 	tempHeading = vec3fNorm(&tempHeading);
 
 	toWaypoint.z = tempHeading.z= 0;
-	
-	float dot = vec3fDot(&toWaypoint, &tempHeading);
 
+	float d1 = vec3fDot(&toWaypoint, &tempHeading);
+	
+	tempHeading.x = cos(M_PI / 2) * tempHeading.x - sin(M_PI / 2) * tempHeading.y;
+	tempHeading.y = sin(M_PI / 2) * tempHeading.x + cos(M_PI / 2) * tempHeading.y;
+
+	float d2 = vec3fDot(&toWaypoint, &tempHeading);
 
 	printf("delta %f, %f\n", toWaypoint.x, toWaypoint.y);
 
-	return acos(dot) * dot;
+	return acos(d1) * d2;
 }
 
 static float utility(agent_t* current, void* args)
