@@ -62,11 +62,7 @@
     for(NSUInteger i = pointCount; i--;){
         CGPoint point = points[i];
         
-        CGPoint norm = CGPointMake(
-                                   (point.x - 1) * 2 / 2 - 1,
-                                   (point.y - 1) * 2 / 2 - 1
-                                   );
-        
+        CGPoint norm = CGPointMake(point.x, point.y);
         
         CGPoint transformed = { norm.x * radius.dx + radius.dx, norm.y * radius.dy + radius.dy};
         CGPoint line[] = { center, transformed };
