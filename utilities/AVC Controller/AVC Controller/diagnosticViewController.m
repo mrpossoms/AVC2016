@@ -13,6 +13,7 @@
 #import "VectorPlotControl.h"
 #import "Errors.h"
 
+#include "types.h"
 #include "system.h"
 #include "clientAddress.h"
 
@@ -143,15 +144,16 @@ system_t SYS;
                 int bytes = read(sock, &SYS, sizeof(system_t));
             }
             
-            magSamplesXY[magIndex] = CGPointMake(SYS.body.imu.rawReadings.mag.x, SYS.body.imu.rawReadings.mag.y);
             headingSamplesXY[magIndex++] = CGPointMake(SYS.body.measured.heading.x, SYS.body.measured.heading.y);
             
             self.data.data = SYS.body;
-            vec3f_t wd = vec3fSub(&SYS.route.start->self.location, &SYS.body.measured.position);
-            wd = vec3fNorm(&wd);
             
+//            float wdx = SYS.route.start->self.location.x - SYS.body.measured.position.x;
+//            float wdy = SYS.route.start->self.location.y - SYS.body.measured.position.y;
+//            float wmag = sqrtf(wdx * wdx + wdy * wdy);
+//            
             self.vectorPlotXY->points[0] = CGPointMake(SYS.body.measured.heading.x, SYS.body.measured.heading.y);
-            self.vectorPlotXY->points[1] = CGPointMake(wd.x, wd.y);
+//            self.vectorPlotXY->points[1] = CGPointMake(wdx / wmag, wdy / wmag);
             
             self.headingPlotXY->points = headingSamplesXY;
             if(self.headingPlotXY->pointCount < magIndex){
