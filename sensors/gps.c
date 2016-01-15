@@ -62,6 +62,12 @@ int gpsGetReadings(vec3f_t* position, vec3f_t* velocity)
 	position->x = GPS_STATE.Lon;
 	position->y = GPS_STATE.Lat;
 	position->z = GPS_STATE.Altitude;
+	
+	if(!position->x && !position->y){
+		position->x = 42.962689;
+		position->y = -85.651659;
+	} 
+
 	latLon2meters(position);
 
 	vec3f_t heading  = { position->x - lastPos.x, position->y - lastPos.y, position->z - lastPos.z };

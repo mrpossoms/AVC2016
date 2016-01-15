@@ -213,13 +213,16 @@ void imuUpdateState(int fd, imuState_t* state)
 
 		// update the mag window
 		int updatedMagWindow = 0;
-		if     (reading.mag.x > magMax->x){ magMax->x = reading.mag.x; updatedMagWindow = 1; }
-		else if(reading.mag.x < magMin->x){ magMin->x = reading.mag.x; updatedMagWindow = 1; }
-		if     (reading.mag.y > magMax->y){ magMax->y = reading.mag.y; updatedMagWindow = 1; }
-		else if(reading.mag.y < magMin->y){ magMin->y = reading.mag.y; updatedMagWindow = 1; }
+		if(reading.mag.x > magMax->x){ magMax->x = reading.mag.x; updatedMagWindow = 1; }
+		if(reading.mag.x < magMin->x){ magMin->x = reading.mag.x; updatedMagWindow = 1; }
+		if(reading.mag.y > magMax->y){ magMax->y = reading.mag.y; updatedMagWindow = 1; }
+		if(reading.mag.y < magMin->y){ magMin->y = reading.mag.y; updatedMagWindow = 1; }
 
 		if(updatedMagWindow){
+			printf("x:(%d, %d) y:(%d, %d)\n", magMin->x, magMax->x, magMin->y, magMax->y);
 			int calFd = open("./imu.cal", O_WRONLY);
+
+			assert(calFd > 0);
 			write(calFd, &state->calMinMax, sizeof(state->calMinMax));
 			close(calFd);
 		}
@@ -232,7 +235,7 @@ void imuUpdateState(int fd, imuState_t* state)
 
 		state->adjReadings.mag.x = map(reading.mag.x, magMin->x, magMax->x);
 		state->adjReadings.mag.y = map(reading.mag.y, magMin->y, magMax->y);
-		state->adjReadings.mag.x = map(reading.mag.x, magMin->z, magMax->z);
+		state->adjReadings.mag.z = map(reading.mag.z, magMin->z, magMax->z);
 	}
 	else{
 		// no calibration, just spit out the literal value

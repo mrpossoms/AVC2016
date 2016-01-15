@@ -71,7 +71,7 @@ static void* handler(void* params)
 
 			if(FD_ISSET(fd, &readFd)){
 				read(fd, &byte, 1);
-				write(fd, &SYS.body, sizeof(fusedObjState_t));
+				write(fd, &SYS, sizeof(system_t));
 			}
 		}
 	}
