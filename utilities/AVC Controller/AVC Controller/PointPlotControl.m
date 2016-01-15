@@ -122,10 +122,10 @@
     [[NSString stringWithFormat:@"%f", max.x] drawInRect:CGRectMake(horizontalAxis[1].x - textBoxWidth, horizontalAxis[1].y, textBoxWidth, 20) withAttributes:attrs];
 
     style.alignment = NSTextAlignmentLeft;
-    [[NSString stringWithFormat:@"%f", min.x] drawInRect:CGRectMake(verticalAxis[0].x, verticalAxis[0].y, textBoxWidth, 20) withAttributes:attrs];
+    [[NSString stringWithFormat:@"%f", min.y] drawInRect:CGRectMake(verticalAxis[0].x, verticalAxis[0].y, textBoxWidth, 20) withAttributes:attrs];
     
     style.alignment = NSTextAlignmentRight;
-    [[NSString stringWithFormat:@"%f", max.x] drawInRect:CGRectMake(verticalAxis[1].x, verticalAxis[1].y - 20, textBoxWidth, 20) withAttributes:attrs];
+    [[NSString stringWithFormat:@"%f", max.y] drawInRect:CGRectMake(verticalAxis[1].x, verticalAxis[1].y - 20, textBoxWidth, 20) withAttributes:attrs];
 }
 
 + (instancetype)plotWithFrame:(CGRect)frame

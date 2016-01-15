@@ -10,6 +10,7 @@
 
 #import "diagnosticViewController.h"
 #import "PointPlotControl.h"
+#import "VectorPlotControl.h"
 #import "Errors.h"
 
 #include "system.h"
@@ -21,7 +22,8 @@
     uint8_t magIndex;
 }
 
-@property PointPlotControl* magPlotXY, *headingPlotXY;
+@property PointPlotControl *headingPlotXY;
+@property VectorPlotControl *vectorPlotXY;
 
 @property (weak, nonatomic) IBOutlet UIScrollView *scrollView;
 @property (weak, nonatomic) IBOutlet UITableView *tableView;
@@ -54,10 +56,20 @@ system_t SYS;
     CGSize parentSize = self.scrollView.frame.size;
     
     self.scrollView.contentSize = CGSizeMake(parentSize.width, parentSize.height * 2);
-    self.magPlotXY = [PointPlotControl plotWithFrame:CGRectMake(0, 0, parentSize.width, parentSize.height)];
+    self.vectorPlotXY = [VectorPlotControl plotWithFrame:CGRectMake(0, 0, parentSize.width, parentSize.height)];
     self.headingPlotXY = [PointPlotControl plotWithFrame:CGRectMake(0, parentSize.height, parentSize.width, parentSize.height)];
     
-    [self.scrollView addSubview:self.magPlotXY];
+    self.vectorPlotXY->points     = malloc(sizeof(CGPoint) * 2);
+    self.vectorPlotXY->pointColor = malloc(sizeof(CGFloat*) * 2);
+    self.vectorPlotXY->pointCount = 2;
+    
+    static CGFloat red[]  = { 1, 0, 0, 1 };
+    static CGFloat blue[] = { 0, 0, 1, 1 };
+    
+    self.vectorPlotXY->pointColor[0] = red;
+    self.vectorPlotXY->pointColor[1] = blue;
+    
+    [self.scrollView addSubview:self.vectorPlotXY];
     [self.scrollView addSubview:self.headingPlotXY];
 
 }
@@ -128,17 +140,18 @@ system_t SYS;
             FD_SET(sock, &readfd);
             
             if(select(sock + 1, &readfd, NULL, NULL, &timeout) > 0){
-                int bytes = read(sock, &SYS.body, sizeof(fusedObjState_t));
+                int bytes = read(sock, &SYS, sizeof(system_t));
             }
             
             magSamplesXY[magIndex] = CGPointMake(SYS.body.imu.rawReadings.mag.x, SYS.body.imu.rawReadings.mag.y);
             headingSamplesXY[magIndex++] = CGPointMake(SYS.body.measured.heading.x, SYS.body.measured.heading.y);
             
             self.data.data = SYS.body;
-            self.magPlotXY->points = magSamplesXY;
-            if(self.magPlotXY->pointCount < magIndex){
-                self.magPlotXY->pointCount = magIndex;
-            }
+            vec3f_t wd = vec3fSub(&SYS.route.start->self.location, &SYS.body.measured.position);
+            wd = vec3fNorm(&wd);
+            
+            self.vectorPlotXY->points[0] = CGPointMake(SYS.body.measured.heading.x, SYS.body.measured.heading.y);
+            self.vectorPlotXY->points[1] = CGPointMake(wd.x, wd.y);
             
             self.headingPlotXY->points = headingSamplesXY;
             if(self.headingPlotXY->pointCount < magIndex){
@@ -146,7 +159,7 @@ system_t SYS;
             }
             
             dispatch_async(dispatch_get_main_queue(), ^{
-                [self.magPlotXY setNeedsDisplay];
+                [self.vectorPlotXY setNeedsDisplay];
                 [self.headingPlotXY setNeedsDisplay];
                 [self.tableView reloadData];
             });
