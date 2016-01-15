@@ -24,8 +24,9 @@ static float angleToNextWayPoint(objectState_t* o, gpsWaypointCont_t* waypoint)
 
 	float d1 = vec3fDot(&toWaypoint, &tempHeading);
 	
-	tempHeading.x = cos(M_PI / 2) * tempHeading.x - sin(M_PI / 2) * tempHeading.y;
-	tempHeading.y = sin(M_PI / 2) * tempHeading.x + cos(M_PI / 2) * tempHeading.y;
+	float x = cos(M_PI / 2) * tempHeading.x - sin(M_PI / 2) * tempHeading.y;
+	float y = sin(M_PI / 2) * tempHeading.x + cos(M_PI / 2) * tempHeading.y;
+	tempHeading.x = x; tempHeading.y = y;
 
 	float d2 = vec3fDot(&toWaypoint, &tempHeading);
 
