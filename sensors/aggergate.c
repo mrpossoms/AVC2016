@@ -59,8 +59,8 @@ int senUpdate(fusedObjState_t* body)
 		vec3f_t lastPos = body->measured.position;
 		
 
-		// assign new measurements
-		gpsGetReadings(&body->measured.position, &body->measured.velocity);
+		// assign new ements
+		body->hasGpsFix = gpsGetReadings(&body->measured.position, &body->measured.velocity);
 		vec3Sub(body->measured.velocity, body->measured.position, lastPos); 
 		vec3Scl(body->measured.velocity, body->measured.velocity, dt);
 

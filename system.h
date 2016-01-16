@@ -20,6 +20,7 @@ typedef struct{
 	vec3f_t position;
 	vec3f_t velocity;
 	vec3f_t heading;
+	vec3f_t goalHeading;
 }objectState_t;
 
 typedef struct{
@@ -28,6 +29,7 @@ typedef struct{
 	float         lastEstTime;
 	objectState_t measured;
 	objectState_t estimated;
+	uint8_t hasGpsFix;
 }fusedObjState_t;
 
 typedef struct{

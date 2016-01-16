@@ -64,8 +64,8 @@ int gpsGetReadings(vec3f_t* position, vec3f_t* velocity)
 	position->z = GPS_STATE.Altitude;
 	
 	if(!position->x && !position->y){
-		position->x = 42.962689;
-		position->y = -85.651659;
+		position->x = -85.651659;
+		position->y = 42.962689;
 	} 
 
 	latLon2meters(position);
@@ -135,7 +135,7 @@ int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints)
 			return -4;
 		}
 
-		printf("\t(%f lat, %f lon) -> ", (*waypoints)[i].self.location.x, (*waypoints)[i].self.location.y);
+		printf("\t(%f lon, %f lat) -> ", (*waypoints)[i].self.location.x, (*waypoints)[i].self.location.y);
 		latLon2meters(&(*waypoints)[i].self.location);
 
 		printf("(%fm, %fm)\n", (*waypoints)[i].self.location.x, (*waypoints)[i].self.location.y);
