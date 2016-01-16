@@ -14,7 +14,7 @@ static float angleToNextWayPoint(objectState_t* o, gpsWaypointCont_t* waypoint)
 	const vec3f_t zero = {};
 	if(!memcmp(&o->position, &zero, sizeof(vec3f_t))) return 0;
  
-	vec3f_t toWaypoint = vec3fSub(&waypoint->self.location, &o->position);
+	vec3f_t toWaypoint = { 0, -1, 0 };//vec3fSub(&waypoint->self.location, &o->position);
 	vec3f_t tempHeading = o->heading;	
 
 	toWaypoint = vec3fNorm(&toWaypoint);

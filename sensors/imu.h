@@ -16,7 +16,7 @@ extern "C" {
 #endif
 
 #define SMF_SAMP_TYPE int16_t
-#define WIN_SIZE 7
+#define WIN_SIZE 21
 
 //    _____                  
 //   |_   _|  _ _ __  ___ ___
