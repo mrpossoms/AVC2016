@@ -52,7 +52,7 @@
 
 - (NSString*)hasGpsFix
 {
-    return @"IDK";
+    return self.data.hasGpsFix ? @"YES" : @"NO";
 }
 
 @end

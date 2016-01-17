@@ -37,6 +37,12 @@
 
 system_t SYS;
 
+NSString* DIAG_DATA_TITLES[] = {
+    @"Measured position", @"Measured velocity", @"Measured heading",
+    @"Estimated position", @"Estimated velocity", @"Estimated heading",
+    @"GPS Fix"
+};
+
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
@@ -141,7 +147,7 @@ system_t SYS;
             FD_SET(sock, &readfd);
             
             if(select(sock + 1, &readfd, NULL, NULL, &timeout) > 0){
-                int bytes = read(sock, &SYS, sizeof(system_t));
+                int bytes = read(sock, &SYS.body, sizeof(fusedObjState_t));
             }
             
             headingSamplesXY[magIndex++] = CGPointMake(SYS.body.measured.heading.x, SYS.body.measured.heading.y);
@@ -182,19 +188,13 @@ system_t SYS;
 {
     UITableViewCell* cell = [tableView dequeueReusableCellWithIdentifier:@"DIAG-CELL"];
     
-    NSString* titles[] = {
-        @"Measured position", @"Measured velocity", @"Measured heading",
-        @"Estimated position", @"Estimated velocity", @"Estimated heading",
-        @"GPS Fix"
-    };
-    
     NSString* descriptions[] = {
         self.data.mesPosition, self.data.mesVelocity, self.data.mesHeading,
         self.data.estPosition, self.data.estVelocity, self.data.estHeading,
         self.data.hasGpsFix
     };
     
-    cell.textLabel.text       = titles[indexPath.row];
+    cell.textLabel.text       = DIAG_DATA_TITLES[indexPath.row];
     cell.detailTextLabel.text = descriptions[indexPath.row];
     
     int r = 0xC1 - (indexPath.row % 2 ? 0xA : 0);
@@ -207,7 +207,7 @@ system_t SYS;
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-    return 6;
+    return sizeof(DIAG_DATA_TITLES) / sizeof(NSString*);
 }
 
 /*

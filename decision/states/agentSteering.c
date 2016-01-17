@@ -57,6 +57,10 @@ static float utility(agent_t* current, void* args)
 
 static void* action(agent_t* lastState, void* args)
 {
+	if(!SYS.route.start || !SYS.route.currentWaypoint){
+		return NULL;
+	}
+
 	float ang = angleToNextWayPoint(&SYS.body.measured, SYS.route.currentWaypoint);
 
 	vec3f_t pos = SYS.body.measured.position, way = SYS.route.currentWaypoint->self.location;

@@ -38,8 +38,9 @@ rcMessage_t STATE = { 0, 50, 50 };
 
 void transmit(){
     static int sock;
-
     
+    // only try sending data if we have an endpoint
+    if(!HOST_ADDRESS) return;
     if(!sock){
         sock = socket(AF_INET, SOCK_DGRAM, 0);
     }

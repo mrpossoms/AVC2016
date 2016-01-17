@@ -19,13 +19,22 @@
 
 static Waypoint* WAYPOINT_START;
 
+typedef enum{
+    MODE_NONE = 0,
+    MODE_RECORDING,
+    MODE_MANUAL,
+}recordMode_e;
+
 @interface RouteViewController()
 
 @property (weak, nonatomic) IBOutlet MKMapView *map;
+@property (weak, nonatomic) IBOutlet UIButton *modeButton;
+
 @property CLLocationManager* locationManager;
+@property CLLocation*        lastLocation;
 @property UILongPressGestureRecognizer* mapTap;
 @property Waypoint* last;
-@property BOOL recording;
+@property (nonatomic) recordMode_e recordingMode;
 
 @property (weak, nonatomic) IBOutlet UIProgressView *uploadProgress;
 @property MKPolyline* routeLine;
@@ -34,6 +43,25 @@ static Waypoint* WAYPOINT_START;
 
 @implementation RouteViewController
 
+- (void)setRecordingMode:(recordMode_e)recordingMode
+{
+    switch(recordingMode){
+        case MODE_MANUAL:
+            [self.map setScrollEnabled:YES];
+            [self.modeButton setTitle:@"Clear" forState:UIControlStateNormal];
+            break;
+        case MODE_RECORDING:
+            [self.map setScrollEnabled:NO];
+            [self.modeButton setTitle:@"Clear" forState:UIControlStateNormal];
+            break;
+        default:
+            [self.modeButton setTitle:@"Manual" forState:UIControlStateNormal];
+            [self.map setScrollEnabled:NO];
+    }
+    
+    _recordingMode = recordingMode;
+}
+
 - (void)viewDidLoad
 {
     self.map.showsBuildings = NO;
@@ -41,7 +69,10 @@ static Waypoint* WAYPOINT_START;
     self.map.delegate = self;
     self.map.showsScale = YES;
     
-    self.recording = NO;
+    // don't allow the user to lose focus of their current position
+    [self.map setScrollEnabled:NO];
+    
+    self.recordingMode = MODE_NONE;
     
     if([CLLocationManager locationServicesEnabled]){
         self.locationManager = [[CLLocationManager alloc] init];
@@ -69,6 +100,18 @@ static Waypoint* WAYPOINT_START;
         [self updateRecordedRoute];
     }
 }
+- (IBAction)didModeToggle:(id)sender {
+    switch (self.recordingMode) {
+        case MODE_NONE:
+            self.recordingMode = MODE_MANUAL;
+            break;
+        case MODE_RECORDING:
+        case MODE_MANUAL:
+            self.recordingMode = MODE_NONE;
+            [self didClearRoute:nil];
+            break;
+    }
+}
 
 - (IBAction)didClearRoute:(id)sender {
     for(Waypoint* last = self.last; last;){
@@ -77,7 +120,9 @@ static Waypoint* WAYPOINT_START;
         last = lastLast;
     }
     
-    self.recording = NO;
+    WAYPOINT_START = nil;
+    
+    self.recordingMode = MODE_NONE;
     [self updateRecordedRoute];
 }
 
@@ -139,9 +184,7 @@ static Waypoint* WAYPOINT_START;
                 [self presentViewController:alert animated:YES completion:^{ }];
                 close(sockfd);
                 
-                [UIView animateWithDuration:1 animations:^{
-                    self.uploadProgress.hidden = YES;
-                }];
+                dispatch_async(dispatch_get_main_queue(), ^{ self.uploadProgress.hidden = YES; });
                 return;
             }
         
@@ -185,15 +228,20 @@ static Waypoint* WAYPOINT_START;
 - (void)didTapMap:(UILongPressGestureRecognizer*)recognizer
 {
     if(recognizer.state == UIGestureRecognizerStateEnded){
-        self.recording = !self.recording;
-        
-        if(self.recording){
-            self.map.tintColor = [UIColor greenColor];
-            [self.locationManager startUpdatingLocation];
-        }
-        else{
-            self.map.tintColor = [UIColor redColor];
-            [self.locationManager stopUpdatingLocation];
+        switch (self.recordingMode) {
+            case MODE_NONE:
+                self.recordingMode = MODE_RECORDING;
+                self.map.tintColor = [UIColor greenColor];
+                [self.locationManager startUpdatingLocation];
+                break;
+            case MODE_RECORDING:
+                self.recordingMode = MODE_NONE;
+                self.map.tintColor = [UIColor redColor];
+                [self.locationManager stopUpdatingLocation];
+                break;
+            case MODE_MANUAL:
+                [self addWaypointWithCoordinate:self.map.centerCoordinate];
+                break;
         }
     }
 }
@@ -244,19 +292,34 @@ static Waypoint* WAYPOINT_START;
     }
 }
 
+- (void)addWaypointWithCoordinate:(CLLocationCoordinate2D)coord
+{
+    if(!WAYPOINT_START){
+        self.last = WAYPOINT_START = [[Waypoint alloc] initWithPosition:coord];
+    }
+    else{
+        self.last = [self.last addNext:coord];
+    }
+    [self updateRecordedRoute];
+}
+
+- (void)focusOnLocation:(CLLocation*)location
+{
+    if(self.recordingMode == MODE_MANUAL) return;
+    
+    [self.map setRegion:MKCoordinateRegionMakeWithDistance(location.coordinate, 10, 10) animated:YES];
+}
+
 - (void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray<CLLocation *> *)locations
 {
-    if(self.recording){
-        for(CLLocation* loc in locations){
-            if(!WAYPOINT_START){
-                self.last = WAYPOINT_START = [[Waypoint alloc] initWithPosition:loc.coordinate];
-            }
-            else{
-                self.last = [self.last addNext:loc.coordinate];
-            }
+    for(CLLocation* loc in locations){
+        if(self.recordingMode == MODE_RECORDING){
+            [self addWaypointWithCoordinate:loc.coordinate];
         }
         
-        [self updateRecordedRoute];
+
+        [self focusOnLocation:loc];
+        self.lastLocation = loc;
     }
 }
 
@@ -267,9 +330,14 @@ static Waypoint* WAYPOINT_START;
 
 #pragma mark - Map view delegate
 
+- (void)mapViewWillStartLocatingUser:(MKMapView *)mapView
+{
+    [self focusOnLocation:mapView.userLocation.location];
+}
+
 - (void)mapView:(MKMapView *)mapView didUpdateUserLocation:(MKUserLocation *)userLocation
 {
-
+    [self focusOnLocation:userLocation.location];
 }
 
 - (MKOverlayRenderer*)mapView:(MKMapView *)mapView rendererForOverlay:(id<MKOverlay>)overlay
