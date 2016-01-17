@@ -10,6 +10,7 @@ extern "C" {
 // agent decarations
 extern agent_t AGENT_TEMPLATE;
 extern agent_t AGENT_STEERING;
+extern agent_t AGENT_THROTTLE;
 
 // list of all agent objects
 extern agent_t* AGENTS_ALL[];
