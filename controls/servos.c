@@ -8,7 +8,7 @@
 
 int SERVO_FD;
 
-int conInit()
+int ctrlInit()
 {
 	struct stat buf;
 
@@ -30,7 +30,7 @@ int conInit()
 }
 
 
-int conSet(int servo, int percent)
+int ctrlSet(int servo, int percent)
 {
 	char str[12] = {};
 	sprintf(str, "%d=%d%%\n", servo, percent);

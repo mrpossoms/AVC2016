@@ -1,10 +1,21 @@
 #ifndef AVC_SYSTEM_STATE
 #define AVC_SYSTEM_STATE
 
+#include <errno.h>
+#include <syslog.h>
+
 #include "types.h"
 #include "sensors/imu.h"
 
 #define MAX_FEATURES 900
+
+#define SYS_ERR(fmt, ...){\
+	char msg[256], prefix[512];\
+	sprintf(prefix, "(%d)(%s @ ln %d): ", errno, __FILE__, __LINE__);\
+	sprintf(msg, fmt, __VA_ARGS__);\
+	strncat(prefix, msg, 512);\
+	syslog(0, "%s", prefix);\
+}\
 
 //    _____                  
 //   |_   _|  _ _ __  ___ ___

@@ -76,6 +76,7 @@ typedef enum{
     
     if([CLLocationManager locationServicesEnabled]){
         self.locationManager = [[CLLocationManager alloc] init];
+        self.locationManager.activityType = CLActivityTypeOther;
         self.locationManager.delegate = self;
         
         [self.locationManager requestWhenInUseAuthorization];

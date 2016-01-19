@@ -4,6 +4,7 @@ agent_t* AGENTS_ALL[] = {
 	&AGENT_TEMPLATE,
 	&AGENT_STEERING,
 	&AGENT_ROUTING,
+	&AGENT_THROTTLE,
 };
 
 void agentInitAgents()

@@ -2,12 +2,14 @@
 #include "system.h"
 
 #include <stdio.h>
+#include <fcntl.h>
 
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <errno.h>
@@ -69,9 +71,17 @@ static void* handler(void* params)
 			int fd = connections[i];
 			char byte;
 
+	
 			if(FD_ISSET(fd, &readFd)){
-				read(fd, &byte, 1);
-				write(fd, &SYS.body, sizeof(fusedObjState_t));
+				int bytesToRead = 0;
+				ioctl(fd, FIONREAD, &bytesToRead);
+				if(bytesToRead == 0){
+					close(fd);
+				}
+				else{
+					read(fd, &byte, 1);
+					write(fd, &SYS.body, sizeof(fusedObjState_t));
+				}
 			}
 		}
 	}

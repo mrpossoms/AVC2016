@@ -76,7 +76,7 @@ static void* action(agent_t* lastState, void* args)
 	ang /= (M_PI / 4);
 
 	// steer within the range [25%, 75%]
-	conSet(SERVO_STEERING, ang * 25 + 50);
+	ctrlSet(SERVO_STEERING, ang * 25 + 50);
 
 	return NULL;
 }

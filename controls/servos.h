@@ -4,7 +4,7 @@
 #define SERVO_STEERING 0
 #define SERVO_THROTTLE 1
 
-int conInit();
-int conSet(int servo, int percent);
+int ctrlInit();
+int ctrlSet(int servo, int percent);
 
 #endif
