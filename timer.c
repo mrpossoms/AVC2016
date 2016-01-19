@@ -1,9 +1,9 @@
-#include "timer.h"
+#include "system.h"
 #include <sys/time.h>
 
 static struct timeval START_TIME;
 
-void timerUpdate()
+void sysTimerUpdate()
 {
 	static int isSetup;
 	int64_t usElapsed = 0;

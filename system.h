@@ -17,6 +17,9 @@
 	syslog(0, "%s", prefix);\
 }\
 
+#ifdef __cplusplus
+extern "C"{
+#endif
 //    _____                  
 //   |_   _|  _ _ __  ___ ___
 //     | || || | '_ \/ -_|_-<
@@ -64,4 +67,9 @@ typedef struct{
 //                               
 extern system_t SYS;
 
+void sysTimerUpdate();
+
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -10,7 +10,6 @@
 #include <signal.h>
 
 #include "system.h"
-#include "timer.h"
 #include "controls/servos.h"
 #include "sensors/aggergate.h"
 #include "decision/agents.h"
@@ -28,12 +27,19 @@ void sigHandler(int sig)
 int main(int argc, char* argv[])
 {
 	int err = 0;
-	
+	openlog("AVC_BOT", 0, 0);	
+
 	// // start servo controlling
 	err = ctrlInit();
-	if(err) return err;
+	if(err){
+		SYS_ERR("Starting servo driver failed %d", err);
+		return err;
+	}
 
-	assert(signal(SIGINT, sigHandler) != SIG_ERR);
+	if(signal(SIGINT, sigHandler) == SIG_ERR){
+		SYS_ERR("Registering signal SIGINT failed", NULL);
+		return err;
+	}
 
 	// // start up IMU and GPS sensors
 	err = senInit("/dev/i2c-1", "/dev/ttyAMA0", "./imu.cal");
@@ -63,7 +69,7 @@ int main(int argc, char* argv[])
 		AGENT_STEERING.action(NULL, NULL);
 		AGENT_THROTTLE.action(NULL, NULL);
 
-		timerUpdate();
+		sysTimerUpdate();
 	}
 
 	return 0;
