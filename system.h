@@ -15,7 +15,7 @@
 #define SYS_ERR(fmt, ...){\
 	char msg[256], prefix[512];\
 	sprintf(prefix, "(%d)(%s @ ln %d): ", errno, __FILE__, __LINE__);\
-	vsprintf(msg, fmt, __VA_ARGS__);\
+	sprintf(msg, fmt, __VA_ARGS__);\
 	strncat(prefix, msg, 512);\
 	syslog(0, "%s", prefix);\
 }\
