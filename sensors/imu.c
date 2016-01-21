@@ -20,7 +20,7 @@
 #define G 9.8
 #define WARMUP_SAMPLES 100
 
-static int32_t ACCEL_MEAN[3];
+static int32_t ACCEL_MEAN[3], GYRO_MEAN[3];
 static int READINGS_COLLECTED;
 static sensorStatei_t READINGS[WARMUP_SAMPLES];
 
@@ -137,7 +137,7 @@ static void filterReading(imuState_t* state)
 {
 	//assert(gaussian(0, 0, 32) == 1);
 
-	for(int i = 3; i--;){
+	for(int i = WIN_SIZE; i--;){
 		smfUpdate(state->windows.linear + i,     state->rawReadings.linear.v[i]);
 		smfUpdate(state->windows.rotational + i, state->rawReadings.rotational.v[i]);
 		smfUpdate(state->windows.mag + i,        state->rawReadings.mag.v[i]);
@@ -153,7 +153,12 @@ static int obtainedStatisticalProps(imuState_t* state)
 		ACCEL_MEAN[0] += state->rawReadings.linear.x;
 		ACCEL_MEAN[1] += state->rawReadings.linear.y;
 		ACCEL_MEAN[2] += state->rawReadings.linear.z;
-		READINGS[READINGS_COLLECTED++] = state->rawReadings;
+
+		GYRO_MEAN[0] += state->rawReadings.rotational.x;
+		GYRO_MEAN[1] += state->rawReadings.rotational.y;
+		GYRO_MEAN[2] += state->rawReadings.rotational.z;
+
+		READINGS[READINGS_COLLECTED] = state->rawReadings;
 		bzero(&state->rawReadings, sizeof(sensorStatei_t));
 
 		return 0;
@@ -163,21 +168,30 @@ static int obtainedStatisticalProps(imuState_t* state)
 	ACCEL_MEAN[0] /= WARMUP_SAMPLES;
 	ACCEL_MEAN[1] /= WARMUP_SAMPLES;
 	ACCEL_MEAN[2] /= WARMUP_SAMPLES;
+	GYRO_MEAN[0] /= WARMUP_SAMPLES;
+	GYRO_MEAN[1] /= WARMUP_SAMPLES;
+	GYRO_MEAN[2] /= WARMUP_SAMPLES;
+	
 
 	// compute the variance for standard deviation
 	bzero(&state->standardDeviations, sizeof(sensorStatei_t));
-	double variance[3] = {};
+	double varLin[3] = {}, varRot[3] = {};
 	for(int i = WARMUP_SAMPLES; i--;){
 		for(int j = 3; j--;){
 			double v = READINGS[i].linear.v[j] - ACCEL_MEAN[j];
-			variance[j] += (v * v) / (float)WARMUP_SAMPLES;
+			double w = READINGS[i].rotational.v[j] - GYRO_MEAN[j];
+			varLin[j] += (v * v) / (float)WARMUP_SAMPLES;
+			varRot[j] += (w * w) / (float)WARMUP_SAMPLES;
 		}
 	}
 
 	// set standard deviations
-	state->standardDeviations.linear.x = sqrt(variance[0]);
-	state->standardDeviations.linear.y = sqrt(variance[1]);
-	state->standardDeviations.linear.z = sqrt(variance[2]);
+	state->standardDeviations.linear.x = sqrt(varLin[0]);
+	state->standardDeviations.linear.y = sqrt(varLin[1]);
+	state->standardDeviations.linear.z = sqrt(varLin[2]);
+	state->standardDeviations.rotational.x = sqrt(varRot[0]);
+	state->standardDeviations.rotational.y = sqrt(varRot[1]);
+	state->standardDeviations.rotational.z = sqrt(varRot[2]);
 
 	isFinished = 1;
 	return 1;
@@ -192,9 +206,12 @@ void imuUpdateState(int fd, imuState_t* state)
 {
 	sensorStatei_t reading = {};
 
+	// get fresh data from the device
 	reading = imuGetReadings(fd);
 	state->rawReadings = reading;
+	++READINGS_COLLECTED;
 
+	// wait a little bit to grab the mean of the accelerometer
 	if(!obtainedStatisticalProps(state)){
 		return;
 	}
@@ -202,6 +219,9 @@ void imuUpdateState(int fd, imuState_t* state)
 	reading.linear.x -= ACCEL_MEAN[0];
 	reading.linear.y -= ACCEL_MEAN[1];
 	reading.linear.z -= ACCEL_MEAN[2];
+	reading.rotational.x -= ACCEL_MEAN[0];
+	reading.rotational.y -= ACCEL_MEAN[1];
+	reading.rotational.z -= ACCEL_MEAN[2];
 
 	filterReading(state);
 
@@ -218,8 +238,8 @@ void imuUpdateState(int fd, imuState_t* state)
 		if(reading.mag.y > magMax->y){ magMax->y = reading.mag.y; updatedMagWindow = 1; }
 		if(reading.mag.y < magMin->y){ magMin->y = reading.mag.y; updatedMagWindow = 1; }
 
+		// write new mag min and max if applicable
 		if(updatedMagWindow){
-			printf("x:(%d, %d) y:(%d, %d)\n", magMin->x, magMax->x, magMin->y, magMax->y);
 			int calFd = open("./imu.cal", O_WRONLY);
 
 			assert(calFd > 0);
@@ -227,12 +247,13 @@ void imuUpdateState(int fd, imuState_t* state)
 			close(calFd);
 		}
 
-		// map the readings to the 1G calibration window that was obtained
+		// map the readings to the 1G [-1, 1] calibration window that was obtained
 		// from the calibration profile
 		state->adjReadings.linear.x = G * map(reading.linear.x, accMin->x, accMax->x);
 		state->adjReadings.linear.y = G * map(reading.linear.y, accMin->y, accMax->y);
 		state->adjReadings.linear.z = G * map(reading.linear.z, accMin->z, accMax->z);
 
+		// map the mag from [-1, 1] based on the measured range
 		state->adjReadings.mag.x = map(reading.mag.x, magMin->x, magMax->x);
 		state->adjReadings.mag.y = map(reading.mag.y, magMin->y, magMax->y);
 		state->adjReadings.mag.z = map(reading.mag.z, magMin->z, magMax->z);

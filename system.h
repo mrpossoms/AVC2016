@@ -3,6 +3,9 @@
 
 #include <errno.h>
 #include <syslog.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdarg.h>
 
 #include "types.h"
 #include "sensors/imu.h"
@@ -32,7 +35,10 @@ typedef struct{
 
 typedef struct{
 	vec3f_t position;
-	vec3f_t velocity;
+	struct{
+		vec3f_t linear;
+		vec3f_t rotational;
+	} velocity;
 	vec3f_t heading;
 	vec3f_t goalHeading;
 }objectState_t;

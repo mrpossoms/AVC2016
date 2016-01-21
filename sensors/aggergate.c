@@ -60,9 +60,10 @@ int senUpdate(fusedObjState_t* body)
 		
 
 		// assign new ements
-		body->hasGpsFix = gpsGetReadings(&body->measured.position, &body->measured.velocity);
-		vec3Sub(body->measured.velocity, body->measured.position, lastPos); 
-		vec3Scl(body->measured.velocity, body->measured.velocity, dt);
+		vec3f_t* velLin = &body->measured.velocity.linear;
+		body->hasGpsFix = gpsGetReadings(&body->measured.position, velLin);
+		vec3Sub(*velLin, body->measured.position, lastPos); 
+		vec3Scl(*velLin, *velLin, dt);
 
 		// since we now have measurements, reset the estimates
 		body->estimated = body->measured;
@@ -75,14 +76,15 @@ int senUpdate(fusedObjState_t* body)
 		float dt = SYS.timeUp - body->lastEstTime;
 
 		// integrate position using velocity
-		body->estimated.position.x += body->estimated.velocity.x * dt; 
-		body->estimated.position.y += body->estimated.velocity.y * dt;
-		body->estimated.position.z += body->estimated.velocity.z * dt;
+		vec3f_t* estVelLin = &body->estimated.velocity.linear;
+		body->estimated.position.x += estVelLin->x * dt; 
+		body->estimated.position.y += estVelLin->y * dt;
+		body->estimated.position.z += estVelLin->z * dt;
 
 		// integrate IMU acceleration into velocity 
-		body->estimated.velocity.x += body->imu.adjReadings.linear.x * dt; 
-		body->estimated.velocity.y += body->imu.adjReadings.linear.y * dt;
-		body->estimated.velocity.z += body->imu.adjReadings.linear.z * dt;
+		estVelLin->x += body->imu.adjReadings.linear.x * dt; 
+		estVelLin->y += body->imu.adjReadings.linear.y * dt;
+		estVelLin->z += body->imu.adjReadings.linear.z * dt;
 
 		body->lastEstTime = SYS.timeUp;
 	}
