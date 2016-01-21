@@ -3,6 +3,9 @@
 
 #include <errno.h>
 #include <syslog.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdarg.h>
 
 #include "types.h"
 #include "sensors/imu.h"
@@ -12,7 +15,7 @@
 #define SYS_ERR(fmt, ...){\
 	char msg[256], prefix[512];\
 	sprintf(prefix, "(%d)(%s @ ln %d): ", errno, __FILE__, __LINE__);\
-	sprintf(msg, fmt, __VA_ARGS__);\
+	vsprintf(msg, fmt, __VA_ARGS__);\
 	strncat(prefix, msg, 512);\
 	syslog(0, "%s", prefix);\
 }\
@@ -32,7 +35,10 @@ typedef struct{
 
 typedef struct{
 	vec3f_t position;
-	vec3f_t velocity;
+	struct{
+		vec3f_t linear;
+		vec3f_t rotational;
+	} velocity;
 	vec3f_t heading;
 	vec3f_t goalHeading;
 }objectState_t;
