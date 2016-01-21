@@ -26,7 +26,7 @@ static void* action(agent_t* lastState, void* args)
 	vec3f_t delta = vec3fSub(&SYS.body.measured.position, &waypoint->self.location);
 	
 	// less than 6 meters away, lets move on to the next one
-	if(vec3fMag(&delta) < 6){
+	if(vec3fMag(&delta) < 9){
 		waypoint->self.flags++;
 		SYS.route.currentWaypoint = waypoint->next;
 	}

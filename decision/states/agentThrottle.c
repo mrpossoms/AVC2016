@@ -17,8 +17,12 @@ static float utility(agent_t* current, void* args)
 static void* action(agent_t* lastState, void* args)
 {
 	// do stuff here, choose a successor state if appropriate
-	ctrlSet(SERVO_THROTTLE, 53);
-
+	if(SYS.route.currentWaypoint && SYS.body.hasGpsFix){
+		ctrlSet(SERVO_THROTTLE, 53);
+	}
+	else{
+		ctrlSet(SERVO_THROTTLE, 50);
+	}
 	return NULL;
 }
 
