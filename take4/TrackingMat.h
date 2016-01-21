@@ -2,42 +2,44 @@
 
 #include <opencv2/opencv.hpp>
 
-#define ADJ_FEATURES 8
-#define REGIONS 16
+#define TRK_ADJ_FEATURES 8
+#define TRK_REGIONS 16
 
-#define TRACKING_THRESHOLD 1.0f
+#define TRK_THRESHOLD 1.0f
 
 using namespace std;
 using namespace cv;
 
 struct MatFeature;
 typedef struct MatFeature{
-	int    region;
-	float  delta;
-	struct MatFeature* adj[ADJ_FEATURES];
-} matFeature_t;
+	Point2f position;
+	int     region;
+	float   deltaMag;
+	Point2f delta;
+	struct MatFeature* adj[TRK_ADJ_FEATURES];
+} trkMatFeature_t;
 
 typedef struct{
 	Point2i min, max;
-} region_t;
+} trkRegion_t;
 
 class TrackingMat{
 	public:
 		int regionCount;
-		region_t regions[REGIONS];
+		trkRegion_t regions[TRK_REGIONS];
 
 		TrackingMat(Size2i size);
 		~TrackingMat();
 		int update(vector<Point2f>* featureList);
 
-		matFeature_t* operator[](const int x)
+		trkMatFeature_t* operator[](const int x)
 		{
 			return this->cols[x];
 		}
 
 	private:
 		Size2i           dimensions;
-		matFeature_t**   cols;
+		trkMatFeature_t**   cols;
 		vector<Point2f>* lastFeatureList;
 		float            maxDelta;
 };

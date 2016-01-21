@@ -5,9 +5,9 @@ TrackingMat::TrackingMat(Size2i size)
 	dimensions = size;
 
 	// allocate all the elements
-	cols = (matFeature_t**)malloc(sizeof(matFeature_t*) * size.width);
+	cols = (trkMatFeature_t**)malloc(sizeof(trkMatFeature_t*) * size.width);
 	for(int i = size.width; i--;){
-		cols[i] = (matFeature_t*)malloc(sizeof(matFeature_t) * size.height);
+		cols[i] = (trkMatFeature_t*)malloc(sizeof(trkMatFeature_t) * size.height);
 	}
 
 
@@ -27,7 +27,7 @@ TrackingMat::TrackingMat(Size2i size)
 		for(int x = 0; x < size.width; ++x){
 			// stitch here
 			int ai = 0;
-			for(int i = ADJ_FEATURES; i--;){
+			for(int i = TRK_ADJ_FEATURES; i--;){
 				int offx = x + adjOffsets[i][0], offy = y + adjOffsets[i][1];
 				if(offx < 0 || offy < 0 || offx >= size.width || offy >= size.height){
 					continue;
@@ -62,9 +62,10 @@ int TrackingMat::update(vector<Point2f>* featureList)
 		int x = i % dimensions.width;
 		int y = i / dimensions.height;
 
-		Point2f delta = (*this->lastFeatureList)[i] - (*featureList)[i];
+		Point2f delta = cols[x][y].delta = (*this->lastFeatureList)[i] - (*featureList)[i];
 		float mag = sqrtf(delta.x * delta.x + delta.y * delta.y);
-		cols[x][y].delta = mag;
+		cols[x][y].deltaMag = mag;
+		cols[x][y].position = (*featureList)[i];
 
 		maxDelta = mag > maxDelta ? mag : maxDelta;
 	}
@@ -77,29 +78,35 @@ int TrackingMat::update(vector<Point2f>* featureList)
 	}
 	for(int y = dimensions.height; y--;){
 		for(int x = dimensions.width; x--;){
-			matFeature_t* feature = cols[x] + y;
-			int ri = REGIONS * (feature->delta / maxDelta);
-			float delta = feature->delta;
-
+			trkMatFeature_t* feature = cols[x] + y;
+			int ri = TRK_REGIONS * (feature->deltaMag / maxDelta);
+			float delta = feature->deltaMag;
 
 			float smallestDelta = 1000000;
 			int   smallestAri = 0;
-			for(int i = 0; i < ADJ_FEATURES; ++i){
-				matFeature_t* adj = feature->adj[i];
+			for(int i = 0; i < TRK_ADJ_FEATURES; ++i){
+				trkMatFeature_t* adj = feature->adj[i];
 				if(!adj) break; // reached the end
-				int ari = REGIONS * (adj->delta / maxDelta);
+				int ari = TRK_REGIONS * (adj->deltaMag / maxDelta);
 
 				// is adj delta close enough to the current delta
-				float dd = powf(adj->delta - delta, 2.0f);
-				if(dd < TRACKING_THRESHOLD){
+				float dd = powf(adj->deltaMag - delta, 2.0f);
+				if(dd < TRK_THRESHOLD){
+					// has a region already been assigned?
 					if(adj->region > -1){
 						feature->region = adj->region;
 					}
+					// region is unassigned, but it's the closest so far
+					// keep track of it so we can assign a new region
 					else if(dd <= smallestDelta){
 						smallestDelta = dd;
 						smallestAri   = ari;
 					}
 				}
+			}
+
+			if(smallestAri > regionCount){
+				regionCount = smallestAri;
 			}
 		}
 	}

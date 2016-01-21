@@ -23,6 +23,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
+#include "TrackingMat.h"
 #include "system.h"
 #include "stream.h"
 #include "timer.h"
@@ -76,6 +77,7 @@ int FRAME_NUMBER;
 int MAX_REGION;
 trackingRegion_t REGIONS[MAX_REGIONS];
 uint8_t          REGION_COLORS[MAX_REGIONS][3];
+TrackingMat* TRACKING_SPACE;
 
 static txState_t        TRANSMIT_STATE;
 static depthWindow_t    DEPTH_WINDOW;
@@ -337,6 +339,8 @@ int main(int argc, char* argv[])
 
 	VideoCapture cap(0);//cap("./SparkFun_AVC_2015.avi");
 	hasVideoFeed = cap.isOpened();
+
+	TRACKING_SPACE = new TrackingMat(Size(20, 20));
 
 	if(argc >= 3){
 		for(int i = 1; i < argc; ++i){
