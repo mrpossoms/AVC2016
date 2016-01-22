@@ -153,7 +153,7 @@ void computeDepths(trackingState_t* tracking)
 
 		// use the scale of this feature whose origin has been shifted to the center
 		// of the frame. The
-		float depth = s * (SYS.body.estimated.velocity.y) / (1.0f - s);
+		float depth = s * (SYS.body.estimated.velocity.linear.y) / (1.0f - s);
 
 		tracking->featureDepths[bufInd][i] = 100 * depth;
 
@@ -174,22 +174,6 @@ static Point2f featureIndexes(int i)
 {
 	float side = sqrtf(MAX_FEATURES);
 	return Point2f((i % (int)side) * WIDTH / side, (i / side) * HEIGHT / side);
-}
-
-static void getAdjRegionIndsAndDeltas(int** inds, float* deltas)
-{
-	float side = sqrtf(MAX_FEATURES);
-
-	for(int i = -1; i <= 1; ++i)
-		for(int j = -1; j <= 1; ++j){
-			if(!i && !j) continue;
-
-			float s = sqrtf(ts->features.delta[i].x * ts->features.delta[i].x + ts->features.delta[i].y * ts->features.delta[i].y);
-			if(ts->errorVector[i] > 1) s /= ts->errorVector[i];
-			
-		}
-
-
 }
 
 static void computeRegionMeans(Mat* frame, trackingState_t* ts)

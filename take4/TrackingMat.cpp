@@ -70,12 +70,15 @@ int TrackingMat::update(vector<Point2f>* featureList)
 		maxDelta = mag > maxDelta ? mag : maxDelta;
 	}
 
+	// reset the region markers for each feature
 	regionCount = 0;
 	for(int y = dimensions.height; y--;){
 		for(int x = dimensions.width; x--;){
 			cols[x][y].region = -1;
 		}
 	}
+
+	// assign regions to each feature
 	for(int y = dimensions.height; y--;){
 		for(int x = dimensions.width; x--;){
 			trkMatFeature_t* feature = cols[x] + y;
