@@ -22,6 +22,10 @@ static float utility(agent_t* current, void* args)
 
 static void* action(agent_t* lastState, void* args)
 {
+	if(!SYS.route.start || !SYS.route.currentWaypoint){
+		return NULL;
+	}
+
 	gpsWaypointCont_t* waypoint = SYS.route.currentWaypoint;
 	vec3f_t delta = vec3fSub(&SYS.body.measured.position, &waypoint->self.location);
 	

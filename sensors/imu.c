@@ -137,7 +137,7 @@ static void filterReading(imuState_t* state)
 {
 	//assert(gaussian(0, 0, 32) == 1);
 
-	for(int i = WIN_SIZE; i--;){
+	for(int i = 3; i--;){
 		smfUpdate(state->windows.linear + i,     state->rawReadings.linear.v[i]);
 		smfUpdate(state->windows.rotational + i, state->rawReadings.rotational.v[i]);
 		smfUpdate(state->windows.mag + i,        state->rawReadings.mag.v[i]);
@@ -219,11 +219,12 @@ void imuUpdateState(int fd, imuState_t* state)
 	reading.linear.x -= ACCEL_MEAN[0];
 	reading.linear.y -= ACCEL_MEAN[1];
 	reading.linear.z -= ACCEL_MEAN[2];
-	reading.rotational.x -= ACCEL_MEAN[0];
-	reading.rotational.y -= ACCEL_MEAN[1];
-	reading.rotational.z -= ACCEL_MEAN[2];
+	reading.rotational.x -= GYRO_MEAN[0];
+	reading.rotational.y -= GYRO_MEAN[1];
+	reading.rotational.z -= GYRO_MEAN[2];
 
 	filterReading(state);
+	readingFilter_t* filter = &state->windows;
 
 	if(state->isCalibrated){
 		vec3i16_t* accMin = &state->calMinMax[0].linear;
@@ -249,20 +250,24 @@ void imuUpdateState(int fd, imuState_t* state)
 
 		// map the readings to the 1G [-1, 1] calibration window that was obtained
 		// from the calibration profile
-		state->adjReadings.linear.x = G * map(reading.linear.x, accMin->x, accMax->x);
-		state->adjReadings.linear.y = G * map(reading.linear.y, accMin->y, accMax->y);
-		state->adjReadings.linear.z = G * map(reading.linear.z, accMin->z, accMax->z);
+		state->adjReadings.linear.x = G * map(filter->linear[0].median, accMin->x, accMax->x);
+		state->adjReadings.linear.y = G * map(filter->linear[1].median, accMin->y, accMax->y);
+		state->adjReadings.linear.z = G * map(filter->linear[2].median, accMin->z, accMax->z);
 
 		// map the mag from [-1, 1] based on the measured range
-		state->adjReadings.mag.x = map(reading.mag.x, magMin->x, magMax->x);
-		state->adjReadings.mag.y = map(reading.mag.y, magMin->y, magMax->y);
-		state->adjReadings.mag.z = map(reading.mag.z, magMin->z, magMax->z);
+		state->adjReadings.mag.x = map(filter->mag[0].median, magMin->x, magMax->x);
+		state->adjReadings.mag.y = map(filter->mag[1].median, magMin->y, magMax->y);
+		state->adjReadings.mag.z = map(filter->mag[2].median, magMin->z, magMax->z);
+
+		state->adjReadings.rotational.x = filter->rotational[0].median;
+		state->adjReadings.rotational.y = filter->rotational[1].median;
+		state->adjReadings.rotational.z = filter->rotational[2].median;
 	}
 	else{
 		// no calibration, just spit out the literal value
-		state->adjReadings.linear.x = reading.linear.x;
-		state->adjReadings.linear.y = reading.linear.y;
-		state->adjReadings.linear.z = reading.linear.z;	
+		state->adjReadings.linear.x = filter->linear[0].median;
+		state->adjReadings.linear.y = filter->linear[1].median;
+		state->adjReadings.linear.z = filter->linear[2].median;	
 	}
 }
 

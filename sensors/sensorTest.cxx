@@ -4,7 +4,6 @@
 
 #include "system.h"
 #include "aggergate.h"
-#include "timer.h"
 #include "utilities/diagnostics/diagnostics.h"
 
 vec3f_t normalAngle(float angle)
@@ -31,16 +30,16 @@ int main(int argc, char* argv[])
 		printf("Waypoint %d (%f, %f)\n", w->self.nextWaypoint, w->self.location.x, w->self.location.y);
 	}
 
-	float qtr = M_PI / 4;
+	float qtr = M_PI / 4.0f;
 	vec3f_t headings[] = {
-		normalAngle(qtr * 2), // N
-		normalAngle(qtr * 3), // NW
-		normalAngle(qtr * 4), // W
-		normalAngle(qtr * 5), // SW
-		normalAngle(qtr * 6), // S
-		normalAngle(qtr * 7), // SE
-		normalAngle(qtr * 8), // E
-		normalAngle(qtr * 9), // NE
+		normalAngle(qtr * 0), // N
+		normalAngle(qtr * 1), // NW
+		normalAngle(qtr * 2), // W
+		normalAngle(qtr * 3), // SW
+		normalAngle(qtr * 4), // S
+		normalAngle(qtr * 5), // SE
+		normalAngle(qtr * 6), // E
+		normalAngle(qtr * 7), // NE
 	};
 
 	const char* cardinals[] = {
@@ -83,8 +82,8 @@ int main(int argc, char* argv[])
 
 		const int scale = 50;
 
-		readings[0][i] = center + SYS.body.imu.adjReadings.linear.y;
-		readings[1][i] = center + SYS.body.estimated.velocity.y * 10;
+		readings[0][i] = center + SYS.body.imu.adjReadings.linear.y / 10;
+		readings[1][i] = center + SYS.body.estimated.velocity.linear.y * 10;
 
 		++i;
 		i %= samples;
@@ -98,9 +97,10 @@ int main(int argc, char* argv[])
 
 		icLineGraph(topLeft, bottomRight, '-', origin, 100);
 
-		vec3i16_t acc = SYS.body.imu.rawReadings.linear;
-		vec3i16_t mag = SYS.body.imu.rawReadings.mag;
-		sprintf(buf, "acc (%d, %d, %d) mag (%d, %d, %d)", acc.x, acc.y, acc.z, mag.x, mag.y, mag.z);
+		vec3f_t acc = SYS.body.imu.adjReadings.linear;
+		vec3f_t mag = SYS.body.imu.adjReadings.mag;
+		vec3f_t gry = SYS.body.imu.adjReadings.rotational;
+		sprintf(buf, "acc (%f, %f, %f) mag (%f, %f, %f) gyro (%f, %f, %f)", acc.x, acc.y, acc.z, mag.x, mag.y, mag.z, gry.x, gry.y, gry.z);
 		icText(2, 2, buf);
 		
 		int bi = 0;
@@ -118,7 +118,7 @@ int main(int argc, char* argv[])
 
 		icPresent();
 
-		timerUpdate();
+		sysTimerUpdate();
 		usleep(1000);
 		icPresent();
 	}

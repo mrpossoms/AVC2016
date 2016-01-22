@@ -52,12 +52,17 @@ int main(int argc, char* argv[])
 	diagHost(1340);
 
 	// load a route
-	err = gpsRouteLoad(argv[1], &SYS.route.start);
-	if(err){
-		SYS_ERR("Loading gps route '%s' failed", argv[1]);
-		return err;
+	if(argc >= 2){
+		err = gpsRouteLoad(argv[1], &SYS.route.start);
+		if(err){
+			SYS_ERR("Loading gps route '%s' failed", argv[1]);
+			return err;
+		}
+		SYS.route.currentWaypoint = SYS.route.start;
 	}
-	SYS.route.currentWaypoint = SYS.route.start;
+	else{
+		printf("No route loaded\n");
+	}
 
 	// setup all the decision agents
 	agentInitAgents();
