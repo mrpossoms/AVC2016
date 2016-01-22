@@ -31,7 +31,7 @@ static sensorStatei_t READINGS[WARMUP_SAMPLES];
 //                              
 static void endianSwapVec3(vec3i16_t* v)
 {
-	return;
+	// return;
 	v->x = ntohs(v->x);
 	v->y = ntohs(v->y);
 	v->z = ntohs(v->z);
@@ -150,17 +150,7 @@ static int obtainedStatisticalProps(imuState_t* state)
 
 	if(isFinished) return 1;
 	if(READINGS_COLLECTED < WARMUP_SAMPLES){
-		ACCEL_MEAN[0] += state->rawReadings.linear.x;
-		ACCEL_MEAN[1] += state->rawReadings.linear.y;
-		ACCEL_MEAN[2] += state->rawReadings.linear.z;
-
-		GYRO_MEAN[0] += state->rawReadings.rotational.x;
-		GYRO_MEAN[1] += state->rawReadings.rotational.y;
-		GYRO_MEAN[2] += state->rawReadings.rotational.z;
-
-		READINGS[READINGS_COLLECTED] = state->rawReadings;
-		bzero(&state->rawReadings, sizeof(sensorStatei_t));
-
+		// vec3Add(state->means.linear, state->mean.linear, state->rawReadings.linear);
 		return 0;
 	}
 
@@ -175,13 +165,12 @@ static int obtainedStatisticalProps(imuState_t* state)
 
 	// compute the variance for standard deviation
 	bzero(&state->standardDeviations, sizeof(sensorStatei_t));
-	double varLin[3] = {}, varRot[3] = {};
+	double varLin[3] = {};
 	for(int i = WARMUP_SAMPLES; i--;){
 		for(int j = 3; j--;){
 			double v = READINGS[i].linear.v[j] - ACCEL_MEAN[j];
 			double w = READINGS[i].rotational.v[j] - GYRO_MEAN[j];
 			varLin[j] += (v * v) / (float)WARMUP_SAMPLES;
-			varRot[j] += (w * w) / (float)WARMUP_SAMPLES;
 		}
 	}
 
@@ -189,9 +178,9 @@ static int obtainedStatisticalProps(imuState_t* state)
 	state->standardDeviations.linear.x = sqrt(varLin[0]);
 	state->standardDeviations.linear.y = sqrt(varLin[1]);
 	state->standardDeviations.linear.z = sqrt(varLin[2]);
-	state->standardDeviations.rotational.x = sqrt(varRot[0]);
-	state->standardDeviations.rotational.y = sqrt(varRot[1]);
-	state->standardDeviations.rotational.z = sqrt(varRot[2]);
+	// state->standardDeviations.rotational.x = sqrt(varRot[0]);
+	// state->standardDeviations.rotational.y = sqrt(varRot[1]);
+	// state->standardDeviations.rotational.z = sqrt(varRot[2]);
 
 	isFinished = 1;
 	return 1;
@@ -209,19 +198,20 @@ void imuUpdateState(int fd, imuState_t* state)
 	// get fresh data from the device
 	reading = imuGetReadings(fd);
 	state->rawReadings = reading;
-	++READINGS_COLLECTED;
+	state->samples++;
 
 	// wait a little bit to grab the mean of the accelerometer
-	if(!obtainedStatisticalProps(state)){
-		return;
-	}
+	// if(!obtainedStatisticalProps(state)){
+	// 	return;
+	// }
+	vec3Add(state->means.linear, state->means.linear, reading.linear);
+	vec3Add(state->means.rotational, state->means.rotational, reading.rotational);
 
-	reading.linear.x -= ACCEL_MEAN[0];
-	reading.linear.y -= ACCEL_MEAN[1];
-	reading.linear.z -= ACCEL_MEAN[2];
-	reading.rotational.x -= GYRO_MEAN[0];
-	reading.rotational.y -= GYRO_MEAN[1];
-	reading.rotational.z -= GYRO_MEAN[2];
+	vec3f_t meanLin = vec3fScl(&state->means.linear, 1 / state->samples);
+	vec3f_t meanRot = vec3fScl(&state->means.rotational, 1 / state->samples);
+
+	vec3Sub(reading.linear,     reading.linear,     meanLin);
+	vec3Sub(reading.rotational, reading.rotational, meanRot);
 
 	filterReading(state);
 	readingFilter_t* filter = &state->windows;

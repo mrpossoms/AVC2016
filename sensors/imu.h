@@ -50,7 +50,9 @@ typedef struct{
 	sensorStatef_t  adjReadings;
 	readingFilter_t windows;
 	sensorStatei_t  calMinMax[2];
-	sensorStatei_t  standardDeviations;
+	sensorStatef_t  means;
+	sensorStatef_t  standardDeviations;
+	float           samples;
 	int             isCalibrated;
 }imuState_t;
 

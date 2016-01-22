@@ -27,7 +27,7 @@
 
 - (NSString*)mesVelocity
 {
-    return [self stringForVecF:self.data.measured.velocity];
+    return [self stringForVecF:self.data.measured.velocity.linear];
 }
 
 - (NSString*)mesHeading
@@ -42,7 +42,7 @@
 
 - (NSString*)estVelocity
 {
-    return [self stringForVecF:self.data.estimated.velocity];
+    return [self stringForVecF:self.data.estimated.velocity.linear];
 }
 
 - (NSString*)estHeading

@@ -26,6 +26,7 @@
 @property PointPlotControl *headingPlotXY;
 @property VectorPlotControl *vectorPlotXY;
 
+@property (weak, nonatomic) IBOutlet UIActivityIndicatorView *connectingIndicator;
 @property (weak, nonatomic) IBOutlet UIScrollView *scrollView;
 @property (weak, nonatomic) IBOutlet UITableView *tableView;
 @property dispatch_queue_t pollQueue;
@@ -122,13 +123,25 @@ NSString* DIAG_DATA_TITLES[] = {
         int sock = socket(AF_INET, SOCK_STREAM, 0);
         int err;
 
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self.connectingIndicator startAnimating];
+        });
+        
         if((err = connect(sock, (const struct sockaddr*)&host, sizeof(host)))){
             NSLog(@"Connection failed");
             dispatch_async(dispatch_get_main_queue(), ^{
                 [Errors presentWithTitle:@"Could not connect to diagnostic server" onViewController:self];
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [self.connectingIndicator stopAnimating];
+                });
             });
             return;
         }
+        
+        // connected!
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self.connectingIndicator startAnimating];
+        });
         
         while(self.shouldPoll){
             CFAbsoluteTime now = CFAbsoluteTimeGetCurrent();
