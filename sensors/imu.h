@@ -4,10 +4,11 @@
 #include <inttypes.h>
 #include <sys/types.h>
 #include <sys/time.h>
-#include <unistd.h>   // UNIX standard function definitions 
-#include <fcntl.h>    // File control definitions 
+#include <unistd.h>   // UNIX standard function definitions
+#include <fcntl.h>    // File control definitions
 #include <stdio.h>
 #include <strings.h>
+#include <kf.h>
 
 #include "types.h"
 
@@ -18,11 +19,11 @@ extern "C" {
 #define SMF_SAMP_TYPE int16_t
 #define WIN_SIZE 21
 
-//    _____                  
+//    _____
 //   |_   _|  _ _ __  ___ ___
 //     | || || | '_ \/ -_|_-<
 //     |_| \_, | .__/\___/__/
-//         |__/|_|           
+//         |__/|_|
 typedef struct{
 	vec3i16_t linear;
 	vec3i16_t rotational;
@@ -36,19 +37,14 @@ typedef struct{
 } sensorStatef_t;
 
 typedef struct{
-	SMF_SAMP_TYPE window[WIN_SIZE];
-	int nextSample;
-	SMF_SAMP_TYPE min, max, median;
-} medianWindow_t;
-
-typedef struct{
-	medianWindow_t linear[3], rotational[3], mag[3];
+	kf_t linear, rotational, mag;
+	uint8_t isSetup;
 } readingFilter_t;
 
 typedef struct{
 	sensorStatei_t  rawReadings;
 	sensorStatef_t  adjReadings;
-	readingFilter_t windows;
+	readingFilter_t filter;
 	sensorStatei_t  calMinMax[2];
 	sensorStatef_t  means;
 	sensorStatef_t  standardDeviations;
@@ -66,31 +62,25 @@ static inline void print_v3f(vec3f_t* v)
 	printf("(%f, %f, %f)", v->x, v->y, v->z);
 }
 
-//     ___      _ _ _             _   _          
-//    / __|__ _| (_) |__ _ _ __ _| |_(_)___ _ _  
+//     ___      _ _ _             _   _
+//    / __|__ _| (_) |__ _ _ __ _| |_(_)___ _ _
 //   | (__/ _` | | | '_ \ '_/ _` |  _| / _ \ ' \
 //    \___\__,_|_|_|_.__/_| \__,_|\__|_\___/_||_|
-//                                               
+//
 int imuPerformCalibration(int fd_storage, int fd_imu, imuState_t* state);
 int imuLoadCalibrationProfile(int fd_storage, imuState_t* state);
 
-//    ___       _          ___     _ _ _           
-//   |   \ __ _| |_ __ _  | _ \___| | (_)_ _  __ _ 
+//    ___       _          ___     _ _ _
+//   |   \ __ _| |_ __ _  | _ \___| | (_)_ _  __ _
 //   | |) / _` |  _/ _` | |  _/ _ \ | | | ' \/ _` |
 //   |___/\__,_|\__\__,_| |_| \___/_|_|_|_||_\__, |
-//                                           |___/ 
+//                                           |___/
 void imuUpdateState(int fd, imuState_t* state);
 sensorStatei_t imuGetReadings(int fd);
-
-#endif
-#ifndef SLIDING_MEDIAN_FILTER
-#define SLIDING_MEDIAN_FILTER
-
-void smfUpdate(medianWindow_t* win, SMF_SAMP_TYPE samp);
 
 #ifdef __cplusplus
 }
 #endif
-	
+
 
 #endif

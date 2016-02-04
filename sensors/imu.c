@@ -1,5 +1,5 @@
 #include "imu.h"
-#include <fcntl.h>    // File control definitions 
+#include <fcntl.h>    // File control definitions
 #include <stdlib.h>
 #include <sys/ioctl.h>
 #include <assert.h>
@@ -24,11 +24,11 @@ static int32_t ACCEL_MEAN[3], GYRO_MEAN[3];
 static int READINGS_COLLECTED;
 static sensorStatei_t READINGS[WARMUP_SAMPLES];
 
-//     ___                      
-//    / __|___ _ __  _ __  ___  
-//   | (__/ _ \ '  \| '  \(_-<_ 
+//     ___
+//    / __|___ _ __  _ __  ___
+//   | (__/ _ \ '  \| '  \(_-<_
 //    \___\___/_|_|_|_|_|_/__(_)
-//                              
+//
 static void endianSwapVec3(vec3i16_t* v)
 {
 	// return;
@@ -71,22 +71,22 @@ static int requestBytes(int fd, uint8_t devAddr, uint8_t srcReg, void* dstBuf, s
 #endif
 }
 
-//    ___       _          ___     _ _ _           
-//   |   \ __ _| |_ __ _  | _ \___| | (_)_ _  __ _ 
+//    ___       _          ___     _ _ _
+//   |   \ __ _| |_ __ _  | _ \___| | (_)_ _  __ _
 //   | |) / _` |  _/ _` | |  _/ _ \ | | | ' \/ _` |
 //   |___/\__,_|\__\__,_| |_| \___/_|_|_|_||_\__, |
-//                                           |___/ 
+//                                           |___/
 sensorStatei_t imuGetReadings(int fd)
 {
 	static int isSetup;
 	sensorStatei_t reading = {};
 	int res = 0;
-	
+
 	if(!isSetup){
 		sendByte(fd, ADDR_ACC_MAG, 0x20, 0x67);
 		sendByte(fd, ADDR_ACC_MAG, 0x21, 0x00);
 		sendByte(fd, ADDR_ACC_MAG, 0x26, 0x00);
-		sendByte(fd, ADDR_GYRO, 0x20, 0x0F);		
+		sendByte(fd, ADDR_GYRO, 0x20, 0x0F);
 
 		isSetup = 1;
 		usleep(100000);
@@ -105,44 +105,32 @@ sensorStatei_t imuGetReadings(int fd)
 	return reading;
 }
 
-static int comp(const void* a, const void* b)
+static int filterReading(imuState_t* state)
 {
-	return *((SMF_SAMP_TYPE*)a) - *((SMF_SAMP_TYPE*)b);
-}
+	int err = 0;
+	readingFilter_t* f = &state->filter;
 
-void smfUpdate(medianWindow_t* win, SMF_SAMP_TYPE samp)
-{
-	SMF_SAMP_TYPE *window = win->window;
-	window[win->nextSample++] = samp;
+	if(!state->filter.isSetup){
+		err += kfCreateFilter(&f->linear,     3);
+		err += kfCreateFilter(&f->rotational, 3);
+		err += kfCreateFilter(&f->mag,        3);
 
-	// round robin
-	win->nextSample %= WIN_SIZE;
+		if(err) return err;
 
-	// sort the window
-	qsort(window, WIN_SIZE, sizeof(SMF_SAMP_TYPE), comp);	
-
-	win->median = window[WIN_SIZE / 2];
-}
-
-static float gaussian(float x, float mu, float sig)
-{
-	const float sqrt2pi = sqrtf(2 * M_PI);
-	float xmmSqr = x - mu; xmmSqr *= xmmSqr;
-	float num = powf(M_E, xmmSqr / (2 * sig) * (2 * sig));
-
-	return 2.5 * sig * num / sig * sqrt2pi;
-}
-
-static void filterReading(imuState_t* state)
-{
-	//assert(gaussian(0, 0, 32) == 1);
+		f->isSetup = 1;
+	}
 
 	for(int i = 3; i--;){
-		smfUpdate(state->windows.linear + i,     state->rawReadings.linear.v[i]);
-		smfUpdate(state->windows.rotational + i, state->rawReadings.rotational.v[i]);
-		smfUpdate(state->windows.mag + i,        state->rawReadings.mag.v[i]);
+		kf_t* filter = (&f->linear) + i;
+		vec3i16_t mes_i = (&state->rawReadings.linear)[i];
+		float mes[3] = { mes_i.x, mes_i.y, mes_i.z };
+
+		kfPredict(filter, NULL);
+		kfUpdate(filter, (&state->adjReadings.linear)[i].v, mes);
 	}
-} 
+
+	return err;
+}
 
 static int obtainedStatisticalProps(imuState_t* state)
 {
@@ -161,7 +149,7 @@ static int obtainedStatisticalProps(imuState_t* state)
 	GYRO_MEAN[0] /= WARMUP_SAMPLES;
 	GYRO_MEAN[1] /= WARMUP_SAMPLES;
 	GYRO_MEAN[2] /= WARMUP_SAMPLES;
-	
+
 
 	// compute the variance for standard deviation
 	bzero(&state->standardDeviations, sizeof(sensorStatei_t));
@@ -214,7 +202,7 @@ void imuUpdateState(int fd, imuState_t* state)
 	vec3Sub(reading.rotational, reading.rotational, meanRot);
 
 	filterReading(state);
-	readingFilter_t* filter = &state->windows;
+	readingFilter_t* filter = &state->filter;
 
 	if(state->isCalibrated){
 		vec3i16_t* accMin = &state->calMinMax[0].linear;
@@ -240,32 +228,27 @@ void imuUpdateState(int fd, imuState_t* state)
 
 		// map the readings to the 1G [-1, 1] calibration window that was obtained
 		// from the calibration profile
-		state->adjReadings.linear.x = G * map(filter->linear[0].median, accMin->x, accMax->x);
-		state->adjReadings.linear.y = G * map(filter->linear[1].median, accMin->y, accMax->y);
-		state->adjReadings.linear.z = G * map(filter->linear[2].median, accMin->z, accMax->z);
+		sensorStatef_t* adj_r = &state->adjReadings;
+		adj_r->linear.x = G * map(adj_r->linear.x, accMin->x, accMax->x);
+		adj_r->linear.y = G * map(adj_r->linear.y, accMin->y, accMax->y);
+		adj_r->linear.z = G * map(adj_r->linear.z, accMin->z, accMax->z);
 
 		// map the mag from [-1, 1] based on the measured range
-		state->adjReadings.mag.x = map(filter->mag[0].median, magMin->x, magMax->x);
-		state->adjReadings.mag.y = map(filter->mag[1].median, magMin->y, magMax->y);
-		state->adjReadings.mag.z = map(filter->mag[2].median, magMin->z, magMax->z);
+		adj_r->mag.x = map(adj_r->mag.x, magMin->x, magMax->x);
+		adj_r->mag.y = map(adj_r->mag.y, magMin->y, magMax->y);
+		adj_r->mag.z = map(adj_r->mag.z, magMin->z, magMax->z);
 
-		state->adjReadings.rotational.x = filter->rotational[0].median;
-		state->adjReadings.rotational.y = filter->rotational[1].median;
-		state->adjReadings.rotational.z = filter->rotational[2].median;
-	}
-	else{
-		// no calibration, just spit out the literal value
-		state->adjReadings.linear.x = filter->linear[0].median;
-		state->adjReadings.linear.y = filter->linear[1].median;
-		state->adjReadings.linear.z = filter->linear[2].median;	
+		// adj_r->rotational.x = adj_r->rotational.x;
+		// adj_r->rotational.y = adj_r->rotational.y;
+		// adj_r->rotational.z = adj_r->rotational.z;
 	}
 }
 
-//     ___      _ _ _             _   _          
-//    / __|__ _| (_) |__ _ _ __ _| |_(_)___ _ _  
+//     ___      _ _ _             _   _
+//    / __|__ _| (_) |__ _ _ __ _| |_(_)___ _ _
 //   | (__/ _` | | | '_ \ '_/ _` |  _| / _ \ ' \
 //    \___\__,_|_|_|_.__/_| \__,_|\__|_\___/_||_|
-//                                               
+//
 int16_t axisAcc(char axis, int isMax, int fd_imu)
 {
 	printf(isMax ? "(+%c) [Press any key]\n" : "(-%c) [Press any key]\n", axis);
