@@ -30,29 +30,6 @@ int main(int argc, char* argv[])
 		printf("Waypoint %d (%f, %f)\n", w->self.nextWaypoint, w->self.location.x, w->self.location.y);
 	}
 
-	float qtr = M_PI / 4.0f;
-	vec3f_t headings[] = {
-		normalAngle(qtr * 0), // N
-		normalAngle(qtr * 1), // NW
-		normalAngle(qtr * 2), // W
-		normalAngle(qtr * 3), // SW
-		normalAngle(qtr * 4), // S
-		normalAngle(qtr * 5), // SE
-		normalAngle(qtr * 6), // E
-		normalAngle(qtr * 7), // NE
-	};
-
-	const char* cardinals[] = {
-		"N",
-		"NW",
-		"W",
-		"SW",
-		"S",
-		"SE",
-		"E",
-		"NE",
-	};
-
 	sleep(2);
 
 	assert(!icInit());
@@ -66,10 +43,11 @@ int main(int argc, char* argv[])
 	const int samples = 50;
 	int i = 0;
 	int readings[3][50] = {{},{},{}};
-	int origin[100];
-	
-	for(int i = 100; i--; origin[i] = 0)
-		bzero(readings[0], sizeof(int) * samples);
+	int origin[100] = {};
+	//int minMax[2] = { -32000, 32000 };
+	int minMax[2] = { -20, 20 };	
+
+	bzero(readings[0], sizeof(int) * samples);
 
 	while(1){
 		char buf[64] = {};
@@ -78,44 +56,28 @@ int main(int argc, char* argv[])
 		int topLeft[2] = { 5, 2 };
 		int bottomRight[2] = { IC_TERM_WIDTH - 5, IC_TERM_HEIGHT - 2};	
 		
-		int center = (bottomRight[1] - topLeft[1]) / 2;
-
-		const int scale = 50;
-
-		readings[0][i] = center + SYS.body.imu.adjReadings.linear.y / 10;
-		readings[1][i] = center + SYS.body.estimated.velocity.linear.y * 10;
+		readings[0][i] = SYS.body.imu.adjReadings.linear.y;
+		readings[1][i] = SYS.body.estimated.velocity.linear.y * 10;
 
 		++i;
 		i %= samples;
 
 		clear();
 		attron(COLOR_PAIR(1));
-		icLineGraph(topLeft, bottomRight, 'r', readings[0], samples);
-		attron(COLOR_PAIR(2));
-		icLineGraph(topLeft, bottomRight, 'e', readings[1], samples);
+		icLineGraph(topLeft, bottomRight, 'r', readings[0], samples, minMax);
+		//attron(COLOR_PAIR(2));
+		//icLineGraph(topLeft, bottomRight, 'e', readings[1], samples, minMax);
+		
 		attroff(COLOR_PAIR(2));
-
-		icLineGraph(topLeft, bottomRight, '-', origin, 100);
+		icLineGraph(topLeft, bottomRight, '-', origin, 10, minMax);
 
 		vec3f_t acc = SYS.body.imu.adjReadings.linear;
 		vec3f_t mag = SYS.body.imu.adjReadings.mag;
 		vec3f_t gry = SYS.body.imu.adjReadings.rotational;
-		sprintf(buf, "acc (%f, %f, %f) mag (%f, %f, %f) gyro (%f, %f, %f)", acc.x, acc.y, acc.z, mag.x, mag.y, mag.z, gry.x, gry.y, gry.z);
-		icText(2, 2, buf);
+		sensorStatei_t *m = SYS.body.imu.calMinMax, *M = SYS.body.imu.calMinMax + 1;
+		icTextf(IC_TERM_WIDTH - 60, 2, "acc (%f, %f, %f)\nmag (%f, %f, %f)\ngyro (%f, %f, %f)", acc.x, acc.y, acc.z, mag.x, mag.y, mag.z, gry.x, gry.y, gry.z);
+		icTextf(IC_TERM_WIDTH - 60, 8, "acc range { (%d, %d), (%d, %d), (%d, %d) }", m->linear.x, M->linear.x, m->linear.y, M->linear.y, m->linear.z, M->linear.z);
 		
-		int bi = 0;
-		float bd = vec3fDot(&SYS.body.measured.heading, headings);
-		for(int i = 8; i--;){
-			float d = vec3fDot(&SYS.body.measured.heading, headings + i);
-			if(d > bd){
-				bd = d;
-				bi = i;
-			}
-		}
-
-		sprintf(buf, "Compass: %s", cardinals[bi]);
-		icText(2, 3, buf);
-
 		icPresent();
 
 		sysTimerUpdate();

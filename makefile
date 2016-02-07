@@ -3,7 +3,7 @@ CFLAGS=
 INC=-I./ -I/usr/local/include
 LIB=-L/usr/local/lib
 SRC=./controls/*.c ./utilities/diagnostics/*.c ./sensors/*.c ./decision/*.c ./decision/states/*.c  ./comms/*.c system.c timer.c avc.cxx
-LINK=-lm -lpthread -lNEMA
+LINK=-lm -lpthread -lNEMA -lKF
 
 
 all:

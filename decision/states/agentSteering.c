@@ -31,14 +31,17 @@ static float angleToNextWayPoint(objectState_t* o, gpsWaypointCont_t* waypoint)
 
 	float d2 = vec3fDot(&toWaypoint, &tempHeading);
 
-	printf(
-		"(%f, %f) -> (%f, %f)\n",
-		o->position.x, o->position.y,
-		waypoint->self.location.x, waypoint->self.location.y
-	);
+	if(SYS.debugging){
+		printf(
+			"(%f, %f) -> (%f, %f)\n",
+			o->position.x, o->position.y,
+			waypoint->self.location.x, waypoint->self.location.y
+		);
 
-	printf("heading %f, %f\n", tempHeading.x, tempHeading.y);
-	printf("delta %f, %f\n", toWaypoint.x, toWaypoint.y);
+		printf("heading %f, %f\n", tempHeading.x, tempHeading.y);
+		printf("delta %f, %f\n", toWaypoint.x, toWaypoint.y);
+		sleep(1);
+	}
 
 	return acos(d1) * d2;
 }
