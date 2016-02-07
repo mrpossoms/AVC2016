@@ -64,6 +64,7 @@ typedef struct{
 	} route;
 
 	float timeUp; // time in seconds the system has been running
+	int debugging;
 } system_t;
 
 //     ___ _     _          _    

@@ -31,7 +31,7 @@ static sensorStatei_t READINGS[WARMUP_SAMPLES];
 //
 static void endianSwapVec3(vec3i16_t* v)
 {
-	// return;
+	return;
 	v->x = ntohs(v->x);
 	v->y = ntohs(v->y);
 	v->z = ntohs(v->z);
@@ -111,22 +111,24 @@ static int filterReading(imuState_t* state)
 	readingFilter_t* f = &state->filter;
 
 	if(!state->filter.isSetup){
-		err += kfCreateFilter(&f->linear,     3);
-		err += kfCreateFilter(&f->rotational, 3);
-		err += kfCreateFilter(&f->mag,        3);
+		for(int i = 3; i--;){
+			kf_t* filter = (&f->linear) + i;
+			kfCreateFilter(filter, 3);
+			kfMatScl(filter->matQ, filter->matQ, 0.001, 3);
+			kfMatScl(filter->matR, filter->matR, 0.1, 3);
 
-		if(err) return err;
+			if(err) return err;
+		}
 
 		f->isSetup = 1;
 	}
 
 	for(int i = 3; i--;){
 		kf_t* filter = (&f->linear) + i;
-		vec3i16_t mes_i = (&state->rawReadings.linear)[i];
-		float mes[3] = { mes_i.x, mes_i.y, mes_i.z };
+		float* x = (&state->adjReadings.linear)[i].v;
 
 		kfPredict(filter, NULL);
-		kfUpdate(filter, (&state->adjReadings.linear)[i].v, mes);
+		kfUpdate(filter, x, x);
 	}
 
 	return err;
@@ -186,22 +188,7 @@ void imuUpdateState(int fd, imuState_t* state)
 	// get fresh data from the device
 	reading = imuGetReadings(fd);
 	state->rawReadings = reading;
-	state->samples++;
 
-	// wait a little bit to grab the mean of the accelerometer
-	// if(!obtainedStatisticalProps(state)){
-	// 	return;
-	// }
-	vec3Add(state->means.linear, state->means.linear, reading.linear);
-	vec3Add(state->means.rotational, state->means.rotational, reading.rotational);
-
-	vec3f_t meanLin = vec3fScl(&state->means.linear, 1 / state->samples);
-	vec3f_t meanRot = vec3fScl(&state->means.rotational, 1 / state->samples);
-
-	vec3Sub(reading.linear,     reading.linear,     meanLin);
-	vec3Sub(reading.rotational, reading.rotational, meanRot);
-
-	filterReading(state);
 	readingFilter_t* filter = &state->filter;
 
 	if(state->isCalibrated){
@@ -229,18 +216,21 @@ void imuUpdateState(int fd, imuState_t* state)
 		// map the readings to the 1G [-1, 1] calibration window that was obtained
 		// from the calibration profile
 		sensorStatef_t* adj_r = &state->adjReadings;
-		adj_r->linear.x = G * map(adj_r->linear.x, accMin->x, accMax->x);
-		adj_r->linear.y = G * map(adj_r->linear.y, accMin->y, accMax->y);
-		adj_r->linear.z = G * map(adj_r->linear.z, accMin->z, accMax->z);
+		sensorStatei_t* raw = &state->rawReadings;
+		adj_r->linear.x = G * map(raw->linear.x, accMin->x, accMax->x);
+		adj_r->linear.y = G * map(raw->linear.y, accMin->y, accMax->y);
+		adj_r->linear.z = G * map(raw->linear.z, accMin->z, accMax->z);
 
 		// map the mag from [-1, 1] based on the measured range
-		adj_r->mag.x = map(adj_r->mag.x, magMin->x, magMax->x);
-		adj_r->mag.y = map(adj_r->mag.y, magMin->y, magMax->y);
-		adj_r->mag.z = map(adj_r->mag.z, magMin->z, magMax->z);
+		adj_r->mag.x = map(raw->mag.x, magMin->x, magMax->x);
+		adj_r->mag.y = map(raw->mag.y, magMin->y, magMax->y);
+		//adj_r->mag.z = raw->mag.z;//map(raw->mag.z, magMin->z, magMax->z);
 
-		// adj_r->rotational.x = adj_r->rotational.x;
-		// adj_r->rotational.y = adj_r->rotational.y;
-		// adj_r->rotational.z = adj_r->rotational.z;
+		adj_r->rotational.x = raw->rotational.x;
+		adj_r->rotational.y = raw->rotational.y;
+		adj_r->rotational.z = raw->rotational.z;
+	
+		filterReading(state);
 	}
 }
 

@@ -24,10 +24,22 @@ void sigHandler(int sig)
 	}	
 }
 
+int hasOpt(char* argv[], int argc, const char* target){
+	for(int i = argc; i--;){
+		if(!strcmp(argv[i], target)) return 1;
+	}
+
+	return 0;
+}
+
 int main(int argc, char* argv[])
 {
 	int err = 0;
 	openlog("AVC_BOT", 0, 0);	
+
+	if(hasOpt(argv, argc, "--debug")){
+		SYS.debugging = 1;
+	}
 
 	// // start servo controlling
 	err = ctrlInit();
@@ -72,7 +84,10 @@ int main(int argc, char* argv[])
 
 		AGENT_ROUTING.action(NULL, NULL);
 		AGENT_STEERING.action(NULL, NULL);
-		AGENT_THROTTLE.action(NULL, NULL);
+
+		if(hasOpt(argv, argc, "--use-throttle")){
+			AGENT_THROTTLE.action(NULL, NULL);
+		}
 
 		sysTimerUpdate();
 	}
