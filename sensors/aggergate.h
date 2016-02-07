@@ -8,5 +8,6 @@
 
 int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile);
 int senUpdate(fusedObjState_t* body);
+int senShutdown();
 
 #endif

@@ -38,6 +38,19 @@ int gpsInit(const char* devPath)
 	return 0;
 }
 //-----------------------------------------------------------------------------
+int gpsShutdown()
+{
+		if(pthread_cancel(GPS_THREAD)){
+			return -1;
+		}
+
+		if(lnDisconnect()){
+			return -2;
+		}
+
+		return 0;
+}
+//-----------------------------------------------------------------------------
 int gpsHasNewReadings()
 {
 	return LAST_CHK_SUM != GPS_STATE.checksum;
@@ -46,27 +59,27 @@ int gpsHasNewReadings()
 static void latLon2meters(vec3f_t* coord)
 {
 	const float dia = 6371000 * 2;
-	float latRad = coord->y * (M_PI / 180.0f);	
-	float lonRad = coord->x * (M_PI / 180.0f);	
+	float latRad = coord->y * (M_PI / 180.0f);
+	float lonRad = coord->x * (M_PI / 180.0f);
 
 	// circumferance = d * pi
 
 	coord->x = dia * lonRad;
-	coord->y = dia * latRad;	
+	coord->y = dia * latRad;
 }
 //-----------------------------------------------------------------------------
 int gpsGetReadings(vec3f_t* position, vec3f_t* velocity)
 {
-	vec3f_t lastPos = *position;	
+	vec3f_t lastPos = *position;
 
 	position->x = GPS_STATE.Lon;
 	position->y = GPS_STATE.Lat;
 	position->z = GPS_STATE.Altitude;
-	
+
 	if(!position->x && !position->y){
 		position->x = -85.651659;
 		position->y = 42.962689;
-	} 
+	}
 
 	latLon2meters(position);
 

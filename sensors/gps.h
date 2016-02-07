@@ -8,6 +8,7 @@ extern "C" {
 #endif
 
 int gpsInit(const char* device);
+int gpsShutdown();
 int gpsHasNewReadings();
 int gpsGetReadings(vec3f_t* position, vec3f_t* veclocity);
 

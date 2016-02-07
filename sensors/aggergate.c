@@ -29,7 +29,7 @@ int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile
 		return -2;
 	}
 	printf("OK!\n");
-	
+
 	if(calProfile){
 		int calFd = open(calProfile, O_RDONLY);
 
@@ -40,6 +40,14 @@ int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile
 
 		close(calFd);
 	}
+
+	return 0;
+}
+//-----------------------------------------------------------------------------
+int senShutdown()
+{
+	if(gpsShutdown()) return -1;
+	if(close(FD_IMU)) return -2;
 
 	return 0;
 }
@@ -57,12 +65,12 @@ int senUpdate(fusedObjState_t* body)
 	if(gpsHasNewReadings()){
 		float dt = SYS.timeUp - body->lastMeasureTime;
 		vec3f_t lastPos = body->measured.position;
-		
+
 
 		// assign new ements
 		vec3f_t* velLin = &body->measured.velocity.linear;
 		body->hasGpsFix = gpsGetReadings(&body->measured.position, velLin);
-		vec3Sub(*velLin, body->measured.position, lastPos); 
+		vec3Sub(*velLin, body->measured.position, lastPos);
 		vec3Scl(*velLin, *velLin, dt);
 
 		// since we now have measurements, reset the estimates
@@ -77,12 +85,12 @@ int senUpdate(fusedObjState_t* body)
 
 		// integrate position using velocity
 		vec3f_t* estVelLin = &body->estimated.velocity.linear;
-		body->estimated.position.x += estVelLin->x * dt; 
+		body->estimated.position.x += estVelLin->x * dt;
 		body->estimated.position.y += estVelLin->y * dt;
 		body->estimated.position.z += estVelLin->z * dt;
 
-		// integrate IMU acceleration into velocity 
-		estVelLin->x += body->imu.adjReadings.linear.x * dt; 
+		// integrate IMU acceleration into velocity
+		estVelLin->x += body->imu.adjReadings.linear.x * dt;
 		estVelLin->y += body->imu.adjReadings.linear.y * dt;
 		estVelLin->z += body->imu.adjReadings.linear.z * dt;
 
