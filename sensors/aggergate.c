@@ -94,7 +94,7 @@ ONCE_END
 	if(fabs(da) > 0.01){
 		float coincidence = w / da;
 		if(coincidence < 0) coincidence = 0;
-		
+
 		printf("da = %f w = %f\n", da, w);
 		vec3Lerp(est->heading, lastHeading, mea->heading, coincidence);
 	}
