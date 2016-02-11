@@ -52,15 +52,23 @@ int senShutdown()
 	return 0;
 }
 //-----------------------------------------------------------------------------
+static vec3f_t senMesHeading(sensorStatef_t* r)
+{
+	// update the heading according to magnetometer readings
+	vec3f_t heading = {
+		-r->mag.x,
+		-r->mag.y,
+		 r->mag.z
+	};
+	return vec3fNorm(&heading);
+}
+//-----------------------------------------------------------------------------
 int senUpdate(fusedObjState_t* body)
 {
 	imuUpdateState(FD_IMU, &body->imu);
 
 	// update the heading according to magnetometer readings
-	body->measured.heading.x = -body->imu.adjReadings.mag.x;
-	body->measured.heading.y = -body->imu.adjReadings.mag.y;
-	body->measured.heading.z =  body->imu.adjReadings.mag.z;
-	body->measured.heading = vec3fNorm(&body->measured.heading);
+	body->measured.heading = senMesHeading(&body->imu.adjReadings);
 
 	if(gpsHasNewReadings()){
 		float dt = SYS.timeUp - body->lastMeasureTime;
