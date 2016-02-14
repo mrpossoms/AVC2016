@@ -2,10 +2,16 @@
 
 #include <opencv2/opencv.hpp>
 
-#define TRK_ADJ_FEATURES 8
-#define TRK_REGIONS 16
+#define TRK_ADJ_FEATURES      8
+#define TRK_REGIONS           16
+#define TRK_HISTOGRAM_BUCKETS 16
 
-#define TRK_THRESHOLD 1.0f
+#define TRK_COINCIDENCE_THRESHOLD 1.25f
+#define TRK_THRESHOLD 1.25f
+
+#define TRK_REGION_NONE   0
+#define TRK_REGION_ACTIVE 1
+
 
 using namespace std;
 using namespace cv;
@@ -16,10 +22,11 @@ using namespace cv;
 //     | || || | '_ \/ -_|_-<
 //     |_| \_, | .__/\___/__/
 //         |__/|_|
+
 struct MatFeature;
 typedef struct MatFeature{
 	Point2f position;
-	int     region;
+	short   histBucket, region;
 	float   deltaMag;
 	Point2f delta;
 	struct MatFeature* adj[TRK_ADJ_FEATURES];
@@ -38,6 +45,7 @@ typedef struct MatFeature{
 } trkMatFeature_t;
 
 typedef struct{
+	int flags;
 	Point2i min, max;
 } trkRegion_t;
 
@@ -50,8 +58,8 @@ typedef struct{
 class TrackingMat{
 	public:
 		int         regionCount;
-		trkRegion_t regions[TRK_REGIONS];
 		Size2i      dimensions;
+		trkRegion_t regions[TRK_REGIONS];
 
 		TrackingMat(Size2i size);
 		~TrackingMat();
