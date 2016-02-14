@@ -30,7 +30,6 @@
 #include "comms/protocol.h"
 #include "comms/messages.h"
 #include "sensors/aggergate.h"
-#define MAX_REGIONS 256
 
 using namespace cv;
 using namespace std;
@@ -67,7 +66,7 @@ typedef struct{
 //
 int          FRAME_NUMBER;
 int          MAX_REGION;
-uint8_t      REGION_COLORS[MAX_REGIONS][3];
+uint8_t      REGION_COLORS[TRK_REGIONS][3];
 TrackingMat* TRACKING_SPACE;
 
 static txState_t        TRANSMIT_STATE;
@@ -131,7 +130,7 @@ void computeDepths(TrackingMat* tracking)
 // {
 // 	float s = sqrtf(ts->features.delta[i].x * ts->features.delta[i].x + ts->features.delta[i].y * ts->features.delta[i].y);
 // 	if(ts->errorVector[i] > 1) s /= ts->errorVector[i];
-// 	return (s / 1000) * MAX_REGIONS;
+// 	return (s / 1000) * TRK_REGIONS;
 // }
 
 static Point2f featureIndexes(int i)
@@ -146,35 +145,36 @@ static void computeRegionMeans(Mat* frame, trackingState_t* ts)
 		if(!ts->statusVector[i]) continue;
 		int x = i % TRACKING_SPACE->dimensions.width;
 		int y = i / TRACKING_SPACE->dimensions.height;
-
-		// uint8_t r = regionIndexForDelta(ts, i);
+		trkMatFeature_t feature = (*TRACKING_SPACE)[x][y];
+		Point2f delta = feature.delta;
 		//
 		// if(r > MAX_REGION) MAX_REGION = r;
 
-		Point2f pos = featureIndexes(i); //(ts->features.points[ts->dblBuff][i].x, ts->features.points[ts->dblBuff][i].y);
 		// float s = sqrtf(ts->features.delta[i].x * ts->features.delta[i].x + ts->features.delta[i].y * ts->features.delta[i].y);
 		// if(ts->errorVector[i] > 1) s /= ts->errorVector[i];
 		float s = 4;
 
-		// if(r)
+		// if(r > -1)
 		// rectangle(
 		// 	*frame,
 		// 	Point(ts->features.points[ts->dblBuff][i].x - s, ts->features.points[ts->dblBuff][i].y - s),
 		// 	Point(ts->features.points[ts->dblBuff][i].x + s, ts->features.points[ts->dblBuff][i].y + s),
 		// 	// Scalar(0, ts->delta[i].y * 16 + 128, ts->delta[i].x * 16 + 128),
 		// 	Scalar(REGION_COLORS[r][0], REGION_COLORS[r][1], REGION_COLORS[r][2], 128),
-		// 	-1,
+		// 	1,
 		// 	8
 		// );
 
-		trkMatFeature_t feature = (*TRACKING_SPACE)[x][y];
-		Point2f delta = feature.delta;
-		line(
-			*frame,
-			feature.position,
-			feature.position + delta,
-			Scalar(0, 128 + 255 * delta.x, 128 + 255 * delta.y)
-		);
+		int r = feature.region;
+		if(r > -1 && r < TRK_REGIONS){
+			line(
+				*frame,
+				feature.position,
+				feature.position + delta,
+				Scalar(REGION_COLORS[r][0], REGION_COLORS[r][1], REGION_COLORS[r][2], 128),
+				2
+			);
+		}
 
 		// ts->features.regionIndex[i] = r;
 		// REGIONS[r].mean += pos;
@@ -186,8 +186,8 @@ static void computeRegionMeans(Mat* frame, trackingState_t* ts)
 	// }
 }
 
-// static void computeRegionVariances(Mat* frame, trackingState_t* ts)
-// {
+static void computeRegionVariances(Mat* frame, trackingState_t* ts)
+{
 // 	float side = sqrtf(MAX_FEATURES);
 // 	static float lastTime;
 //
@@ -206,16 +206,26 @@ static void computeRegionMeans(Mat* frame, trackingState_t* ts)
 //
 // 	lastTime = SYS.timeUp;
 //
-// 	for(int r = 1; r <= MAX_REGION; ++r){
-// 		ellipse(
-// 			*frame,
-// 			Point2f(REGIONS[r].mean.x, REGIONS[r].mean.y),
-// 			Size2f(sqrt(REGIONS[r].variance.x) , sqrt(REGIONS[r].variance.y)),
-// 			0,
-// 			0,
-// 			360,
-// 			Scalar(REGION_COLORS[r][0], REGION_COLORS[r][1], REGION_COLORS[r][2], 128)
-// 		);
+	for(int r = TRACKING_SPACE->regionCount; r--;){
+		if(TRACKING_SPACE->regions[r].flags == TRK_REGION_ACTIVE)
+		rectangle(
+			*frame,
+			TRACKING_SPACE->regions[r].min,
+			TRACKING_SPACE->regions[r].max,
+			// Scalar(0, ts->delta[i].y * 16 + 128, ts->delta[i].x * 16 + 128),
+			Scalar(REGION_COLORS[r][0], REGION_COLORS[r][1], REGION_COLORS[r][2], 128),
+			1,
+			8
+		);
+		// ellipse(
+		// 	*frame,
+		// 	Point2f(REGIONS[r].mean.x, REGIONS[r].mean.y),
+		// 	Size2f(sqrt(REGIONS[r].variance.x) , sqrt(REGIONS[r].variance.y)),
+		// 	0,
+		// 	0,
+		// 	360,
+		// 	Scalar(REGION_COLORS[r][0], REGION_COLORS[r][1], REGION_COLORS[r][2], 128)
+		// );
 // 		ellipse(
 // 			*frame,
 // 			Point2f(REGIONS[r].mean.x, REGIONS[r].mean.y),
@@ -225,9 +235,9 @@ static void computeRegionMeans(Mat* frame, trackingState_t* ts)
 // 			360,
 // 			Scalar(REGION_COLORS[r][0], REGION_COLORS[r][1], REGION_COLORS[r][2], 128)
 // 		);
-// 	}
+	}
 //
-// }
+}
 
 // static void computeRegionBBoxes(trackingState_t* ts)
 // {
@@ -266,7 +276,10 @@ int main(int argc, char* argv[])
 	int centerX = 320, centerY = 240;
 	int isReady = 0, hasVideoFeed = 0;
 
-	VideoCapture cap(0);//cap("./SparkFun_AVC_2015.avi");
+	// VideoCapture cap("./SparkFun_AVC_2015.avi");
+	// VideoCapture cap(0);
+	VideoCapture cap("./../test2.mp4");
+	// VideoCapture cap("./../test.mov");
 	hasVideoFeed = cap.isOpened();
 
 	if(argc >= 3){
@@ -316,12 +329,11 @@ int main(int argc, char* argv[])
 		ts.statusVector.push_back(0);
 	}
 
-	for(int i = MAX_REGIONS; i--;){
+	for(int i = TRK_REGIONS; i--;){
 		REGION_COLORS[i][0] = random() % 128;
 		REGION_COLORS[i][1] = random() % 255;
 		REGION_COLORS[i][2] = random() % 255;
 	}
-	REGION_COLORS[0][0] = REGION_COLORS[0][1] = REGION_COLORS[0][2] = 0;
 
 
 	while(1){
@@ -368,12 +380,13 @@ int main(int argc, char* argv[])
 			);
 
 			TRACKING_SPACE->update(ts.features.points + ts.dblBuff);
+			// usleep(1000 * 250);
 
 			// computeDepths(&ts);
 		}
 
 		// region reset
-		for(int i = MAX_REGIONS; i--;){
+		for(int i = TRK_REGIONS; i--;){
 			// resetRegion(&REGIONS[i]);
 		}
 		// MAX_REGION = 0;
@@ -381,7 +394,7 @@ int main(int argc, char* argv[])
 		computeRegionMeans(&frame, &ts);
 
 		// compute the varience
-		// computeRegionVariances(&frame, &ts);
+		computeRegionVariances(&frame, &ts);
 		// computeRegionBBoxes(&ts);
 
 		for(int r = 1; r <= MAX_REGION; ++r){
