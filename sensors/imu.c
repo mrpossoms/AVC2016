@@ -267,7 +267,7 @@ static float elapsed(struct timeval last, struct timeval now)
 	return us / 1000000.0;
 }
 
-float axisGyro(char axis, int isMax, int fd_imu)
+float axisGyro(char axis, imuState_t* imu, int fd_imu)
 {
 	vec3f_t lastHeading = {}, heading = {};
 	struct timeval lastTime = {}, now = {};
@@ -278,11 +278,15 @@ float axisGyro(char axis, int isMax, int fd_imu)
 	//getchar();
 
 
-	vec3i16_t mag = imuGetReadings(fd_imu).mag;
+	for(int i = 1000; i--;){
+		imuUpdateState(fd_imu, imu);
+		usleep(1000);
+	}
+
 	gettimeofday(&lastTime, NULL);
 
-	lastHeading.x = mag.x;
-	lastHeading.y = mag.y;
+	lastHeading.x = imu->adjReadings.mag.x;
+	lastHeading.y = imu->adjReadings.mag.y;
 	lastHeading.z = 0;
 	lastHeading = vec3fNorm(&lastHeading);
 //	printf("lastHeading = %f, %f, %f\n", lastHeading.x, lastHeading.y, lastHeading.z);
@@ -291,34 +295,33 @@ float axisGyro(char axis, int isMax, int fd_imu)
 		float dt = 0;
 
 		// wait for ~10ms to elapse
-		sensorStatei_t readings = {};
 		float acc = 0;
 		unsigned int samples = 0;
 		while((dt = elapsed(lastTime, now)) < 0.01){
-			readings = imuGetReadings(fd_imu);
+			imuUpdateState(fd_imu, imu);
 			switch(axis){
 				case 'X':
 				case 'x':
-					acc += readings.rotational.x;
+					acc += imu->adjReadings.rotational.x;
 				case 'Y':
 				case 'y':
-					acc += readings.rotational.y;
+					acc += imu->adjReadings.rotational.y;
 				case 'Z':
 				case 'z':
-					acc += readings.rotational.z;
+					acc += imu->adjReadings.rotational.z;
 			}
 			++samples;
 			gettimeofday(&now, NULL);
 		}
 		acc /= samples;
 
-		heading.x = readings.mag.x;
-		heading.y = readings.mag.y;
+		heading.x = imu->adjReadings.mag.x;
+		heading.y = imu->adjReadings.mag.y;
 		heading.z = 0;
 		heading = vec3fNorm(&heading);
 
 //		printf("heading = %f, %f, %f\n", heading.x, heading.y, heading.z);
-		
+
 		float w0 = w;
 		float dw = acos(vec3fDot(&heading, &lastHeading)) / dt;
 		w += dw;
@@ -346,7 +349,9 @@ int imuPerformGyroCalibration(int fd_storage, int fd_imu, imuState_t* state)
 	printf("[Press any key to begin]\n");
 	getchar();
 
-	axisGyro('z', 0, fd_imu);	
+	axisGyro('z', state, fd_imu);
+
+	return 0;
 }
 
 int imuPerformCalibration(int fd_storage, int fd_imu, imuState_t* state)
