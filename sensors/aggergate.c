@@ -60,20 +60,28 @@ int senUpdate(fusedObjState_t* body)
 
 	imuUpdateState(FD_IMU, &body->imu);
 
+	// use the gyro to estimate how confident we should be in the magnetometer's
+	// current measured heading
+	vec3f_t lastHeading = measured->heading;
+	vec3f_t gyroHeading = lastHeading;
+	float a = body->imu.adjReadings.rotational.z / -32000.0f;
+
+	//vec2f_t left = { -1, 0 }; 
+	//vec2fRot((vec2f_t*)&gyroHeading, &left, a);// * dt);
+	vec2fRot((vec2f_t*)&gyroHeading, (vec2f_t*)&lastHeading, a);// * dt);
+
+
 	// update the heading according to magnetometer readings
 	measured->heading.x = -body->imu.adjReadings.mag.x;
 	measured->heading.y = -body->imu.adjReadings.mag.y;
 	measured->heading.z =  body->imu.adjReadings.mag.z;
 	measured->heading = vec3fNorm(&measured->heading);
 
-	// use the gyro to estimate how confident we should be in the magnetometer's
-	// current measured heading
-	vec3f_t lastHeading = estimated->heading;
-	vec3f_t gyroHeading = lastHeading;
-	vec2fRot((vec2f_t*)&gyroHeading, (vec2f_t*)&measured->heading, body->imu.adjReadings.rotational.z * dt);
 
-	float coincidence = vec3fDot(&lastHeading, &gyroHeading);
+	float coincidence = vec3fDot(&measured->heading, &gyroHeading);
 	vec3Lerp(estimated->heading, gyroHeading, measured->heading, coincidence);
+
+	printf("%f\n", coincidence);
 
 	if(gpsHasNewReadings()){
 		vec3f_t lastPos = measured->position;
@@ -85,7 +93,7 @@ int senUpdate(fusedObjState_t* body)
 		vec3Scl(*velLin, *velLin, dt);
 
 		// since we now have measurements, reset the estimates
-		*estimated = *measured;
+	//	*estimated = *measured;
 
 		body->lastMeasureTime = SYS.timeUp;
 		body->lastEstTime     = SYS.timeUp;

@@ -18,7 +18,7 @@
 #define GYR_REG 0x28
 
 #define G 9.8
-#define WARMUP_SAMPLES 100
+#define WARMUP_SAMPLES 10
 
 static int32_t ACCEL_MEAN[3], GYRO_MEAN[3];
 static int READINGS_COLLECTED;
@@ -134,13 +134,18 @@ static int filterReading(imuState_t* state)
 	return err;
 }
 
-static int obtainedStatisticalProps(imuState_t* state)
+static int hasStatProps(imuState_t* state)
 {
 	static int isFinished;
 
 	if(isFinished) return 1;
 	if(READINGS_COLLECTED < WARMUP_SAMPLES){
 		// vec3Add(state->means.linear, state->mean.linear, state->rawReadings.linear);
+		for(int i = 3; i--;){
+			ACCEL_MEAN[i] += state->rawReadings.linear.v[i];
+			GYRO_MEAN[i]  += state->rawReadings.rotational.v[i];
+		}
+		++READINGS_COLLECTED;
 		return 0;
 	}
 
@@ -189,6 +194,8 @@ void imuUpdateState(int fd, imuState_t* state)
 	reading = imuGetReadings(fd);
 	state->rawReadings = reading;
 
+	if(!hasStatProps(state)) return;
+
 	readingFilter_t* filter = &state->filter;
 
 	if(state->isCalibrated){
@@ -226,9 +233,9 @@ void imuUpdateState(int fd, imuState_t* state)
 		adj_r->mag.y = map(raw->mag.y, magMin->y, magMax->y);
 		//adj_r->mag.z = raw->mag.z;//map(raw->mag.z, magMin->z, magMax->z);
 
-		adj_r->rotational.x = raw->rotational.x;
-		adj_r->rotational.y = raw->rotational.y;
-		adj_r->rotational.z = raw->rotational.z;
+		adj_r->rotational.x = raw->rotational.x - GYRO_MEAN[0];
+		adj_r->rotational.y = raw->rotational.y - GYRO_MEAN[1];
+		adj_r->rotational.z = raw->rotational.z - GYRO_MEAN[2];
 
 		filterReading(state);
 	}
@@ -289,7 +296,7 @@ float axisGyro(char axis, imuState_t* imu, int fd_imu)
 	lastHeading.y = imu->adjReadings.mag.y;
 	lastHeading.z = 0;
 	lastHeading = vec3fNorm(&lastHeading);
-//	printf("lastHeading = %f, %f, %f\n", lastHeading.x, lastHeading.y, lastHeading.z);
+	printf("lastHeading = %f, %f, %f\n", lastHeading.x, lastHeading.y, lastHeading.z);
 
 	for(int i = 1000; i--;){
 		float dt = 0;
@@ -320,7 +327,7 @@ float axisGyro(char axis, imuState_t* imu, int fd_imu)
 		heading.z = 0;
 		heading = vec3fNorm(&heading);
 
-//		printf("heading = %f, %f, %f\n", heading.x, heading.y, heading.z);
+		printf("heading = %f, %f, %f\n", heading.x, heading.y, heading.z);
 
 		float w0 = w;
 		float dw = acos(vec3fDot(&heading, &lastHeading)) / dt;

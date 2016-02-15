@@ -55,7 +55,7 @@ static float utility(agent_t* current, void* args)
 	}
 
 	// the bigger the angle the more important the correction
-	return fabs(angleToNextWayPoint(&SYS.body.measured, SYS.route.currentWaypoint));
+	return fabs(angleToNextWayPoint(&SYS.body.estimated, SYS.route.currentWaypoint));
 }
 
 static void* action(agent_t* lastState, void* args)
@@ -64,12 +64,7 @@ static void* action(agent_t* lastState, void* args)
 		return NULL;
 	}
 
-	float ang = angleToNextWayPoint(&SYS.body.measured, SYS.route.currentWaypoint);
-
-	vec3f_t pos = SYS.body.measured.position, way = SYS.route.currentWaypoint->self.location;
-	vec3f_t head = SYS.body.measured.heading;
-
-	//printf("Heading (%f, %f) Pos (%f, %f) Way (%f, %f) ang %f\n", head.x, head.y, pos.x, pos.y, way.x, way.y, ang);
+	float ang = angleToNextWayPoint(&SYS.body.estimated, SYS.route.currentWaypoint);
 
 	// bound the steering angle
 	if(ang >  M_PI / 4){ ang =  M_PI / 4; }

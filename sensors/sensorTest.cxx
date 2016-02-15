@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
 		int topLeft[2] = { 5, 2 };
 		int bottomRight[2] = { IC_TERM_WIDTH - 5, IC_TERM_HEIGHT - 2};	
 		
-		readings[0][i] = SYS.body.imu.adjReadings.linear.y;
+		readings[0][i] = SYS.body.imu.adjReadings.rotational.z / 1000.0f;
 		readings[1][i] = SYS.body.estimated.velocity.linear.y * 10;
 
 		++i;
