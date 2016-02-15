@@ -274,8 +274,8 @@ float axisGyro(char axis, int isMax, int fd_imu)
 	float w = 0;
 	float sf = 1;
 
-	printf(isMax ? "(+%c) [Press any key]\n" : "(-%c) [Press any key to start sampling]\n", axis);
-	getchar();
+	//printf(isMax ? "(+%c) [Press any key]\n" : "(-%c) [Press any key to start sampling]\n", axis);
+	//getchar();
 
 
 	vec3i16_t mag = imuGetReadings(fd_imu).mag;
@@ -283,12 +283,12 @@ float axisGyro(char axis, int isMax, int fd_imu)
 
 	lastHeading.x = mag.x;
 	lastHeading.y = mag.y;
-	lastHeading.z = mag.z;
+	lastHeading.z = 0;
 	lastHeading = vec3fNorm(&lastHeading);
+//	printf("lastHeading = %f, %f, %f\n", lastHeading.x, lastHeading.y, lastHeading.z);
 
 	for(int i = 1000; i--;){
 		float dt = 0;
-		gettimeofday(&now, NULL);
 
 		// wait for ~10ms to elapse
 		sensorStatei_t readings = {};
@@ -308,14 +308,17 @@ float axisGyro(char axis, int isMax, int fd_imu)
 					acc += readings.rotational.z;
 			}
 			++samples;
+			gettimeofday(&now, NULL);
 		}
 		acc /= samples;
 
 		heading.x = readings.mag.x;
 		heading.y = readings.mag.y;
-		heading.z = readings.mag.z;
+		heading.z = 0;
 		heading = vec3fNorm(&heading);
 
+//		printf("heading = %f, %f, %f\n", heading.x, heading.y, heading.z);
+		
 		float w0 = w;
 		float dw = acos(vec3fDot(&heading, &lastHeading)) / dt;
 		w += dw;
@@ -328,7 +331,7 @@ float axisGyro(char axis, int isMax, int fd_imu)
 			sf = expAcc / acc;
 		}
 
-		printf("%f rads/s %f rads/s^2 (%f)\n", w, expAcc, sf);
+		printf("%0.3f rads/s %0.3f rads/s^2 (%f)\n", w, expAcc, sf);
 
 		lastTime = now;
 		lastHeading = heading;
@@ -337,6 +340,14 @@ float axisGyro(char axis, int isMax, int fd_imu)
 	return sf;
 }
 
+int imuPerformGyroCalibration(int fd_storage, int fd_imu, imuState_t* state)
+{
+	printf("Rotate on the z axis, back and forth.\n");
+	printf("[Press any key to begin]\n");
+	getchar();
+
+	axisGyro('z', 0, fd_imu);	
+}
 
 int imuPerformCalibration(int fd_storage, int fd_imu, imuState_t* state)
 {

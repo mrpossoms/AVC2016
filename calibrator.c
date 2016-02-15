@@ -2,6 +2,14 @@
 #include <unistd.h>
 #include "sensors/imu.h"
 
+int hasOpt(char* argv[], int argc, const char* target){
+        for(int i = argc; i--;){
+                if(!strcmp(argv[i], target)) return 1;
+        }
+
+        return 0;
+}
+
 int main(int argc, char* argv[])
 {
 	if(argc < 3){
@@ -13,7 +21,13 @@ int main(int argc, char* argv[])
 	int cal_fd = open(argv[2], O_WRONLY | O_CREAT);
 	imuState_t state = {};
 
-	imuPerformCalibration(cal_fd, imu_fd, &state);
+	if(hasOpt(argv, argc, "--cal-acc")){
+		imuPerformCalibration(cal_fd, imu_fd, &state);
+	}
+
+	if(hasOpt(argv, argc, "--cal-gyro")){
+		imuPerformGyroCalibration(cal_fd, imu_fd, &state);
+	}
 
 	close(cal_fd);
 	close(imu_fd);

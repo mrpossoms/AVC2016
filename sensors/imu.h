@@ -68,6 +68,7 @@ static inline void print_v3f(vec3f_t* v)
 //    \___\__,_|_|_|_.__/_| \__,_|\__|_\___/_||_|
 //
 int imuPerformCalibration(int fd_storage, int fd_imu, imuState_t* state);
+int imuPerformGyroCalibration(int fd_storage, int fd_imu, imuState_t* state);
 int imuLoadCalibrationProfile(int fd_storage, imuState_t* state);
 
 //    ___       _          ___     _ _ _
