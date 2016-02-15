@@ -54,27 +54,38 @@ int senShutdown()
 //-----------------------------------------------------------------------------
 int senUpdate(fusedObjState_t* body)
 {
+	float dt = SYS.timeUp - body->lastMeasureTime;
+	objectState_t *measured  = &body->measured;
+	objectState_t *estimated = &body->estimated;
+
 	imuUpdateState(FD_IMU, &body->imu);
 
 	// update the heading according to magnetometer readings
-	body->measured.heading.x = -body->imu.adjReadings.mag.x;
-	body->measured.heading.y = -body->imu.adjReadings.mag.y;
-	body->measured.heading.z =  body->imu.adjReadings.mag.z;
-	body->measured.heading = vec3fNorm(&body->measured.heading);
+	measured->heading.x = -body->imu.adjReadings.mag.x;
+	measured->heading.y = -body->imu.adjReadings.mag.y;
+	measured->heading.z =  body->imu.adjReadings.mag.z;
+	measured->heading = vec3fNorm(&measured->heading);
+
+	// use the gyro to estimate how confident we should be in the magnetometer's
+	// current measured heading
+	vec3f_t lastHeading = estimated->heading;
+	vec3f_t gyroHeading = lastHeading;
+	vec2fRot((vec2f_t*)&gyroHeading, (vec2f_t*)&measured->heading, body->imu.adjReadings.rotational.z * dt);
+
+	float coincidence = vec3fDot(&lastHeading, &gyroHeading);
+	vec3Lerp(estimated->heading, gyroHeading, measured->heading, coincidence);
 
 	if(gpsHasNewReadings()){
-		float dt = SYS.timeUp - body->lastMeasureTime;
-		vec3f_t lastPos = body->measured.position;
-
+		vec3f_t lastPos = measured->position;
 
 		// assign new ements
-		vec3f_t* velLin = &body->measured.velocity.linear;
-		body->hasGpsFix = gpsGetReadings(&body->measured.position, velLin);
-		vec3Sub(*velLin, body->measured.position, lastPos);
+		vec3f_t* velLin = &measured->velocity.linear;
+		body->hasGpsFix = gpsGetReadings(&measured->position, velLin);
+		vec3Sub(*velLin, measured->position, lastPos);
 		vec3Scl(*velLin, *velLin, dt);
 
 		// since we now have measurements, reset the estimates
-		body->estimated = body->measured;
+		*estimated = *measured;
 
 		body->lastMeasureTime = SYS.timeUp;
 		body->lastEstTime     = SYS.timeUp;
@@ -84,10 +95,10 @@ int senUpdate(fusedObjState_t* body)
 		float dt = SYS.timeUp - body->lastEstTime;
 
 		// integrate position using velocity
-		vec3f_t* estVelLin = &body->estimated.velocity.linear;
-		body->estimated.position.x += estVelLin->x * dt;
-		body->estimated.position.y += estVelLin->y * dt;
-		body->estimated.position.z += estVelLin->z * dt;
+		vec3f_t* estVelLin = &estimated->velocity.linear;
+		estimated->position.x += estVelLin->x * dt;
+		estimated->position.y += estVelLin->y * dt;
+		estimated->position.z += estVelLin->z * dt;
 
 		// integrate IMU acceleration into velocity
 		estVelLin->x += body->imu.adjReadings.linear.x * dt;

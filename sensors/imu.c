@@ -229,7 +229,7 @@ void imuUpdateState(int fd, imuState_t* state)
 		adj_r->rotational.x = raw->rotational.x;
 		adj_r->rotational.y = raw->rotational.y;
 		adj_r->rotational.z = raw->rotational.z;
-	
+
 		filterReading(state);
 	}
 }
@@ -259,6 +259,82 @@ int16_t axisAcc(char axis, int isMax, int fd_imu)
 	}
 
 	return 0;
+}
+
+static float elapsed(struct timeval last, struct timeval now)
+{
+	float us = (now.tv_sec - last.tv_sec) * 1000000 + (now.tv_usec - last.tv_usec);
+	return us / 1000000.0;
+}
+
+float axisGyro(char axis, int isMax, int fd_imu)
+{
+	vec3f_t lastHeading = {}, heading = {};
+	struct timeval lastTime = {}, now = {};
+	float w = 0;
+	float sf = 1;
+
+	printf(isMax ? "(+%c) [Press any key]\n" : "(-%c) [Press any key to start sampling]\n", axis);
+	getchar();
+
+
+	vec3i16_t mag = imuGetReadings(fd_imu).mag;
+	gettimeofday(&lastTime, NULL);
+
+	lastHeading.x = mag.x;
+	lastHeading.y = mag.y;
+	lastHeading.z = mag.z;
+	lastHeading = vec3fNorm(&lastHeading);
+
+	for(int i = 1000; i--;){
+		float dt = 0;
+		gettimeofday(&now, NULL);
+
+		// wait for ~10ms to elapse
+		sensorStatei_t readings = {};
+		float acc = 0;
+		unsigned int samples = 0;
+		while((dt = elapsed(lastTime, now)) < 0.01){
+			readings = imuGetReadings(fd_imu);
+			switch(axis){
+				case 'X':
+				case 'x':
+					acc += readings.rotational.x;
+				case 'Y':
+				case 'y':
+					acc += readings.rotational.y;
+				case 'Z':
+				case 'z':
+					acc += readings.rotational.z;
+			}
+			++samples;
+		}
+		acc /= samples;
+
+		heading.x = readings.mag.x;
+		heading.y = readings.mag.y;
+		heading.z = readings.mag.z;
+		heading = vec3fNorm(&heading);
+
+		float w0 = w;
+		float dw = acos(vec3fDot(&heading, &lastHeading)) / dt;
+		w += dw;
+
+		float expAcc = (w - w0) / dt;
+
+		// expAcc = acc * sf
+		// sf = expAcc / acc;
+		if(acc != 0){
+			sf = expAcc / acc;
+		}
+
+		printf("%f rads/s %f rads/s^2 (%f)\n", w, expAcc, sf);
+
+		lastTime = now;
+		lastHeading = heading;
+	}
+
+	return sf;
 }
 
 

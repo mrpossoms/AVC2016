@@ -22,17 +22,30 @@
 	(r).v[2] = (v1).v[2] * s;\
 }\
 
-//    _____                  
+#define vec3Lerp(r, a, b, p){\
+	(r).v[0] = (a).v[0] * (1.0f - p) + (b).v[0] * p;\
+	(r).v[1] = (a).v[1] * (1.0f - p) + (b).v[1] * p;\
+	(r).v[2] = (a).v[2] * (1.0f - p) + (b).v[2] * p;\
+}\
+
+//    _____
 //   |_   _|  _ _ __  ___ ___
 //     | || || | '_ \/ -_|_-<
 //     |_| \_, | .__/\___/__/
-//         |__/|_|           
+//         |__/|_|
 typedef union{
 	int16_t v[3];
 	struct{
 		int16_t x, y, z;
 	};
 } vec3i16_t;
+
+typedef union{
+	float v[2];
+	struct{
+		float x, y;
+	};
+} vec2f_t;
 
 typedef union{
 	float v[3];
@@ -49,7 +62,7 @@ typedef struct{
 	vec3f_t location;
 	float   tolerance;
 	uint8_t nextWaypoint;
-	uint8_t flags; 
+	uint8_t flags;
 } gpsWaypoint_t;
 
 struct __GpsWaypoint;
@@ -75,7 +88,7 @@ inline vec3f_t vec3fScl(vec3f_t* v, float s)
 		v->y * s,
 		v->z * s,
 	};
-	return res;	
+	return res;
 }
 
 inline vec3f_t vec3fMul(vec3f_t* v1, vec3f_t* v2)
@@ -85,12 +98,12 @@ inline vec3f_t vec3fMul(vec3f_t* v1, vec3f_t* v2)
 		v1->y * v2->y,
 		v1->z * v2->z,
 	};
-	return res;	
+	return res;
 }
 
 inline float vec3fDot(vec3f_t* v1, vec3f_t* v2)
 {
-	return v1->x * v2->x + v1->y * v2->y +v1->z * v2->z; 
+	return v1->x * v2->x + v1->y * v2->y +v1->z * v2->z;
 }
 
 inline float vec3fMag(vec3f_t* v)
@@ -107,7 +120,14 @@ inline vec3f_t vec3fNorm(vec3f_t* v)
 		v->y / mag,
 		v->z / mag,
 	};
-	return res;		
+	return res;
+}
+
+inline void vec2fRot(vec2f_t* r, vec2f_t* v, float theta)
+{
+	float c = cos(theta), s = sin(theta);
+	r->x = c * v->x - s * v->y;
+	r->y = s * v->x + c * v->y;
 }
 
 inline float vec3fAng(vec3f_t* a, vec3f_t* b)

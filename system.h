@@ -23,14 +23,14 @@
 #ifdef __cplusplus
 extern "C"{
 #endif
-//    _____                  
+//    _____
 //   |_   _|  _ _ __  ___ ___
 //     | || || | '_ \/ -_|_-<
 //     |_| \_, | .__/\___/__/
-//         |__/|_|           
+//         |__/|_|
 typedef struct{
 	vec3i16_t depth[MAX_FEATURES];
-	uint16_t  detectedFeatures;	
+	uint16_t  detectedFeatures;
 } depthWindow_t;
 
 typedef struct{
@@ -41,6 +41,7 @@ typedef struct{
 	} velocity;
 	vec3f_t heading;
 	vec3f_t goalHeading;
+	float   headingAngle;
 }objectState_t;
 
 typedef struct{
@@ -67,11 +68,11 @@ typedef struct{
 	int debugging;
 } system_t;
 
-//     ___ _     _          _    
+//     ___ _     _          _
 //    / __| |___| |__  __ _| |___
 //   | (_ | / _ \ '_ \/ _` | (_-<
 //    \___|_\___/_.__/\__,_|_/__/
-//                               
+//
 extern system_t SYS;
 
 void sysTimerUpdate();
