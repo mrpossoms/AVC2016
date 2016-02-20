@@ -114,8 +114,8 @@ static int filterReading(imuState_t* state)
 		for(int i = 3; i--;){
 			kf_t* filter = (&f->linear) + i;
 			kfCreateFilter(filter, 3);
-			kfMatScl(filter->matQ, filter->matQ, 0.001, 3);
-			kfMatScl(filter->matR, filter->matR, 0.1, 3);
+			kfMatScl(filter->matQ, filter->matQ, 0.001);
+			kfMatScl(filter->matR, filter->matR, 0.1);
 
 			if(err) return err;
 		}
