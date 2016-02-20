@@ -52,6 +52,35 @@ int senShutdown()
 	return 0;
 }
 //-----------------------------------------------------------------------------
+static void estimateHeading(fusedObjState_t* body, float dt)
+{
+	objectState_t *measured  = &body->measured;
+	objectState_t *estimated = &body->estimated;
+
+	// use the gyro to estimate how confident we should be in the magnetometer's
+	// current measured heading
+	vec3f_t lastHeading = measured->heading;
+	vec3f_t gyroHeading = lastHeading;
+	float w = body->imu.adjReadings.rotational.z / -32000.0f;
+
+	// update the heading according to magnetometer readings
+	measured->heading.x = -body->imu.adjReadings.mag.x;
+	measured->heading.y = -body->imu.adjReadings.mag.y;
+	measured->heading.z =  body->imu.adjReadings.mag.z;
+	measured->heading = vec3fNorm(&measured->heading);
+
+	vec2fRot((vec2f_t*)&gyroHeading, (vec2f_t*)&lastHeading, w * dt);
+	
+	static float lastC;
+	float coincidence = vec3fDot(&measured->heading, &gyroHeading);
+	vec3Lerp(estimated->heading, lastHeading, measured->heading, coincidence);
+
+	if(fabs(lastC - coincidence) > 0.001){
+		lastC = coincidence;
+		printf("w = %f, %f\n", w, coincidence);
+	}
+}
+//-----------------------------------------------------------------------------
 int senUpdate(fusedObjState_t* body)
 {
 	float dt = SYS.timeUp - body->lastMeasureTime;
@@ -60,28 +89,7 @@ int senUpdate(fusedObjState_t* body)
 
 	imuUpdateState(FD_IMU, &body->imu);
 
-	// use the gyro to estimate how confident we should be in the magnetometer's
-	// current measured heading
-	vec3f_t lastHeading = measured->heading;
-	vec3f_t gyroHeading = lastHeading;
-	float a = body->imu.adjReadings.rotational.z / -32000.0f;
-
-	//vec2f_t left = { -1, 0 }; 
-	//vec2fRot((vec2f_t*)&gyroHeading, &left, a);// * dt);
-	vec2fRot((vec2f_t*)&gyroHeading, (vec2f_t*)&lastHeading, a);// * dt);
-
-
-	// update the heading according to magnetometer readings
-	measured->heading.x = -body->imu.adjReadings.mag.x;
-	measured->heading.y = -body->imu.adjReadings.mag.y;
-	measured->heading.z =  body->imu.adjReadings.mag.z;
-	measured->heading = vec3fNorm(&measured->heading);
-
-
-	float coincidence = vec3fDot(&measured->heading, &gyroHeading);
-	vec3Lerp(estimated->heading, gyroHeading, measured->heading, coincidence);
-
-	printf("%f\n", coincidence);
+	estimateHeading(body, dt);
 
 	if(gpsHasNewReadings()){
 		vec3f_t lastPos = measured->position;
