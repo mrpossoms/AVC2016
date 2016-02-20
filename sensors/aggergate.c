@@ -60,8 +60,8 @@ static void estimateHeading(fusedObjState_t* body, float dt)
 	// use the gyro to estimate how confident we should be in the magnetometer's
 	// current measured heading
 	vec3f_t lastHeading = measured->heading;
-	vec3f_t gyroHeading = lastHeading;
 	float w = body->imu.adjReadings.rotational.z / -32000.0f;
+	estimated->gyroHeading = lastHeading;
 
 	// update the heading according to magnetometer readings
 	measured->heading.x = -body->imu.adjReadings.mag.x;
@@ -70,9 +70,9 @@ static void estimateHeading(fusedObjState_t* body, float dt)
 	measured->heading = vec3fNorm(&measured->heading);
 
 	vec2fRot((vec2f_t*)&gyroHeading, (vec2f_t*)&lastHeading, w * dt);
-	
+
 	static float lastC;
-	float coincidence = vec3fDot(&measured->heading, &gyroHeading);
+	float coincidence = powf(vec3fDot(&measured->heading, &gyroHeading), 32);
 	vec3Lerp(estimated->heading, lastHeading, measured->heading, coincidence);
 
 	if(fabs(lastC - coincidence) > 0.001){

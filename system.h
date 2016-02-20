@@ -39,6 +39,7 @@ typedef struct{
 		vec3f_t linear;
 		vec3f_t rotational;
 	} velocity;
+	vec3f_t gyroHeading;
 	vec3f_t heading;
 	vec3f_t goalHeading;
 	float   headingAngle;

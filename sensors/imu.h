@@ -8,7 +8,12 @@
 #include <fcntl.h>    // File control definitions
 #include <stdio.h>
 #include <strings.h>
+
+#ifdef DEBUG
+#include "kf.h"
+#else
 #include <kf.h>
+#endif
 
 #include "types.h"
 
