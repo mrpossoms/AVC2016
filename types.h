@@ -71,6 +71,11 @@ typedef struct __GpsWaypoint{
 	struct __GpsWaypoint* next;
 } gpsWaypointCont_t;
 
+inline int vec3fIsNan(vec3f_t* v)
+{
+	return isnan(v->x) || isnan(v->y) || isnan(v->z);
+}
+
 inline vec3f_t vec3fSub(vec3f_t* v1, vec3f_t* v2)
 {
 	vec3f_t res = {

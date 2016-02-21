@@ -52,33 +52,58 @@ int senShutdown()
 	return 0;
 }
 //-----------------------------------------------------------------------------
+#define ONCE_START {\
+	static int once;\
+	if(!once){\
+	once = 1;\
+
+#define ONCE_END } }
+
 static void estimateHeading(fusedObjState_t* body, float dt)
 {
-	objectState_t *measured  = &body->measured;
-	objectState_t *estimated = &body->estimated;
+	objectState_t *mea= &body->measured;
+	objectState_t *est= &body->estimated;
 
 	// use the gyro to estimate how confident we should be in the magnetometer's
 	// current measured heading
-	vec3f_t lastHeading = measured->heading;
-	float w = body->imu.adjReadings.rotational.z / -32000.0f;
-	estimated->gyroHeading = lastHeading;
+	float w = body->imu.adjReadings.rotational.z / -640000.0f;
 
 	// update the heading according to magnetometer readings
-	measured->heading.x = -body->imu.adjReadings.mag.x;
-	measured->heading.y = -body->imu.adjReadings.mag.y;
-	measured->heading.z =  body->imu.adjReadings.mag.z;
-	measured->heading = vec3fNorm(&measured->heading);
+	mea->heading.x = -body->imu.adjReadings.mag.x;
+	mea->heading.y = -body->imu.adjReadings.mag.y;
+	mea->heading.z =  body->imu.adjReadings.mag.z;
+	mea->heading = vec3fNorm(&mea->heading);
 
-	vec2fRot((vec2f_t*)&gyroHeading, (vec2f_t*)&lastHeading, w * dt);
+	if(vec3fIsNan(&mea->heading)) return;
 
+ONCE_START
+	printf("ONCE\n");
+	*est= *mea;
+ONCE_END
+
+	vec3f_t lastHeading = est->heading;
+
+	//printf("dt = %f, w = %f\n", dt, w);
+	//printf("last heading= (%f, %f)\n", lastHeading.x, lastHeading.y); 
+	//vec2fRot((vec2f_t*)&est->gyroHeading, (vec2f_t*)&lastHeading, w * dt);
+	//printf("gyro = (%f, %f)\n", est->gyroHeading.x, est->gyroHeading.y); 
 	static float lastC;
-	float coincidence = powf(vec3fDot(&measured->heading, &gyroHeading), 32);
-	vec3Lerp(estimated->heading, lastHeading, measured->heading, coincidence);
+	//float coincidence = powf(vec3fDot(&mea->heading, &est->gyroHeading), 128);
+	float da = vec3fAng(&mea->heading, &lastHeading);
 
+	if(fabs(da) > 0.01){
+		printf("da = %f w = %f\n", da, w);
+		vec3Lerp(est->heading, lastHeading, mea->heading, w/da);//coincidence);
+	}
+	//est->heading = est->gyroHeading;
+
+	//assert(!isnan(coincidence));
+/*
 	if(fabs(lastC - coincidence) > 0.001){
 		lastC = coincidence;
 		printf("w = %f, %f\n", w, coincidence);
 	}
+*/
 }
 //-----------------------------------------------------------------------------
 int senUpdate(fusedObjState_t* body)
