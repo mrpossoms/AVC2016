@@ -66,7 +66,6 @@ typedef struct{
 //
 int          FRAME_NUMBER;
 int          MAX_REGION;
-uint8_t      REGION_COLORS[TRK_REGIONS][3];
 TrackingMat* TRACKING_SPACE;
 
 static txState_t        TRANSMIT_STATE;
@@ -139,6 +138,48 @@ static Point2f featureIndexes(int i)
 	return Point2f((i % (int)side) * WIDTH / side, (i / side) * HEIGHT / side);
 }
 
+Scalar regionColor(unsigned char theta)
+{
+	unsigned char rgb[3] = {};
+	unsigned char hsv[3] = {
+		theta,
+		255,
+		255
+	};
+	unsigned char region, remainder, p, q, t;
+
+	region = hsv[0] / 43;
+	remainder = (hsv[0] - (region * 43)) * 6;
+
+	p = 0;
+	q = (hsv[2] * (255 - ((hsv[1] * remainder) >> 8))) >> 8;
+	t = (hsv[2] * (255 - ((hsv[1] * (255 - remainder)) >> 8))) >> 8;
+
+	switch (region)
+	{
+		 case 0:
+			  rgb[0] = hsv[2]; rgb[1] = t; rgb[2] = p;
+			  break;
+		 case 1:
+			  rgb[0] = q; rgb[1] = hsv[2]; rgb[2] = p;
+			  break;
+		 case 2:
+			  rgb[0] = p; rgb[1] = hsv[2]; rgb[2] = t;
+			  break;
+		 case 3:
+			  rgb[0] = p; rgb[1] = q; rgb[2] = hsv[2];
+			  break;
+		 case 4:
+			  rgb[0] = t; rgb[1] = p; rgb[2] = hsv[2];
+			  break;
+		 default:
+			  rgb[0] = hsv[2]; rgb[1] = p; rgb[2] = q;
+			  break;
+	}
+
+	return Scalar(rgb[0], rgb[1], rgb[2]);
+}
+
 static void computeRegionMeans(Mat* frame, trackingState_t* ts)
 {
 	for(int i = ts->features.points[ts->dblBuff].size(); i--;){
@@ -171,7 +212,7 @@ static void computeRegionMeans(Mat* frame, trackingState_t* ts)
 				*frame,
 				feature.position,
 				feature.position + delta,
-				Scalar(REGION_COLORS[r][0], REGION_COLORS[r][1], REGION_COLORS[r][2], 128),
+				regionColor(r << 4),
 				2
 			);
 		}
@@ -213,7 +254,7 @@ static void computeRegionVariances(Mat* frame, trackingState_t* ts)
 			TRACKING_SPACE->regions[r].min,
 			TRACKING_SPACE->regions[r].max,
 			// Scalar(0, ts->delta[i].y * 16 + 128, ts->delta[i].x * 16 + 128),
-			Scalar(REGION_COLORS[r][0], REGION_COLORS[r][1], REGION_COLORS[r][2], 128),
+			regionColor(r << 4),
 			1,
 			8
 		);
@@ -277,8 +318,8 @@ int main(int argc, char* argv[])
 	int isReady = 0, hasVideoFeed = 0;
 
 	// VideoCapture cap("./SparkFun_AVC_2015.avi");
-	// VideoCapture cap(0);
-	VideoCapture cap("./../test2.mp4");
+	VideoCapture cap(0);
+	// VideoCapture cap("./../test2.mp4");
 	// VideoCapture cap("./../test.mov");
 	hasVideoFeed = cap.isOpened();
 
@@ -329,11 +370,11 @@ int main(int argc, char* argv[])
 		ts.statusVector.push_back(0);
 	}
 
-	for(int i = TRK_REGIONS; i--;){
-		REGION_COLORS[i][0] = random() % 128;
-		REGION_COLORS[i][1] = random() % 255;
-		REGION_COLORS[i][2] = random() % 255;
-	}
+	// for(int i = TRK_REGIONS; i--;){
+	// 	REGION_COLORS[i][0] = random() % 128;
+	// 	REGION_COLORS[i][1] = random() % 255;
+	// 	REGION_COLORS[i][2] = random() % 255;
+	// }
 
 
 	while(1){
