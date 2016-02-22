@@ -84,16 +84,19 @@ ONCE_END
 	vec3f_t lastHeading = est->heading;
 
 	//printf("dt = %f, w = %f\n", dt, w);
-	//printf("last heading= (%f, %f)\n", lastHeading.x, lastHeading.y); 
+	//printf("last heading= (%f, %f)\n", lastHeading.x, lastHeading.y);
 	//vec2fRot((vec2f_t*)&est->gyroHeading, (vec2f_t*)&lastHeading, w * dt);
-	//printf("gyro = (%f, %f)\n", est->gyroHeading.x, est->gyroHeading.y); 
+	//printf("gyro = (%f, %f)\n", est->gyroHeading.x, est->gyroHeading.y);
 	static float lastC;
 	//float coincidence = powf(vec3fDot(&mea->heading, &est->gyroHeading), 128);
 	float da = vec3fAng(&mea->heading, &lastHeading);
 
 	if(fabs(da) > 0.01){
+		float coincidence = w / da;
+		if(coincidence < 0) coincidence = 0;
+		
 		printf("da = %f w = %f\n", da, w);
-		vec3Lerp(est->heading, lastHeading, mea->heading, w/da);//coincidence);
+		vec3Lerp(est->heading, lastHeading, mea->heading, coincidence);
 	}
 	//est->heading = est->gyroHeading;
 
