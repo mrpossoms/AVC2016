@@ -370,13 +370,6 @@ int main(int argc, char* argv[])
 		ts.statusVector.push_back(0);
 	}
 
-	// for(int i = TRK_REGIONS; i--;){
-	// 	REGION_COLORS[i][0] = random() % 128;
-	// 	REGION_COLORS[i][1] = random() % 255;
-	// 	REGION_COLORS[i][2] = random() % 255;
-	// }
-
-
 	while(1){
 		Mat currFrame;
 
