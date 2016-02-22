@@ -91,8 +91,12 @@ ONCE_END
 	//float coincidence = powf(vec3fDot(&mea->heading, &est->gyroHeading), 128);
 	float da = vec3fAng(&mea->heading, &lastHeading);
 
-	if(fabs(da) > 0.01){
-		float coincidence = w / da;
+
+	// TODO check for car facing the opposite direction
+	//      of the goal. Right now it will steer in the opposite
+	//      direction if it is far enough off course
+	if(fabs(da) > 0.0001){
+		float coincidence = fabs(w) / da;
 		if(coincidence < 0) coincidence = 0;
 		
 		printf("da = %f w = %f\n", da, w);
