@@ -186,7 +186,7 @@ static float map(float x, float min, float max)
 	return (x - min) * 2 / (max - min) - 1.0f;
 }
 
-void imuUpdateState(int fd, imuState_t* state)
+void imuUpdateState(int fd, imuState_t* state, int contCal)
 {
 	sensorStatei_t reading = {};
 
@@ -206,10 +206,13 @@ void imuUpdateState(int fd, imuState_t* state)
 
 		// update the mag window
 		int updatedMagWindow = 0;
-		if(reading.mag.x > magMax->x){ magMax->x = reading.mag.x; updatedMagWindow = 1; }
-		if(reading.mag.x < magMin->x){ magMin->x = reading.mag.x; updatedMagWindow = 1; }
-		if(reading.mag.y > magMax->y){ magMax->y = reading.mag.y; updatedMagWindow = 1; }
-		if(reading.mag.y < magMin->y){ magMin->y = reading.mag.y; updatedMagWindow = 1; }
+
+		if(contCal){
+			if(reading.mag.x > magMax->x){ magMax->x = reading.mag.x; updatedMagWindow = 1; }
+			if(reading.mag.x < magMin->x){ magMin->x = reading.mag.x; updatedMagWindow = 1; }
+			if(reading.mag.y > magMax->y){ magMax->y = reading.mag.y; updatedMagWindow = 1; }
+			if(reading.mag.y < magMin->y){ magMin->y = reading.mag.y; updatedMagWindow = 1; }
+		}
 
 		// write new mag min and max if applicable
 		if(updatedMagWindow){
@@ -286,7 +289,7 @@ float axisGyro(char axis, imuState_t* imu, int fd_imu)
 
 
 	for(int i = 1000; i--;){
-		imuUpdateState(fd_imu, imu);
+		imuUpdateState(fd_imu, imu, 0);
 		usleep(1000);
 	}
 
@@ -305,7 +308,7 @@ float axisGyro(char axis, imuState_t* imu, int fd_imu)
 		float acc = 0;
 		unsigned int samples = 0;
 		while((dt = elapsed(lastTime, now)) < 0.01){
-			imuUpdateState(fd_imu, imu);
+			imuUpdateState(fd_imu, imu, 0);
 			switch(axis){
 				case 'X':
 				case 'x':

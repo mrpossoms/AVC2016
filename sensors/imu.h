@@ -81,7 +81,7 @@ int imuLoadCalibrationProfile(int fd_storage, imuState_t* state);
 //   | |) / _` |  _/ _` | |  _/ _ \ | | | ' \/ _` |
 //   |___/\__,_|\__\__,_| |_| \___/_|_|_|_||_\__, |
 //                                           |___/
-void imuUpdateState(int fd, imuState_t* state);
+void imuUpdateState(int fd, imuState_t* state, int contCal);
 sensorStatei_t imuGetReadings(int fd);
 
 #ifdef __cplusplus

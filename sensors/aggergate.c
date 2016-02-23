@@ -99,10 +99,11 @@ ONCE_END
 		float coincidence = fabs(w) / da;
 		if(coincidence < 0) coincidence = 0;
 		
-		printf("da = %f w = %f\n", da, w);
+//		printf("da = %f w = %f\n", da, w);
 		vec3Lerp(est->heading, lastHeading, mea->heading, coincidence);
 	}
 	//est->heading = est->gyroHeading;
+//	est->heading = mea->heading;
 
 	//assert(!isnan(coincidence));
 /*
@@ -119,7 +120,7 @@ int senUpdate(fusedObjState_t* body)
 	objectState_t *measured  = &body->measured;
 	objectState_t *estimated = &body->estimated;
 
-	imuUpdateState(FD_IMU, &body->imu);
+	imuUpdateState(FD_IMU, &body->imu, SYS.magCal);
 
 	estimateHeading(body, dt);
 
@@ -140,8 +141,9 @@ int senUpdate(fusedObjState_t* body)
 	}
 	else
 	{
-		float dt = SYS.timeUp - body->lastEstTime;
+		estimated->position = measured->position;
 
+/*
 		// integrate position using velocity
 		vec3f_t* estVelLin = &estimated->velocity.linear;
 		estimated->position.x += estVelLin->x * dt;
@@ -152,7 +154,7 @@ int senUpdate(fusedObjState_t* body)
 		estVelLin->x += body->imu.adjReadings.linear.x * dt;
 		estVelLin->y += body->imu.adjReadings.linear.y * dt;
 		estVelLin->z += body->imu.adjReadings.linear.z * dt;
-
+*/
 		body->lastEstTime = SYS.timeUp;
 	}
 	return 0;

@@ -40,6 +40,10 @@ int main(int argc, char* argv[])
 	if(hasOpt(argv, argc, "--debug")){
 		SYS.debugging = 1;
 	}
+	
+	if(hasOpt(argv, argc, "--mag-cal")){
+		SYS.magCal = 1;
+	}
 
 	// // start servo controlling
 	err = ctrlInit();

@@ -67,7 +67,17 @@ typedef struct{
 
 	float timeUp; // time in seconds the system has been running
 	int debugging;
+	int magCal;
 } system_t;
+
+typedef struct{
+	struct{
+		sensorStatei_t raw;
+		sensorStatef_t adj;
+	} imu;
+	objectState_t estimated;
+	uint8_t hasGpsFix;
+} sysSnap_t;
 
 //     ___ _     _          _
 //    / __| |___| |__  __ _| |___
@@ -77,6 +87,7 @@ typedef struct{
 extern system_t SYS;
 
 void sysTimerUpdate();
+sysSnap_t sysSnapshot(system_t* sys);
 
 #ifdef __cplusplus
 }

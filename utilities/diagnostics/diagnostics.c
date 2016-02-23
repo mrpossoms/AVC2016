@@ -79,8 +79,9 @@ static void* handler(void* params)
 					close(fd);
 				}
 				else{
+					sysSnap_t snap = sysSnapshot(&SYS);
 					read(fd, &byte, 1);
-					write(fd, &SYS.body, sizeof(fusedObjState_t));
+					write(fd, &snap, sizeof(sysSnap_t));
 				}
 			}
 		}

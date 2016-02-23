@@ -18,10 +18,9 @@ static float angleToNextWayPoint(objectState_t* o, gpsWaypointCont_t* waypoint)
 	vec3f_t tempHeading = o->heading;	
 	toWaypoint.x *= -1;
 
+	toWaypoint.z = tempHeading.z= 0; 
 	toWaypoint = vec3fNorm(&toWaypoint);
 	tempHeading = vec3fNorm(&tempHeading);
-
-	toWaypoint.z = tempHeading.z= 0;
 
 	float d1 = vec3fDot(&toWaypoint, &tempHeading);
 	
@@ -32,15 +31,17 @@ static float angleToNextWayPoint(objectState_t* o, gpsWaypointCont_t* waypoint)
 	float d2 = vec3fDot(&toWaypoint, &tempHeading);
 
 	if(SYS.debugging){
+		printf("toWay . heading = %f\n", vec3fDot(&toWaypoint, &o->heading));
 		printf(
 			"(%f, %f) -> (%f, %f)\n",
 			o->position.x, o->position.y,
 			waypoint->self.location.x, waypoint->self.location.y
 		);
 
-		printf("heading %f, %f\n", tempHeading.x, tempHeading.y);
+		printf("heading %f, %f\n", o->heading.x, o->heading.y);
 		printf("delta %f, %f\n", toWaypoint.x, toWaypoint.y);
-		sleep(1);
+		printf("d1 = %f, d2 = %f\n", d1, d2);
+		usleep(1000 * 250);
 	}
 
 	return acos(d1) * d2;
@@ -65,6 +66,10 @@ static void* action(agent_t* lastState, void* args)
 	}
 
 	float ang = angleToNextWayPoint(&SYS.body.estimated, SYS.route.currentWaypoint);
+
+	if(SYS.debugging){
+		printf("angToNextWaypoint = %f\n", ang);
+	}
 
 	// bound the steering angle
 	if(ang >  M_PI / 4){ ang =  M_PI / 4; }
