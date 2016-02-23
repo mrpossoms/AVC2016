@@ -126,8 +126,9 @@ NSString* DIAG_DATA_TITLES[] = {
         dispatch_async(dispatch_get_main_queue(), ^{
             [self.connectingIndicator startAnimating];
         });
-        
-        if((err = connect(sock, (const struct sockaddr*)&host, sizeof(host)))){
+
+        errno = 0;
+        if((err = connect(sock, (const struct sockaddr*)&host, sizeof(host))) || errno){
             NSLog(@"Connection failed");
             dispatch_async(dispatch_get_main_queue(), ^{
                 [Errors presentWithTitle:@"Could not connect to diagnostic server" onViewController:self];
@@ -140,7 +141,7 @@ NSString* DIAG_DATA_TITLES[] = {
         
         // connected!
         dispatch_async(dispatch_get_main_queue(), ^{
-            [self.connectingIndicator startAnimating];
+            [self.connectingIndicator stopAnimating];
         });
         
         while(self.shouldPoll){
@@ -160,10 +161,10 @@ NSString* DIAG_DATA_TITLES[] = {
             FD_SET(sock, &readfd);
             
             if(select(sock + 1, &readfd, NULL, NULL, &timeout) > 0){
-                int bytes = read(sock, &SYS.body, sizeof(fusedObjState_t));
+                int bytes = read(sock, &SYS.body, sizeof(sensorStatef_t) + sizeof(sensorStatei_t));
             }
             
-            headingSamplesXY[magIndex++] = CGPointMake(SYS.body.measured.heading.x, SYS.body.measured.heading.y);
+            headingSamplesXY[magIndex++] = CGPointMake(SYS.body.imu.adjReadings.mag.x, SYS.body.imu.adjReadings.mag.y);
             
             self.data.data = SYS.body;
             
@@ -171,7 +172,7 @@ NSString* DIAG_DATA_TITLES[] = {
 //            float wdy = SYS.route.start->self.location.y - SYS.body.measured.position.y;
 //            float wmag = sqrtf(wdx * wdx + wdy * wdy);
 //            
-            self.vectorPlotXY->points[0] = CGPointMake(SYS.body.measured.heading.x, SYS.body.measured.heading.y);
+            self.vectorPlotXY->points[0] = CGPointMake(SYS.body.imu.adjReadings.mag.x, SYS.body.imu.adjReadings.mag.y);
 //            self.vectorPlotXY->points[1] = CGPointMake(wdx / wmag, wdy / wmag);
             
             self.headingPlotXY->points = headingSamplesXY;
