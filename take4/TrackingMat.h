@@ -1,6 +1,7 @@
 #pragma once
 
 #include <opencv2/opencv.hpp>
+#include "types.h"
 
 #define TRK_ADJ_FEATURES      8
 #define TRK_REGIONS           16
@@ -46,6 +47,8 @@ typedef struct MatFeature{
 
 typedef struct{
 	int flags;
+	int samples;
+	Point2f centroid;
 	Point2i min, max;
 } trkRegion_t;
 
@@ -71,9 +74,12 @@ class TrackingMat{
 		}
 
 	private:
-
 		trkMatFeature_t** cols;
 		vector<Point2f>*  lastFeatureList;
 		float             maxDelta;
 		unsigned int      iterations;
+
+		void assignRegions();
+		void updateFeatureDeltas(vector<Point2f>* featureList);
+		trkRegion_t* nearestCentroid(int col, int row, float* dist, vec3f_t* delta);
 };

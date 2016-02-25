@@ -44,12 +44,22 @@ TrackingMat::TrackingMat(Size2i size)
 			int ai = 0;
 			for(int i = 0, j = 0; i < TRK_ADJ_FEATURES; ++i){
 				int offx = x + adjOffsets[i][0], offy = y + adjOffsets[i][1];
+
 				if(offx >= 0 && offy >= 0 && offx < size.width && offy < size.height){
 						cols[x][y].adj[j++] = cols[offx] + offy;
 				}
 
-				printf("S %d (%d, %d) adj[%d] = %x\n", y * dimensions.width + x, x, y, i, (void*)cols[x][y].adj[i]);
+				// printf("S %d (%d, %d) adj[%d] = %x\n", y * dimensions.width + x, x, y, i, (void*)cols[x][y].adj[i]);
 			}
+		}
+
+		// distribute the inital tracking region centroids
+		for(int i = TRK_REGIONS; i--;){
+			regions[i].centroid = Point2f(
+				random() % size.width,
+				random() % size.height
+			);
+			printf("ri %d (%0.3f, %0.3f)\n", i, regions[i].centroid.x, regions[i].centroid.y);
 		}
 		printf("=============\nFINISHED\n=============\n");
 }
@@ -68,13 +78,9 @@ static int mostCommon(trkMatFeature_t* adj[], int adjCount)
 	int median = -1;
 	int occurances = 0;
 
-	// printf("adjs %x\n", (void*)adj);
-
 	for(int i = adjCount; i--;){
 		int ri = adj[i]->region;
 		int ric = 0;
-
-		// printf("\t[%d] -> %d\n", i, ri);
 
 		for(int j = adjCount; j--;){
 			if(adj[j]->region == ri && adj[j]->region > -1){
@@ -88,20 +94,38 @@ static int mostCommon(trkMatFeature_t* adj[], int adjCount)
 		}
 	}
 
-	// printf("\t=> %d\n", median);
-
 	return median;
 }
 
-int TrackingMat::update(vector<Point2f>* featureList)
+trkRegion_t* TrackingMat::nearestCentroid(int col, int row, float* distSqr, vec3f_t* delta)
 {
-	if(!lastFeatureList){
-		lastFeatureList = featureList;
-		return -1;
+	assert(col >= 0 && row >= 0);
+
+	trkRegion_t* closest = NULL;
+	vec3f_t closestDelta;
+	float   closestDistSqr;
+
+	int ni = 0;
+	for(int i = TRK_REGIONS; i--;){
+		delta->x = col - regions[i].centroid.x;
+		delta->y = row - regions[i].centroid.y;
+		float d = vec3fDot(delta, delta);
+		if(d < closestDistSqr || !closest){
+			closestDistSqr = d;
+			closest = regions + (ni = i);
+			closestDelta = *delta;
+		}
 	}
 
-	assert(featureList->size() <= FEATURE_COUNT);
+	// printf("%d (%f, %f) nearest to (%d, %d)\n", ni, closest->centroid.x, closest->centroid.y, col, row);
+	*delta   = closestDelta;
+	*distSqr = closestDistSqr;
 
+	return closest;
+}
+
+void TrackingMat::updateFeatureDeltas(vector<Point2f>* featureList)
+{
 	// calculate deltas for each feature determine the max
 	// delta at the same time
 	maxDelta = 0;
@@ -126,31 +150,100 @@ int TrackingMat::update(vector<Point2f>* featureList)
 
 		maxDelta = mag > maxDelta ? mag : maxDelta;
 	}
+}
+
+void TrackingMat::assignRegions()
+{
+	// determine dimensions of each region
+	for(int y = dimensions.height; y--;){
+		for(int x = dimensions.width; x--;){
+			trkMatFeature_t* feature  = &cols[x][y];
+			if(feature->region < 0) break;
+
+			if(!(feature->region < TRK_REGIONS)){
+				printf(" feature (%d, %d) -> %d\n", x, y, feature->region);
+			}
+			assert(feature->region < TRK_REGIONS);
+			trkRegion_t* region   = regions + feature->region;
+			Point2f      position = feature->position;
+
+			if(region->flags & TRK_REGION_ACTIVE){
+				region->min.x = position.x < region->min.x ? position.x : region->min.x;
+				region->min.y = position.y < region->min.y ? position.y : region->min.y;
+				region->max.x = position.x > region->max.x ? position.x : region->max.x;
+				region->max.y = position.y > region->max.y ? position.y : region->max.y;
+			}
+			else{
+				region->flags |= TRK_REGION_ACTIVE;
+				region->min.x = position.x;
+				region->min.y = position.y;
+				region->max.x = position.x;
+				region->max.y = position.y;
+			}
+
+		}
+	}
+}
+
+int TrackingMat::update(vector<Point2f>* featureList)
+{
+	if(!lastFeatureList){
+		lastFeatureList = featureList;
+		return -1;
+	}
+
+	assert(featureList->size() <= FEATURE_COUNT);
+
+	updateFeatureDeltas(featureList);
 
 	// reset the region markers for each feature
 	for(int i = 0; i < TRK_REGIONS; ++i){
 			regions[i].min = dimensions;
 			regions[i].max = Point2f(0, 0);
 			regions[i].flags = TRK_REGION_NONE;
+			regions[i].samples >>= 1;
 	}
 	regionCount = 0;
 
+	// reset the regions assigned to each feature
 	for(int y = dimensions.height; y--;){
 		for(int x = dimensions.width; x--;){
 			if(cols[x][y].deltaMag < TRK_THRESHOLD){
 				cols[x][y].region = -1;
 			}
-
-
 		}
 	}
 
 	// group each feature into a velocity magnitude histogram bucket
 	for(int y = dimensions.height; y--;){
 		for(int x = dimensions.width; x--;){
+			if(cols[x][y].deltaMag < TRK_THRESHOLD) continue;
+
 			cols[x][y].histBucket = TRK_HISTOGRAM_BUCKETS * (cols[x][y].deltaMag / maxDelta);
+
+			float dist = 0;
+			vec3f_t delta = {};
+			trkRegion_t* region = nearestCentroid(x, y, &dist, &delta);
+
+			if(!region) continue;
+
+			float weight = 1.0f / (sqrt(dist) + region->samples);
+			delta = vec3fScl(&delta, weight);
+
+			// assert(region->centroid.x >= 0 && region->centroid.y >= 0);
+			region->centroid += Point2f(delta.x, delta.y);
+			// printf("delta (%f, %f)\n", delta.x, delta.y);
+			// assert(region->centroid.x >= 0 && region->centroid.y >= 0);
+			region->samples++;
+
+			// region->mass += weight;
 		}
 	}
+
+	for(int i = 0; i < TRK_REGIONS; ++i){
+		printf("%d (%0.3f, %0.3f) ", i, regions[i].centroid.x, regions[i].centroid.y);
+			// assert(regions[i].centroid.x >= 0 && regions[i].centroid.y >= 0);
+	} printf("\n");
 
 	// assign regions to each feature
 	for(int y = dimensions.height; y--;){
@@ -206,37 +299,9 @@ int TrackingMat::update(vector<Point2f>* featureList)
 		}
 	}
 
-	printf("regions %d\n", regionCount);
+	// printf("regions %d\n", regionCount);
 
-	// determine dimensions of each region
-	for(int y = dimensions.height; y--;){
-		for(int x = dimensions.width; x--;){
-			trkMatFeature_t* feature  = &cols[x][y];
-			if(feature->region < 0) break;
-
-			if(!(feature->region < TRK_REGIONS)){
-				printf(" feature (%d, %d) -> %d\n", x, y, feature->region);
-			}
-			assert(feature->region < TRK_REGIONS);
-			trkRegion_t* region   = regions + feature->region;
-			Point2f      position = feature->position;
-
-			if(region->flags & TRK_REGION_ACTIVE){
-				region->min.x = position.x < region->min.x ? position.x : region->min.x;
-				region->min.y = position.y < region->min.y ? position.y : region->min.y;
-				region->max.x = position.x > region->max.x ? position.x : region->max.x;
-				region->max.y = position.y > region->max.y ? position.y : region->max.y;
-			}
-			else{
-				region->flags |= TRK_REGION_ACTIVE;
-				region->min.x = position.x;
-				region->min.y = position.y;
-				region->max.x = position.x;
-				region->max.y = position.y;
-			}
-
-		}
-	}
+	// assignRegions();
 
 	lastFeatureList = featureList;
 

@@ -207,7 +207,7 @@ static void computeRegionMeans(Mat* frame, trackingState_t* ts)
 		// );
 
 		int r = feature.region;
-		if(r > -1 && r < TRK_REGIONS){
+		if(r > -1){
 			line(
 				*frame,
 				feature.position,
@@ -225,6 +225,23 @@ static void computeRegionMeans(Mat* frame, trackingState_t* ts)
 	// for(int r = 1; r <= MAX_REGION; ++r){
 	// 	REGIONS[r].mean /= REGIONS[r].features;
 	// }
+
+	for(int i = TRK_REGIONS; i--;){
+		Point2f p = TRACKING_SPACE->regions[i].centroid;
+		p.x /= TRACKING_SPACE->dimensions.width;
+		p.y /= TRACKING_SPACE->dimensions.height;
+		p.x *= WIDTH;
+		p.y *= HEIGHT;
+		rectangle(
+			*frame,
+			p - Point2f(2, 2),
+			p + Point2f(2, 2),
+			// Scalar(0, ts->delta[i].y * 16 + 128, ts->delta[i].x * 16 + 128),
+			regionColor(i << 4),
+			1,
+			8
+		);
+	}
 }
 
 static void computeRegionVariances(Mat* frame, trackingState_t* ts)
@@ -414,15 +431,11 @@ int main(int argc, char* argv[])
 			);
 
 			TRACKING_SPACE->update(ts.features.points + ts.dblBuff);
-			// usleep(1000 * 250);
+			// usleep(1000 * 1000);//250);
 
 			// computeDepths(&ts);
 		}
 
-		// region reset
-		for(int i = TRK_REGIONS; i--;){
-			// resetRegion(&REGIONS[i]);
-		}
 		// MAX_REGION = 0;
 
 		computeRegionMeans(&frame, &ts);
