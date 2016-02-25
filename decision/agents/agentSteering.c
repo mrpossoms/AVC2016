@@ -30,6 +30,15 @@ static float angleToNextWayPoint(objectState_t* o, gpsWaypointCont_t* waypoint)
 
 	float d2 = vec3fDot(&toWaypoint, &tempHeading);
 
+	// when the heading is parallel with the goal heading, but pointing
+	// in the opposite direction d1 will approach -1, and d2 will approach 0
+	// clamping these values will prevent the vehicle from steering straight when
+	// it is facing the opposite direction of the goal
+	if(d1 < -0.95f){
+		d1 = -0.95;
+		d2 = 0.22;
+	}
+
 	if(SYS.debugging){
 		printf("toWay . heading = %f\n", vec3fDot(&toWaypoint, &o->heading));
 		printf(
