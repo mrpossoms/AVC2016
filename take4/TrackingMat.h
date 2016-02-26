@@ -7,12 +7,13 @@
 #define TRK_REGIONS           16
 #define TRK_HISTOGRAM_BUCKETS 16
 
-#define TRK_COINCIDENCE_THRESHOLD 1.25f
-#define TRK_THRESHOLD 1.25f
+#define TRK_COINCIDENCE_THRESHOLD 2.25f
+#define TRK_THRESHOLD 2.5f
+// 1.25f
 
 #define TRK_REGION_NONE   0
 #define TRK_REGION_ACTIVE 1
-
+#define TRK_MIN_REGION_SIZE 8
 
 using namespace std;
 using namespace cv;
@@ -27,8 +28,10 @@ using namespace cv;
 struct MatFeature;
 typedef struct MatFeature{
 	Point2f position;
-	short   histBucket, region;
+	int8_t  col, row;
+	int8_t  histBucket, region;
 	float   deltaMag;
+	float   bias;
 	Point2f delta;
 	struct MatFeature* adj[TRK_ADJ_FEATURES];
 
@@ -49,7 +52,14 @@ typedef struct{
 	int flags;
 	int samples;
 	Point2f centroid;
-	Point2i min, max;
+	Point2f min, max;
+	trkMatFeature_t* expPoint;
+
+	int isOutOfBounds(Size2i dims)
+	{
+		return isnan(centroid.x * centroid.y) || centroid.x < 0 || centroid.y < 0 ||
+		       centroid.x >= dims.width || centroid.y >= dims.height;
+	}
 } trkRegion_t;
 
 //-------------------------------------------------------------------
