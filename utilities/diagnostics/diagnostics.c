@@ -109,3 +109,23 @@ int diagHost(short port)
 
 	return 0;
 }
+
+int diagBlkBoxLog()
+{
+	static char* name;
+	int fd;
+
+	if(!name){
+		name = (char*)malloc(64);
+		snprintf(name, 64, "./blackbox/%ld", time(NULL));
+		fd = open(name, O_CREAT | O_WRONLY, 0666);
+	}
+	else{
+		fd = open(name, O_APPEND | O_WRONLY);
+	}
+
+	sysSnap_t snapshot = sysSnapshot(&SYS);
+	write(fd, &snapshot, sizeof(snapshot));
+
+	close(fd);
+}
