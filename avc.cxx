@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
 		}		
 	
 		// if there is no next goal or GPS then terminate
-		if(!SYS.route.currentWaypoint || !SYS.body.hasGpsFix){
+		if(!SYS.route.currentWaypoint){
 			break;
 		}
 

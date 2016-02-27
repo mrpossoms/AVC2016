@@ -21,7 +21,7 @@ sysSnap_t sysSnapshot(system_t* sys)
 		snap.currentWaypoint = waypoint->self;
 		
 		if(waypoint->next){
-			snap.nextWaypoint = waypoint->next;
+			snap.nextWaypoint = waypoint->next->self;
 		}
 	}
 	

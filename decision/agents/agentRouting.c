@@ -32,7 +32,7 @@ static void* action(agent_t* lastState, void* args)
 	SYS.body.estimated.goalHeading = vec3fNorm(&delta); 
 	
 	// less than 6 meters away, lets move on to the next one
-	if(vec3fMag(&delta) < 18){
+	if(vec3fMag(&delta) < 8){
 		waypoint->self.flags++;
 		SYS.route.currentWaypoint = waypoint->next;
 	}
