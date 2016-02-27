@@ -13,6 +13,7 @@
     CGPoint*        points;
     const CGFloat **pointColor;
     NSUInteger      pointCount;
+    const char    **labels;
 }
 
 + (instancetype)plotWithFrame:(CGRect)frame;

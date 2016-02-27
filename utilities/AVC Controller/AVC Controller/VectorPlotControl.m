@@ -47,6 +47,7 @@
     
     CGPoint center  = { rect.size.width / 2, rect.size.height / 2 };
     CGVector radius = { center.x, center.y };
+    CGFloat textBoxWidth = radius.dx / 2;
     const CGFloat strokeColor[] = { 0.75, 0.75, 0.75, 1.0 };
     CGContextSetStrokeColor(ctx, strokeColor);
     
@@ -69,12 +70,17 @@
         
         CGContextSetStrokeColor(ctx, pointColor[i]);
         CGContextStrokeLineSegments(ctx, line, 2);
+
+        [[NSString stringWithFormat:@"%s", labels[i]] drawInRect:CGRectMake(norm.x * radius.dx * 0.5 + radius.dx, norm.y * radius.dy * 0.5 + radius.dy, textBoxWidth, 20)
+                                              withAttributes:@{
+                                                               NSForegroundColorAttributeName: [UIColor colorWithRed:pointColor[i][0] green:pointColor[i][1] blue:pointColor[i][2] alpha:0.75]
+                                                               }];
+
     }
     
     NSMutableParagraphStyle* style = [[[NSParagraphStyle alloc] init] mutableCopy];
     NSDictionary* attrs = nil;
     style.alignment = NSTextAlignmentLeft;
-    CGFloat textBoxWidth = radius.dx / 2;
     [[NSString stringWithFormat:@"%f", -1.0f] drawInRect:CGRectMake(horizontalAxis[0].x, horizontalAxis[0].y, textBoxWidth, 20) withAttributes:attrs];
     
     style.alignment = NSTextAlignmentRight;

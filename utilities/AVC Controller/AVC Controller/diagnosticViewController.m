@@ -67,15 +67,25 @@ NSString* DIAG_DATA_TITLES[] = {
     self.vectorPlotXY = [VectorPlotControl plotWithFrame:CGRectMake(0, 0, parentSize.width, parentSize.height)];
     self.headingPlotXY = [PointPlotControl plotWithFrame:CGRectMake(0, parentSize.height, parentSize.width, parentSize.height)];
     
-    self.vectorPlotXY->points     = malloc(sizeof(CGPoint) * 2);
-    self.vectorPlotXY->pointColor = malloc(sizeof(CGFloat*) * 2);
-    self.vectorPlotXY->pointCount = 2;
-    
+    self.vectorPlotXY->pointCount = 3;
+    self.vectorPlotXY->points     = malloc(sizeof(CGPoint) * self.vectorPlotXY->pointCount);
+    self.vectorPlotXY->pointColor = malloc(sizeof(CGFloat*) * self.vectorPlotXY->pointCount);
+
     static CGFloat red[]  = { 1, 0, 0, 1 };
     static CGFloat blue[] = { 0, 0, 1, 1 };
-    
+    static CGFloat green[] = { 0, 1, 0, 1 };
+
+    static const char* labels[] = {
+        "filtered_mag",
+        "est_heading",
+        "goal"
+    };
+
+    self.vectorPlotXY->labels = labels;
+
     self.vectorPlotXY->pointColor[0] = red;
     self.vectorPlotXY->pointColor[1] = blue;
+    self.vectorPlotXY->pointColor[2] = green;
     
     [self.scrollView addSubview:self.vectorPlotXY];
     [self.scrollView addSubview:self.headingPlotXY];
@@ -126,8 +136,9 @@ NSString* DIAG_DATA_TITLES[] = {
         dispatch_async(dispatch_get_main_queue(), ^{
             [self.connectingIndicator startAnimating];
         });
-        
-        if((err = connect(sock, (const struct sockaddr*)&host, sizeof(host)))){
+
+        errno = 0;
+        if((err = connect(sock, (const struct sockaddr*)&host, sizeof(host))) || errno){
             NSLog(@"Connection failed");
             dispatch_async(dispatch_get_main_queue(), ^{
                 [Errors presentWithTitle:@"Could not connect to diagnostic server" onViewController:self];
@@ -140,7 +151,7 @@ NSString* DIAG_DATA_TITLES[] = {
         
         // connected!
         dispatch_async(dispatch_get_main_queue(), ^{
-            [self.connectingIndicator startAnimating];
+            [self.connectingIndicator stopAnimating];
         });
         
         while(self.shouldPoll){
@@ -156,14 +167,15 @@ NSString* DIAG_DATA_TITLES[] = {
             
             fd_set readfd;
             struct timeval timeout = { 1, 0 };
+            sysSnap_t snapShot = {};
             FD_ZERO(&readfd);
             FD_SET(sock, &readfd);
             
             if(select(sock + 1, &readfd, NULL, NULL, &timeout) > 0){
-                int bytes = read(sock, &SYS.body, sizeof(fusedObjState_t));
+                int bytes = read(sock, &snapShot, sizeof(sysSnap_t));
             }
             
-            headingSamplesXY[magIndex++] = CGPointMake(SYS.body.measured.heading.x, SYS.body.measured.heading.y);
+            headingSamplesXY[magIndex++] = CGPointMake(snapShot.imu.raw.mag.x, snapShot.imu.raw.mag.y);
             
             self.data.data = SYS.body;
             
@@ -171,7 +183,9 @@ NSString* DIAG_DATA_TITLES[] = {
 //            float wdy = SYS.route.start->self.location.y - SYS.body.measured.position.y;
 //            float wmag = sqrtf(wdx * wdx + wdy * wdy);
 //            
-            self.vectorPlotXY->points[0] = CGPointMake(SYS.body.measured.heading.x, SYS.body.measured.heading.y);
+            self.vectorPlotXY->points[0] = CGPointMake(snapShot.imu.adj.mag.x, snapShot.imu.adj.mag.y);
+            self.vectorPlotXY->points[1] = CGPointMake(snapShot.estimated.heading.x, snapShot.estimated.heading.y);
+            self.vectorPlotXY->points[2] = CGPointMake(snapShot.estimated.goalHeading.x, snapShot.estimated.goalHeading.y);
 //            self.vectorPlotXY->points[1] = CGPointMake(wdx / wmag, wdy / wmag);
             
             self.headingPlotXY->points = headingSamplesXY;
