@@ -68,7 +68,8 @@ typedef enum{
     self.map.showsPointsOfInterest = NO;
     self.map.delegate = self;
     self.map.showsScale = YES;
-    
+    self.map.mapType = MKMapTypeSatellite;
+
     // don't allow the user to lose focus of their current position
     [self.map setScrollEnabled:NO];
     
@@ -205,7 +206,10 @@ typedef enum{
 
             // send all the things
             size_t written = 0, allTheBytes = sizeof(header) + sizeof(gpsWaypoint_t) * header.waypoints;
-            
+            uint32_t action = 0; // zero indicates mission upload
+
+            write(sockfd, &action, sizeof(action));
+
             written += write(sockfd, &header, sizeof(header));
             for(int i = 0; i < header.waypoints; ++i){
                 written += write(sockfd, waypoints + i, sizeof(gpsWaypoint_t));

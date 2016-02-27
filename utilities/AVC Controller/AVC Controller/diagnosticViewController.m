@@ -48,7 +48,7 @@ NSString* DIAG_DATA_TITLES[] = {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
     SensorReadings* sen = [[SensorReadings alloc] init];
-    sen.data = SYS.body;
+//    sen.data = SYS.body;
     self.data = sen;
     
     self.scrollView.delegate = self;
@@ -177,7 +177,7 @@ NSString* DIAG_DATA_TITLES[] = {
             
             headingSamplesXY[magIndex++] = CGPointMake(snapShot.imu.raw.mag.x, snapShot.imu.raw.mag.y);
             
-            self.data.data = SYS.body;
+            self.data.data = snapShot;
             
 //            float wdx = SYS.route.start->self.location.x - SYS.body.measured.position.x;
 //            float wdy = SYS.route.start->self.location.y - SYS.body.measured.position.y;
@@ -187,7 +187,8 @@ NSString* DIAG_DATA_TITLES[] = {
             self.vectorPlotXY->points[1] = CGPointMake(snapShot.estimated.heading.x, snapShot.estimated.heading.y);
             self.vectorPlotXY->points[2] = CGPointMake(snapShot.estimated.goalHeading.x, snapShot.estimated.goalHeading.y);
 //            self.vectorPlotXY->points[1] = CGPointMake(wdx / wmag, wdy / wmag);
-            
+
+
             self.headingPlotXY->points = headingSamplesXY;
             if(self.headingPlotXY->pointCount < magIndex){
                 self.headingPlotXY->pointCount = magIndex;
