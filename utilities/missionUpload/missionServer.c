@@ -14,6 +14,34 @@
 
 #include "types.h"
 
+void downloadMission(int connfd, const char* filepath)
+{
+	int missionfd = open(filepath, O_CREAT | O_WRONLY, 0666);
+
+	gpsRouteHeader_t header = {};
+	gpsWaypoint_t* waypoints = NULL;
+
+	syslog(0, "connected!");
+
+	read(connfd, &header, sizeof(header));
+	write(missionfd, &header, sizeof(header));
+
+	waypoints = malloc(sizeof(gpsWaypoint_t) * header.waypoints);
+
+	syslog(0, "\nRoute with %d waypoints\n", header.waypoints);
+
+	for(int i = 0; i < header.waypoints; ++i){
+		read(connfd, waypoints + i, sizeof(gpsWaypoint_t));
+		vec3f_t pos = waypoints[i].location;
+		syslog(0, "\t(%f, %f)\n", pos.x, pos.y);
+
+		write(missionfd, waypoints + i, sizeof(gpsWaypoint_t));
+	}
+
+	free(waypoints);
+	close(missionfd);
+}
+
 int main(int argc, char *argv[])
 {
 	int listenfd = 0;
@@ -73,32 +101,21 @@ int main(int argc, char *argv[])
 	while(1){
 
 		int connfd = accept(listenfd, (struct sockaddr*)NULL, NULL); 
-		int missionfd = open(filepath, O_CREAT | O_WRONLY, 0666);
+		fcntl(connfd, F_SETFD, fcntl(connfd, F_GETFD) | FD_CLOEXEC);
+		uint32_t action = -1;
+		read(connfd, &action, sizeof(action));	
 
-		gpsRouteHeader_t header = {};
-		gpsWaypoint_t* waypoints = NULL;
-
-		syslog(0, "connected!");
-
- 		read(connfd, &header, sizeof(header));
-		write(missionfd, &header, sizeof(header));
-
- 		waypoints = malloc(sizeof(gpsWaypoint_t) * header.waypoints);
-
-		syslog(0, "\nRoute with %d waypoints\n", header.waypoints);
-
- 		for(int i = 0; i < header.waypoints; ++i){
- 			read(connfd, waypoints + i, sizeof(gpsWaypoint_t));
-			vec3f_t pos = waypoints[i].location;
-			syslog(0, "\t(%f, %f)\n", pos.x, pos.y);
-
-			write(missionfd, waypoints + i, sizeof(gpsWaypoint_t));
- 		}
-
- 		free(waypoints);
+		switch(action){
+			case 0:
+				downloadMission(connfd, filepath);
+				break;
+			case 1:
+				// run AVC
+				system("/root/AVC2016/AVC /root/mission.gps --use-throttle");
+				break;
+		}
 
 		close(connfd);
-		close(missionfd);
 	}
 
 	return 0;

@@ -61,6 +61,9 @@ static float utility(agent_t* current, void* args)
 	// if no route is loaded, there's no where to go
 	// thus nothing to steer toward
 	if(!SYS.route.start || !SYS.route.currentWaypoint){
+		if(SYS.debugging){
+			printf("No route (%x) or waypoint\n", SYS.route);
+		}
 		return 0;
 	}
 

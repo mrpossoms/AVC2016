@@ -136,6 +136,8 @@ int senUpdate(fusedObjState_t* body)
 		// since we now have measurements, reset the estimates
 	//	*estimated = *measured;
 
+		estimated->position = measured->position;
+		
 		body->lastMeasureTime = SYS.timeUp;
 		body->lastEstTime     = SYS.timeUp;
 	}

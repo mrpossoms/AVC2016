@@ -93,9 +93,15 @@ int main(int argc, char* argv[])
 			AGENT_THROTTLE.action(NULL, NULL);
 		}
 
+		if(!SYS.route.currentWaypoint || !SYS.body.hasGpsFix){
+			break;
+		}
+
 		sysTimerUpdate();
+		usleep(1000);
 	}
 
+	sigHandler(SIGINT);
 	return 0;
 }
 

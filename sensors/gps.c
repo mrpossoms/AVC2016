@@ -29,7 +29,7 @@ static void* gpsWorker(void* args)
 //-----------------------------------------------------------------------------
 int gpsInit(const char* devPath)
 {
-	if(lnConnect(devPath, 9600) <= 0){
+	if(lnConnect(devPath, 57600) <= 0){
 		return -1;
 	}
 
