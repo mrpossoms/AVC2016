@@ -12,7 +12,7 @@
 
 @interface SensorReadings : NSObject
 
-@property fusedObjState_t data;
+@property sysSnap_t data;
 
 @property (readonly) NSString *estPosition, *estVelocity, *estHeading;
 @property (readonly) NSString *mesPosition, *mesVelocity, *mesHeading;

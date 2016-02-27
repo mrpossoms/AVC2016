@@ -22,17 +22,17 @@
 
 - (NSString*)mesPosition
 {
-    return [self stringForVecF:self.data.measured.position];
+    return [self stringForVecF:self.data.estimated.position];
 }
 
 - (NSString*)mesVelocity
 {
-    return [self stringForVecF:self.data.measured.velocity.linear];
+    return [self stringForVecF:self.data.estimated.velocity.linear];
 }
 
 - (NSString*)mesHeading
 {
-    return [self stringForVecF:self.data.measured.heading];
+    return [self stringForVecF:self.data.estimated.heading];
 }
 
 - (NSString*)estPosition
