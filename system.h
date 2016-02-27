@@ -76,6 +76,9 @@ typedef struct{
 		sensorStatef_t adj;
 	} imu;
 	objectState_t estimated;
+
+	gpsWaypoint_t currentWaypoint;
+	gpsWaypoint_t nextWaypoint;
 	uint8_t hasGpsFix;
 } sysSnap_t;
 
