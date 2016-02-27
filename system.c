@@ -9,12 +9,21 @@ system_t SYS;
 
 sysSnap_t sysSnapshot(system_t* sys)
 {
-	sysSnap_t snap;
+	sysSnap_t snap = {};
 
 	snap.estimated = sys->body.estimated;
 	snap.hasGpsFix = sys->body.hasGpsFix;
 	snap.imu.raw = sys->body.imu.rawReadings;
 	snap.imu.adj = sys->body.imu.adjReadings;
+
+	gpsWaypointCont_t* waypoint = sys->route.currentWaypoint;
+	if(waypoint){
+		snap.currentWaypoint = waypoint->self;
+		
+		if(waypoint->next){
+			snap.nextWaypoint = waypoint->next;
+		}
+	}
 	
 	return snap;
 }
