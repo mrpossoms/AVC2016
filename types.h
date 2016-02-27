@@ -54,6 +54,13 @@ typedef union{
 	};
 } vec3f_t;
 
+typedef enum{
+	MISS_SRV_UPLOAD = 0,
+	MISS_SRV_RUN,
+	MISS_SRV_BLKBOX_LIST,
+	MISS_SRV_BLKBOX_DOWNLOAD
+} missSrvAct_t;
+
 typedef struct{
 	uint32_t waypoints;
 } gpsRouteHeader_t;

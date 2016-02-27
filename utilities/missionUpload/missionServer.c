@@ -11,8 +11,61 @@
 #include <assert.h>
 #include <strings.h>
 #include <syslog.h>
+#include <dirent.h>
 
 #include "types.h"
+
+static char* AVC_PATH;
+
+int fileCount(const char* path)
+{
+	int count = 0;
+	DIR* dir = opendir(path);
+	struct dirent *ep = NULL;
+
+	if(dir){
+			while((ep = readdir(dir))){
+					if(ep->d_name[0] == '.') continue;
+					++count;
+			}
+			closedir(dir);
+	}
+
+	return count;
+}
+
+void listBlackBoxLogs(int connfd)
+{
+	struct dirent *ep = NULL;
+	char bbPath[256] = {};
+	snprintf(bbPath, 256, "%sblackbox\n", AVC_PATH);
+
+	printf("checking %s", bbPath);
+
+	// tell the client how many filenames to expect
+	uint32_t files = fileCount(bbPath);
+	DIR* dir = opendir(bbPath);
+
+	printf("%d files found\n", files);
+
+	// if we couldn't open the dir, tell them to expect nothing
+	if(!dir){
+		files = 0;
+	}
+	write(connfd, &files, sizeof(uint32_t));
+
+	// iterate over the whole list of files
+	for(ep = readdir(dir); ep && files; ep = readdir(dir)){
+		char logName[64] = {};
+
+		// skip hidden files
+		if(ep->d_name[0] == '.') continue;
+
+		int len = strlen(ep->d_name);
+		memcpy(logName, ep->d_name, len > sizeof(logName) ? sizeof(logName) : len);
+		write(connfd, logName, sizeof(logName));
+	}
+}
 
 void downloadMission(int connfd, const char* filepath)
 {
@@ -45,15 +98,21 @@ void downloadMission(int connfd, const char* filepath)
 int main(int argc, char *argv[])
 {
 	int listenfd = 0;
-	struct sockaddr_in serv_addr = {}; 
+	struct sockaddr_in serv_addr = {};
 
 	if(argc < 2){
 		printf("Usage:\n\tmissionUpload [path to file]\n");
 		return 1;
 	}
 
+	AVC_PATH = argv[1];
+
+	listBlackBoxLogs(1);
+	return 0;
+
 	// spawn the child process
 	pid_t pid = fork();
+
 
 	if(pid){ // if i'm the parent then terminate
 		printf("%s started\n", argv[0]);
@@ -86,32 +145,35 @@ int main(int argc, char *argv[])
 	bzero(&serv_addr, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_addr.s_addr = INADDR_ANY;
-	serv_addr.sin_port = htons(1339); 
+	serv_addr.sin_port = htons(1339);
 
 	if(bind(listenfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))){
 		syslog(0, "%s: failed bind to port 1339.", argv[0]);
 		return -3;
-	} 
-	assert(!listen(listenfd, 5)); 
+	}
+	assert(!listen(listenfd, 5));
 	syslog(0, "%s: Bound and listening", argv[0]);
 
 	char filepath[128];
-	sprintf(filepath, "%smission.gps", argv[1]);
+	sprintf(filepath, "%smission.gps", AVC_PATH);
 
 	while(1){
 
-		int connfd = accept(listenfd, (struct sockaddr*)NULL, NULL); 
+		int connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
 		fcntl(connfd, F_SETFD, fcntl(connfd, F_GETFD) | FD_CLOEXEC);
 		uint32_t action = -1;
-		read(connfd, &action, sizeof(action));	
+		read(connfd, &action, sizeof(action));
 
 		switch(action){
-			case 0:
+			case MISS_SRV_UPLOAD:
 				downloadMission(connfd, filepath);
 				break;
-			case 1:
+			case MISS_SRV_RUN:
 				// run AVC
 				system("/root/AVC2016/AVC /root/mission.gps --use-throttle");
+				break;
+			case MISS_SRV_BLKBOX_LIST:
+
 				break;
 		}
 
