@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
 
 	// setup all the decision agents
 	agentInitAgents();
-
+	int useBlackBox = !hasOpt(argv, argc, "--no-black-box");
 	while(1){
 		senUpdate(&SYS.body);
 
@@ -92,12 +92,18 @@ int main(int argc, char* argv[])
 		if(hasOpt(argv, argc, "--use-throttle")){
 			AGENT_THROTTLE.action(NULL, NULL);
 		}
-
+		sysTimerUpdate();
+	
+		// record system state, if indicated
+		if(useBlackBox){
+			diagBlkBoxLog();
+		}		
+	
+		// if there is no next goal or GPS then terminate
 		if(!SYS.route.currentWaypoint || !SYS.body.hasGpsFix){
 			break;
 		}
 
-		sysTimerUpdate();
 		usleep(1000);
 	}
 
