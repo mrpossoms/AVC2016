@@ -62,6 +62,11 @@ typedef enum{
 } missSrvAct_t;
 
 typedef struct{
+   uint8_t name[64];
+   uint32_t bytes;
+} blkboxLog_t;
+
+typedef struct{
 	uint32_t waypoints;
 } gpsRouteHeader_t;
 

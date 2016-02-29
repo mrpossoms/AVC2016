@@ -13,10 +13,11 @@
 #include <syslog.h>
 #include <dirent.h>
 
-#include "types.h"
+#include "system.h"
 
 static char* AVC_PATH;
 
+//-----------------------------------------------------------------------------
 int fileCount(const char* path)
 {
 	int count = 0;
@@ -33,48 +34,79 @@ int fileCount(const char* path)
 
 	return count;
 }
-
+//-----------------------------------------------------------------------------
 void listBlackBoxLogs(int connfd)
 {
 	struct dirent *ep = NULL;
 	char bbPath[256] = {};
-	snprintf(bbPath, 256, "%sblackbox\n", AVC_PATH);
-
-	printf("checking %s", bbPath);
+	snprintf(bbPath, 256, "%sblackbox", AVC_PATH);
 
 	// tell the client how many filenames to expect
 	uint32_t files = fileCount(bbPath);
 	DIR* dir = opendir(bbPath);
 
-	printf("%d files found\n", files);
-
 	// if we couldn't open the dir, tell them to expect nothing
 	if(!dir){
+		syslog(0, "Failed to open dir\n");
 		files = 0;
 	}
+	syslog(0, "sending %d files\n", files);
+
 	write(connfd, &files, sizeof(uint32_t));
 
 	// iterate over the whole list of files
-	for(ep = readdir(dir); ep && files; ep = readdir(dir)){
-		char logName[64] = {};
+	if(files)
+	for(ep = readdir(dir); ep; ep = readdir(dir)){
+		blkboxLog_t log = {};
+		struct stat fileStat = {};
 
 		// skip hidden files
 		if(ep->d_name[0] == '.') continue;
 
+		// get the size
+		char wholePath[256] = {};
+		snprintf(wholePath, 256, "%s/%s", bbPath, ep->d_name);
+		stat(wholePath, &fileStat);
+
 		int len = strlen(ep->d_name);
-		memcpy(logName, ep->d_name, len > sizeof(logName) ? sizeof(logName) : len);
-		write(connfd, logName, sizeof(logName));
+		memcpy(log.name, ep->d_name, len > sizeof(log.name) ? sizeof(log.name) : len);
+		log.bytes = (uint32_t)fileStat.st_size;
+
+		write(connfd, &log, sizeof(log));
 	}
 }
+//-----------------------------------------------------------------------------
+void downloadBlackBoxLog(int connfd)
+{
+	char bbPath[256] = {};
+	char logName[64] = {};
 
+	read(connfd, logName, sizeof(logName));
+	snprintf(bbPath, 256, "%sblackbox/%s", AVC_PATH, logName);
+
+	int logFd = open(bbPath, O_RDONLY);
+	uint32_t logSize = (uint32_t)lseek(logFd, 0, SEEK_END) / sizeof(sysSnap_t); // how long?
+	lseek(logFd, 0, SEEK_SET); // go back to the beginning
+
+	// tell the client how many messages to expect
+	write(connfd, &logSize, sizeof(logSize));
+
+	// send the
+	size_t bytes = 0;
+	sysSnap_t snap = {};
+	while((bytes = read(logFd, &snap, sizeof(snap)))){
+		write(connfd, &snap, sizeof(snap));
+	}
+
+	close(logFd);
+}
+//-----------------------------------------------------------------------------
 void downloadMission(int connfd, const char* filepath)
 {
 	int missionfd = open(filepath, O_CREAT | O_WRONLY, 0666);
 
 	gpsRouteHeader_t header = {};
 	gpsWaypoint_t* waypoints = NULL;
-
-	syslog(0, "connected!");
 
 	read(connfd, &header, sizeof(header));
 	write(missionfd, &header, sizeof(header));
@@ -94,7 +126,7 @@ void downloadMission(int connfd, const char* filepath)
 	free(waypoints);
 	close(missionfd);
 }
-
+//-----------------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
 	int listenfd = 0;
@@ -106,9 +138,6 @@ int main(int argc, char *argv[])
 	}
 
 	AVC_PATH = argv[1];
-
-	listBlackBoxLogs(1);
-	return 0;
 
 	// spawn the child process
 	pid_t pid = fork();
@@ -161,19 +190,29 @@ int main(int argc, char *argv[])
 
 		int connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
 		fcntl(connfd, F_SETFD, fcntl(connfd, F_GETFD) | FD_CLOEXEC);
+
+		syslog(0, "connected!");
+
 		uint32_t action = -1;
 		read(connfd, &action, sizeof(action));
 
 		switch(action){
 			case MISS_SRV_UPLOAD:
+				syslog(0, "Uploading mission");
 				downloadMission(connfd, filepath);
 				break;
 			case MISS_SRV_RUN:
 				// run AVC
+				syslog(0, "Running mission");
 				system("/root/AVC2016/AVC /root/mission.gps --use-throttle");
 				break;
 			case MISS_SRV_BLKBOX_LIST:
-
+				syslog(0, "Listing blackbox logs");
+				listBlackBoxLogs(connfd);
+				break;
+			case MISS_SRV_BLKBOX_DOWNLOAD:
+				syslog(0, "Downloading blackbox log");
+				downloadBlackBoxLog(connfd);
 				break;
 		}
 

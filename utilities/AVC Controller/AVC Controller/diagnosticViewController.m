@@ -12,6 +12,7 @@
 #import "PointPlotControl.h"
 #import "VectorPlotControl.h"
 #import "Errors.h"
+#import "SnapshotDisplay.h"
 
 #include "types.h"
 #include "system.h"
@@ -21,14 +22,16 @@
     CGPoint magSamplesXY[256];
     CGPoint headingSamplesXY[256];
     uint8_t magIndex;
+
+    blkboxLog_t* logs;
+    uint32_t logCount;
+
+    sysSnap_t* blackbox;
 }
 
-@property PointPlotControl *headingPlotXY;
-@property VectorPlotControl *vectorPlotXY;
-
+@property (weak, nonatomic) IBOutlet SnapshotDisplay *snapshotDisplay;
+@property (weak, nonatomic) IBOutlet UITableView *blackboxTable;
 @property (weak, nonatomic) IBOutlet UIActivityIndicatorView *connectingIndicator;
-@property (weak, nonatomic) IBOutlet UIScrollView *scrollView;
-@property (weak, nonatomic) IBOutlet UITableView *tableView;
 @property dispatch_queue_t pollQueue;
 @property BOOL shouldPoll;
 
@@ -50,46 +53,21 @@ NSString* DIAG_DATA_TITLES[] = {
     SensorReadings* sen = [[SensorReadings alloc] init];
 //    sen.data = SYS.body;
     self.data = sen;
-    
-    self.scrollView.delegate = self;
-    
-    self.tableView.delegate   = self;
-    self.tableView.dataSource = self;
-    
+
+    self.blackboxTable.dataSource = self;
+    self.blackboxTable.delegate   = self;
+
     self.pollQueue = dispatch_queue_create("MESSAGE_POLL_QUEUE", NULL);
 }
 
 - (void)viewDidLayoutSubviews
 {
-    CGSize parentSize = self.scrollView.frame.size;
-    
-    self.scrollView.contentSize = CGSizeMake(parentSize.width, parentSize.height * 2);
-    self.vectorPlotXY = [VectorPlotControl plotWithFrame:CGRectMake(0, 0, parentSize.width, parentSize.height)];
-    self.headingPlotXY = [PointPlotControl plotWithFrame:CGRectMake(0, parentSize.height, parentSize.width, parentSize.height)];
-    
-    self.vectorPlotXY->pointCount = 3;
-    self.vectorPlotXY->points     = malloc(sizeof(CGPoint) * self.vectorPlotXY->pointCount);
-    self.vectorPlotXY->pointColor = malloc(sizeof(CGFloat*) * self.vectorPlotXY->pointCount);
-
-    static CGFloat red[]  = { 1, 0, 0, 1 };
-    static CGFloat blue[] = { 0, 0, 1, 1 };
-    static CGFloat green[] = { 0, 1, 0, 1 };
 
     static const char* labels[] = {
         "filtered_mag",
         "est_heading",
         "goal"
     };
-
-    self.vectorPlotXY->labels = labels;
-
-    self.vectorPlotXY->pointColor[0] = red;
-    self.vectorPlotXY->pointColor[1] = blue;
-    self.vectorPlotXY->pointColor[2] = green;
-    
-    [self.scrollView addSubview:self.vectorPlotXY];
-    [self.scrollView addSubview:self.headingPlotXY];
-
 }
 
 - (void)didReceiveMemoryWarning {
@@ -110,8 +88,6 @@ NSString* DIAG_DATA_TITLES[] = {
 
 - (void)viewDidAppear:(BOOL)animated
 {
-    struct sockaddr_in host = {};
-    
     if(!HOST_ADDRESS){
         UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Error"
                                                                        message:@"No host specified, return to the control view to enter one"
@@ -124,14 +100,76 @@ NSString* DIAG_DATA_TITLES[] = {
         [self presentViewController:alert animated:YES completion:^{ }];
         return;
     }
-    
-    host = *HOST_ADDRESS;
-    host.sin_port = htons(1340);
+
+    [self.connectingIndicator startAnimating];
+
+    dispatch_async(self.pollQueue, ^{
+        int sock = socket(AF_INET, SOCK_STREAM, 0);
+        int err;
+
+        struct sockaddr_in host = {};
+        host = *HOST_ADDRESS;
+        host.sin_port = htons(1339);
+
+        errno = 0;
+        if((err = connect(sock, (const struct sockaddr*)&host, sizeof(host))) || errno){
+            NSLog(@"Connection failed");
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [Errors presentWithTitle:@"Could not connect to mission server" onViewController:self];
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [self.connectingIndicator stopAnimating];
+                });
+            });
+            return;
+        }
+
+        // connected!
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self.connectingIndicator stopAnimating];
+        });
+
+        uint32_t count = 0, action = MISS_SRV_BLKBOX_LIST;
+        logCount = 0;
+
+        free(logs);
+
+        write(sock, &action, sizeof(action));
+        read(sock, &count, sizeof(count));
+
+        logs = (blkboxLog_t*)calloc(1, sizeof(blkboxLog_t) * count);
+
+        for(int i = 0; i < count; ++i){
+            read(sock, logs + i, sizeof(blkboxLog_t));
+            ++logCount;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self.blackboxTable reloadData];
+            });
+        }
+        close(sock);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self.blackboxTable reloadData];
+        });
+    });
+
+    [self startPolling];
+}
+
+- (void)viewWillDisappear:(BOOL)animated
+{
+    self.shouldPoll = NO;
+}
+
+- (void)startPolling
+{
 
     dispatch_async(self.pollQueue, ^{
         CFAbsoluteTime last = CFAbsoluteTimeGetCurrent();
         int sock = socket(AF_INET, SOCK_STREAM, 0);
         int err;
+
+        struct sockaddr_in host = {};
+        host = *HOST_ADDRESS;
+        host.sin_port = htons(1340);
 
         dispatch_async(dispatch_get_main_queue(), ^{
             [self.connectingIndicator startAnimating];
@@ -148,94 +186,142 @@ NSString* DIAG_DATA_TITLES[] = {
             });
             return;
         }
-        
+
         // connected!
         dispatch_async(dispatch_get_main_queue(), ^{
             [self.connectingIndicator stopAnimating];
         });
-        
+
         while(self.shouldPoll){
             CFAbsoluteTime now = CFAbsoluteTimeGetCurrent();
-            
+
             if(now - last < 0.1){
                 usleep(100000);
                 continue;
             }
             NSLog(@"Polling");
-            
+
             int written = write(sock, "X", 1);
-            
+
             fd_set readfd;
             struct timeval timeout = { 1, 0 };
             sysSnap_t snapShot = {};
             FD_ZERO(&readfd);
             FD_SET(sock, &readfd);
-            
+
             if(select(sock + 1, &readfd, NULL, NULL, &timeout) > 0){
                 int bytes = read(sock, &snapShot, sizeof(sysSnap_t));
             }
-            
-            headingSamplesXY[magIndex++] = CGPointMake(snapShot.imu.raw.mag.x, snapShot.imu.raw.mag.y);
-            
+
             self.data.data = snapShot;
-            
-//            float wdx = SYS.route.start->self.location.x - SYS.body.measured.position.x;
-//            float wdy = SYS.route.start->self.location.y - SYS.body.measured.position.y;
-//            float wmag = sqrtf(wdx * wdx + wdy * wdy);
-//            
-            self.vectorPlotXY->points[0] = CGPointMake(snapShot.imu.adj.mag.x, snapShot.imu.adj.mag.y);
-            self.vectorPlotXY->points[1] = CGPointMake(snapShot.estimated.heading.x, snapShot.estimated.heading.y);
-            self.vectorPlotXY->points[2] = CGPointMake(snapShot.estimated.goalHeading.x, snapShot.estimated.goalHeading.y);
-//            self.vectorPlotXY->points[1] = CGPointMake(wdx / wmag, wdy / wmag);
+            self.snapshotDisplay.snapshot = snapShot;
 
-
-            self.headingPlotXY->points = headingSamplesXY;
-            if(self.headingPlotXY->pointCount < magIndex){
-                self.headingPlotXY->pointCount = magIndex;
-            }
-            
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [self.vectorPlotXY setNeedsDisplay];
-                [self.headingPlotXY setNeedsDisplay];
-                [self.tableView reloadData];
-            });
-            
             last = now;
         }
         
         close(sock);
     });
-}
+    
 
-- (void)viewWillDisappear:(BOOL)animated
-{
-    self.shouldPoll = NO;
 }
 
 - (UITableViewCell*)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    UITableViewCell* cell = [tableView dequeueReusableCellWithIdentifier:@"DIAG-CELL"];
-    
-    NSString* descriptions[] = {
-        self.data.mesPosition, self.data.mesVelocity, self.data.mesHeading,
-        self.data.estPosition, self.data.estVelocity, self.data.estHeading,
-        self.data.hasGpsFix
-    };
-    
-    cell.textLabel.text       = DIAG_DATA_TITLES[indexPath.row];
-    cell.detailTextLabel.text = descriptions[indexPath.row];
-    
-    int r = 0xC1 - (indexPath.row % 2 ? 0xA : 0);
-    int g = 0x31 - (indexPath.row % 2 ? 0xA : 0);
-    int b = 0x1D - (indexPath.row % 2 ? 0xA : 0);
-    cell.backgroundColor = cell.contentView.backgroundColor = [UIColor colorWithRed:r / 255.0f green:g / 255.0f blue:b / 255.0f alpha:1];
-    
-    return cell;
+    if(tableView == self.blackboxTable){
+        UITableViewCell* cell = [tableView dequeueReusableCellWithIdentifier:@"BBOX-CELL"];
+        if(!cell){
+            cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle
+                                          reuseIdentifier:@"BBOX-CELL"];
+        }
+
+        cell.textLabel.text = [NSString stringWithUTF8String:(char*)logs[indexPath.row].name];
+        cell.detailTextLabel.text = [NSString stringWithFormat:@"%0.1f KB", logs[indexPath.row].bytes / 1024.0f];
+
+        return cell;
+    }
+    else{
+        UITableViewCell* cell = [tableView dequeueReusableCellWithIdentifier:@"DIAG-CELL"];
+
+        NSString* descriptions[] = {
+            self.data.mesPosition, self.data.mesVelocity, self.data.mesHeading,
+            self.data.estPosition, self.data.estVelocity, self.data.estHeading,
+            self.data.hasGpsFix
+        };
+
+        cell.textLabel.text       = DIAG_DATA_TITLES[indexPath.row];
+        cell.detailTextLabel.text = descriptions[indexPath.row];
+
+        int r = 0xC1 - (indexPath.row % 2 ? 0xA : 0);
+        int g = 0x31 - (indexPath.row % 2 ? 0xA : 0);
+        int b = 0x1D - (indexPath.row % 2 ? 0xA : 0);
+        cell.backgroundColor = cell.contentView.backgroundColor = [UIColor colorWithRed:r / 255.0f green:g / 255.0f blue:b / 255.0f alpha:1];
+        
+        return cell;
+
+    }
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-    return sizeof(DIAG_DATA_TITLES) / sizeof(NSString*);
+    if(tableView == self.blackboxTable){
+        return logCount;
+    }
+    else{
+        return sizeof(DIAG_DATA_TITLES) / sizeof(NSString*);
+    }
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    [self.connectingIndicator startAnimating];
+
+    dispatch_async(self.pollQueue, ^{
+        int sock = socket(AF_INET, SOCK_STREAM, 0);
+        int err;
+
+        struct sockaddr_in host = {};
+        host = *HOST_ADDRESS;
+        host.sin_port = htons(1339);
+
+        errno = 0;
+        if((err = connect(sock, (const struct sockaddr*)&host, sizeof(host))) || errno){
+            NSLog(@"Connection failed");
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [Errors presentWithTitle:@"Could not connect to mission server" onViewController:self];
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [self.connectingIndicator stopAnimating];
+                });
+            });
+            return;
+        }
+
+        // connected!
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self.connectingIndicator stopAnimating];
+        });
+
+        uint32_t action = MISS_SRV_BLKBOX_DOWNLOAD;
+
+        write(sock, &action, sizeof(action));
+        write(sock, logs[indexPath.row].name, sizeof(logs[0].name));
+
+        uint32_t samples = 0;
+        read(sock, &samples, sizeof(samples));
+
+        free(blackbox);
+        blackbox = (sysSnap_t*)calloc(samples + 1, sizeof(sysSnap_t));
+
+        for(int i = 0; i < samples; ++i){
+            read(sock, blackbox + i, sizeof(sysSnap_t));
+        }
+
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.snapshotDisplay.snapshot = blackbox[0];
+
+            [self.connectingIndicator stopAnimating];
+        });
+    });
+
 }
 
 /*

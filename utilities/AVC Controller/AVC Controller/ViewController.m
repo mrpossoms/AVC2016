@@ -18,7 +18,6 @@
 @interface ViewController ()
 
 @property (weak, nonatomic) IBOutlet ThumbStickControl *throttleStick;
-@property (weak, nonatomic) IBOutlet ThumbStickControl *steerStick;
 @property (weak, nonatomic) IBOutlet UITextField *ipAddressText;
 @property (weak, nonatomic) IBOutlet UIActivityIndicatorView *resolvingIndicator;
 @property (nonatomic) NSString* ipAddress;
@@ -100,17 +99,12 @@ void transmit(){
 - (void)viewDidLayoutSubviews
 {
     [self.throttleStick reset];
-    [self.steerStick reset];
-    
-    self.throttleStick.xAxisDisabled = YES;
-    self.steerStick.yAxisDisabled    = YES;
-    
+
     [self.throttleStick setRangeForAxis:1 withMin:75 andMax:25];
-    [self.steerStick setRangeForAxis:0 withMin:25 andMax:75];
+    [self.throttleStick setRangeForAxis:0 withMin:25 andMax:75];
     
     self.throttleStick.delegate = self;
-    self.steerStick.delegate    = self;
-    
+
     [self.view addGestureRecognizer:[[UITapGestureRecognizer alloc]
                                      initWithTarget:self
                                      action:@selector(dismiss)]];
@@ -145,6 +139,8 @@ void transmit(){
 
             write(sockfd, &action, sizeof(action));
             close(sockfd);
+            
+            dispatch_async(dispatch_get_main_queue(), ^{ [self.resolvingIndicator stopAnimating]; });
         }
     });
 }
@@ -161,9 +157,6 @@ void transmit(){
 {
     if(sender == self.throttleStick){
         STATE.throttle = values.y;
-    }
-    
-    if(sender == self.steerStick){
         STATE.steering = values.x;
     }
     

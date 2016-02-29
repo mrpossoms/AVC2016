@@ -17,6 +17,8 @@
 		0628E0FB1C32F4CE00640110 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0628E0F91C32F4CE00640110 /* Main.storyboard */; };
 		0628E0FD1C32F4CE00640110 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0628E0FC1C32F4CE00640110 /* Assets.xcassets */; };
 		0628E1001C32F4CE00640110 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0628E0FE1C32F4CE00640110 /* LaunchScreen.storyboard */; };
+		062CFAFD1C83953D00B56210 /* SnapshotDisplay.m in Sources */ = {isa = PBXBuildFile; fileRef = 062CFAFC1C83953D00B56210 /* SnapshotDisplay.m */; };
+		062CFB031C83AA7C00B56210 /* SnapshotAnnotationView.m in Sources */ = {isa = PBXBuildFile; fileRef = 062CFB021C83AA7C00B56210 /* SnapshotAnnotationView.m */; };
 		0639B3331C488A040084EF76 /* VectorPlotControl.m in Sources */ = {isa = PBXBuildFile; fileRef = 0639B3321C488A040084EF76 /* VectorPlotControl.m */; };
 		06565B591C331EA3008919CF /* ThumbStickControl.m in Sources */ = {isa = PBXBuildFile; fileRef = 06565B581C331EA3008919CF /* ThumbStickControl.m */; };
 		0665882B1C3EF52B00EB5E40 /* diagnostics.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0665882A1C3EF52B00EB5E40 /* diagnostics.storyboard */; };
@@ -43,6 +45,10 @@
 		0628E0FC1C32F4CE00640110 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0628E0FF1C32F4CE00640110 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		0628E1011C32F4CE00640110 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		062CFAFB1C83953D00B56210 /* SnapshotDisplay.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SnapshotDisplay.h; sourceTree = "<group>"; };
+		062CFAFC1C83953D00B56210 /* SnapshotDisplay.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SnapshotDisplay.m; sourceTree = "<group>"; };
+		062CFB011C83AA7C00B56210 /* SnapshotAnnotationView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SnapshotAnnotationView.h; sourceTree = "<group>"; };
+		062CFB021C83AA7C00B56210 /* SnapshotAnnotationView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SnapshotAnnotationView.m; sourceTree = "<group>"; };
 		0639B3311C488A040084EF76 /* VectorPlotControl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VectorPlotControl.h; sourceTree = "<group>"; };
 		0639B3321C488A040084EF76 /* VectorPlotControl.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = VectorPlotControl.m; sourceTree = "<group>"; };
 		06565B571C331EA3008919CF /* ThumbStickControl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ThumbStickControl.h; sourceTree = "<group>"; };
@@ -136,6 +142,10 @@
 				066588641C407A5200EB5E40 /* PointPlotControl.m */,
 				0639B3311C488A040084EF76 /* VectorPlotControl.h */,
 				0639B3321C488A040084EF76 /* VectorPlotControl.m */,
+				062CFAFB1C83953D00B56210 /* SnapshotDisplay.h */,
+				062CFAFC1C83953D00B56210 /* SnapshotDisplay.m */,
+				062CFB011C83AA7C00B56210 /* SnapshotAnnotationView.h */,
+				062CFB021C83AA7C00B56210 /* SnapshotAnnotationView.m */,
 			);
 			name = controls;
 			sourceTree = "<group>";
@@ -211,8 +221,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				062CFB031C83AA7C00B56210 /* SnapshotAnnotationView.m in Sources */,
 				0665886E1C43428700EB5E40 /* Errors.m in Sources */,
 				06565B591C331EA3008919CF /* ThumbStickControl.m in Sources */,
+				062CFAFD1C83953D00B56210 /* SnapshotDisplay.m in Sources */,
 				066588681C40D17000EB5E40 /* diagnosticViewController.m in Sources */,
 				066588651C407A5200EB5E40 /* PointPlotControl.m in Sources */,
 				0665886B1C40D28400EB5E40 /* SensorReadings.m in Sources */,
