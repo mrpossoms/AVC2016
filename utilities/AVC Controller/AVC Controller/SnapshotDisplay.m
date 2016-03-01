@@ -8,11 +8,13 @@
 
 #import "SnapshotDisplay.h"
 #import "SnapshotAnnotationView.h"
+#import "WaypointsOverlay.h"
 
 @interface SnapshotDisplay()
 
 @property CLLocationManager* locationManager;
 @property SnapshotAnnotationView* annotaion;
+@property vec3f_t lastPosition;
 
 @end
 
@@ -20,12 +22,27 @@
 
 - (void)setSnapshot:(sysSnap_t)snapshot
 {
+    vec3f_t h;
+
+    if(vec3Dist(_lastPosition, _snapshot.estimated.position) >= 9){
+        vec3Lerp(_lastPosition, _lastPosition, _snapshot.estimated.position, 0.25);
+    }
+
     _snapshot = snapshot;
 
+    vec3Sub(h, snapshot.estimated.position, _lastPosition);
+
+    _snapshot.estimated.headingAngle = atan2f(h.y, h.x);
+    
     [self focusOnLocation:[[CLLocation alloc] initWithLatitude:self.coordinate.latitude longitude:self.coordinate.longitude]];
 
-    [self removeAnnotation:self];
+    while(self.annotations.count){
+        [self removeAnnotation:self.annotations.firstObject];
+    }
+
     [self addAnnotation:self];
+    [self addAnnotation:[WaypointsOverlay overlayAt:_snapshot.currentWaypoint.location]];
+    [self addAnnotation:[WaypointsOverlay overlayAt:_snapshot.nextWaypoint.location]];
 }
 
 - (instancetype)initWithCoder:(NSCoder *)aDecoder
@@ -56,7 +73,11 @@
 
 - (void)focusOnLocation:(CLLocation*)location
 {
-    [self setRegion:MKCoordinateRegionMakeWithDistance(location.coordinate, 10, 10) animated:YES];
+    if(location.coordinate.longitude > -180 && location.coordinate.longitude < 180 &&
+       location.coordinate.latitude > -90 && location.coordinate.latitude < 90){
+        [self setRegion:MKCoordinateRegionMakeWithDistance(location.coordinate, 10, 10) animated:YES];
+//        [self setCenterCoordinate:location.coordinate animated:NO];
+    }
 }
 
 #pragma mark - MKAnnotation protocol
@@ -93,11 +114,6 @@
 
 #pragma mark - Map view delegate
 
-- (void)mapViewWillStartLocatingUser:(MKMapView *)mapView
-{
-    [self focusOnLocation:mapView.userLocation.location];
-}
-
 - (void)mapView:(MKMapView *)mapView didUpdateUserLocation:(MKUserLocation *)userLocation
 {
     [self focusOnLocation:userLocation.location];
@@ -106,27 +122,29 @@
 
 - (nullable MKAnnotationView *)mapView:(MKMapView *)mapView viewForAnnotation:(id <MKAnnotation>)annotation
 {
-    SnapshotAnnotationView* annoView = [[SnapshotAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:@"RobitAnnotation"];
-    annoView.bounds = CGRectMake(0, 0, 80, 80);
+    if([annotation isKindOfClass:[self class]]){
+        SnapshotAnnotationView* annoView = (SnapshotAnnotationView*)[mapView dequeueReusableAnnotationViewWithIdentifier:@"RobitAnnotation"];
 
-    return annoView;
-}
+        if(!annoView){
+            annoView = [[SnapshotAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:@"RobitAnnotation"];
+        }
+        annoView.bounds = CGRectMake(0, 0, 160, 160);
+        annoView.snapshot = _snapshot;
 
-- (MKOverlayRenderer*)mapView:(MKMapView *)mapView rendererForOverlay:(id<MKOverlay>)overlay
-{
-//    if(overlay == self.routeLine)
-//    {
-//        if(nil == self.routeLineRenderer)
-//        {
-//            self.routeLineRenderer = [[MKPolylineRenderer alloc] initWithPolyline:self.routeLine];
-//            self.routeLineRenderer.fillColor = [UIColor redColor];
-//            self.routeLineRenderer.strokeColor = [UIColor redColor];
-//            self.routeLineRenderer.lineWidth = 2;
-//
-//        }
-//
-//        return self.routeLineRenderer;
-//    }
+        [annoView setNeedsDisplay];
+
+        return annoView;
+    }
+
+    if([annotation isKindOfClass:[WaypointsOverlay class]]){
+        MKPinAnnotationView* view = (MKPinAnnotationView*)[mapView dequeueReusableAnnotationViewWithIdentifier:@"RobitWaypoint"];
+
+        if(!view){
+            view = [[MKPinAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:@"RobitWaypoint"];
+        }
+
+        return view;
+    }
 
     return nil;
 }

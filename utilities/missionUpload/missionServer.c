@@ -92,9 +92,19 @@ void downloadBlackBoxLog(int connfd)
 	write(connfd, &logSize, sizeof(logSize));
 
 	// send the
+	int hadGps = 0;
 	size_t bytes = 0;
 	sysSnap_t snap = {};
 	while((bytes = read(logFd, &snap, sizeof(snap)))){
+		if(snap.estimated.position.x == 0 && snap.estimated.position.y == 0){
+			if(hadGps){
+					syslog(0, "Log integrity uncertain");
+			}
+		}
+		else{
+			hadGps = 1;
+		}
+
 		write(connfd, &snap, sizeof(snap));
 	}
 

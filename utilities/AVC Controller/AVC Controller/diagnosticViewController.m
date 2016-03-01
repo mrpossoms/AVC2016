@@ -27,8 +27,11 @@
     uint32_t logCount;
 
     sysSnap_t* blackbox;
+    uint32_t blackboxSamples;
 }
 
+@property (weak, nonatomic) IBOutlet UILabel *stateNumberLabel;
+@property (weak, nonatomic) IBOutlet UISlider *scrubber;
 @property (weak, nonatomic) IBOutlet SnapshotDisplay *snapshotDisplay;
 @property (weak, nonatomic) IBOutlet UITableView *blackboxTable;
 @property (weak, nonatomic) IBOutlet UIActivityIndicatorView *connectingIndicator;
@@ -263,17 +266,13 @@ NSString* DIAG_DATA_TITLES[] = {
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-    if(tableView == self.blackboxTable){
-        return logCount;
-    }
-    else{
-        return sizeof(DIAG_DATA_TITLES) / sizeof(NSString*);
-    }
+    return logCount;
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
     [self.connectingIndicator startAnimating];
+    [self.scrubber setValue:0 animated:NO];
 
     dispatch_async(self.pollQueue, ^{
         int sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -305,23 +304,42 @@ NSString* DIAG_DATA_TITLES[] = {
         write(sock, &action, sizeof(action));
         write(sock, logs[indexPath.row].name, sizeof(logs[0].name));
 
-        uint32_t samples = 0;
-        read(sock, &samples, sizeof(samples));
+        read(sock, &blackboxSamples, sizeof(blackboxSamples));
 
         free(blackbox);
-        blackbox = (sysSnap_t*)calloc(samples + 1, sizeof(sysSnap_t));
+        blackbox = (sysSnap_t*)calloc(blackboxSamples + 1, sizeof(sysSnap_t));
 
-        for(int i = 0; i < samples; ++i){
-            read(sock, blackbox + i, sizeof(sysSnap_t));
+        for(int i = 0; i < blackboxSamples; ++i){
+            usleep(1000);
+            size_t bytes = read(sock, blackbox + i, sizeof(sysSnap_t));
+            assert(bytes == sizeof(sysSnap_t));
         }
 
         dispatch_async(dispatch_get_main_queue(), ^{
-            self.snapshotDisplay.snapshot = blackbox[0];
-
             [self.connectingIndicator stopAnimating];
+            self.snapshotDisplay.snapshot = blackbox[1];
+
+//            [UIView animateWithDuration:10 animations:^{
+//                [self.scrubber setValue:1.0 animated:YES];
+//            }];
         });
+
+        close(sock);
     });
 
+//    [UIView animateWithDuration:10 animations:^{
+//        [self.scrubber setValue:0.999];
+//    }];
+
+}
+
+- (IBAction)didScrub:(id)sender {
+    UISlider* slider = sender;
+
+    NSUInteger index = (NSUInteger)(blackboxSamples * slider.value);
+    self.snapshotDisplay.snapshot = blackbox[index];
+
+    self.stateNumberLabel.text = [NSString stringWithFormat:@"%lu / %d", (unsigned long)index, blackboxSamples];
 }
 
 /*

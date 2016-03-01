@@ -11,6 +11,7 @@
 		06031F151C39A869002EA52F /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 06031F141C39A869002EA52F /* CoreLocation.framework */; };
 		06031F181C39AA0E002EA52F /* RouteViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 06031F171C39AA0E002EA52F /* RouteViewController.m */; };
 		06031F1B1C39AE8B002EA52F /* Waypoint.m in Sources */ = {isa = PBXBuildFile; fileRef = 06031F1A1C39AE8B002EA52F /* Waypoint.m */; };
+		0603F17C1C8535AB00867A06 /* WaypointsOverlay.m in Sources */ = {isa = PBXBuildFile; fileRef = 0603F17B1C8535AB00867A06 /* WaypointsOverlay.m */; };
 		0628E0F21C32F4CE00640110 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 0628E0F11C32F4CE00640110 /* main.m */; };
 		0628E0F51C32F4CE00640110 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 0628E0F41C32F4CE00640110 /* AppDelegate.m */; };
 		0628E0F81C32F4CE00640110 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0628E0F71C32F4CE00640110 /* ViewController.m */; };
@@ -21,11 +22,11 @@
 		062CFB031C83AA7C00B56210 /* SnapshotAnnotationView.m in Sources */ = {isa = PBXBuildFile; fileRef = 062CFB021C83AA7C00B56210 /* SnapshotAnnotationView.m */; };
 		0639B3331C488A040084EF76 /* VectorPlotControl.m in Sources */ = {isa = PBXBuildFile; fileRef = 0639B3321C488A040084EF76 /* VectorPlotControl.m */; };
 		06565B591C331EA3008919CF /* ThumbStickControl.m in Sources */ = {isa = PBXBuildFile; fileRef = 06565B581C331EA3008919CF /* ThumbStickControl.m */; };
-		0665882B1C3EF52B00EB5E40 /* diagnostics.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0665882A1C3EF52B00EB5E40 /* diagnostics.storyboard */; };
 		066588651C407A5200EB5E40 /* PointPlotControl.m in Sources */ = {isa = PBXBuildFile; fileRef = 066588641C407A5200EB5E40 /* PointPlotControl.m */; };
 		066588681C40D17000EB5E40 /* diagnosticViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 066588671C40D17000EB5E40 /* diagnosticViewController.m */; };
 		0665886B1C40D28400EB5E40 /* SensorReadings.m in Sources */ = {isa = PBXBuildFile; fileRef = 0665886A1C40D28400EB5E40 /* SensorReadings.m */; };
 		0665886E1C43428700EB5E40 /* Errors.m in Sources */ = {isa = PBXBuildFile; fileRef = 0665886D1C43428700EB5E40 /* Errors.m */; };
+		06F9654C1C83EF6200A7D304 /* SparkFont.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 06F9654B1C83EF6200A7D304 /* SparkFont.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +36,8 @@
 		06031F171C39AA0E002EA52F /* RouteViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RouteViewController.m; sourceTree = "<group>"; };
 		06031F191C39AE8B002EA52F /* Waypoint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Waypoint.h; sourceTree = "<group>"; };
 		06031F1A1C39AE8B002EA52F /* Waypoint.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Waypoint.m; sourceTree = "<group>"; };
+		0603F17A1C8535AB00867A06 /* WaypointsOverlay.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WaypointsOverlay.h; sourceTree = "<group>"; };
+		0603F17B1C8535AB00867A06 /* WaypointsOverlay.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = WaypointsOverlay.m; sourceTree = "<group>"; };
 		0628E0ED1C32F4CE00640110 /* AVC Controller.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "AVC Controller.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0628E0F11C32F4CE00640110 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		0628E0F31C32F4CE00640110 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -53,7 +56,6 @@
 		0639B3321C488A040084EF76 /* VectorPlotControl.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = VectorPlotControl.m; sourceTree = "<group>"; };
 		06565B571C331EA3008919CF /* ThumbStickControl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ThumbStickControl.h; sourceTree = "<group>"; };
 		06565B581C331EA3008919CF /* ThumbStickControl.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ThumbStickControl.m; sourceTree = "<group>"; };
-		0665882A1C3EF52B00EB5E40 /* diagnostics.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = diagnostics.storyboard; sourceTree = "<group>"; };
 		066588631C407A5200EB5E40 /* PointPlotControl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PointPlotControl.h; sourceTree = "<group>"; };
 		066588641C407A5200EB5E40 /* PointPlotControl.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PointPlotControl.m; sourceTree = "<group>"; };
 		066588661C40D17000EB5E40 /* diagnosticViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = diagnosticViewController.h; sourceTree = "<group>"; };
@@ -63,6 +65,7 @@
 		0665886C1C43428700EB5E40 /* Errors.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Errors.h; sourceTree = "<group>"; };
 		0665886D1C43428700EB5E40 /* Errors.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Errors.m; sourceTree = "<group>"; };
 		06A798CF1C3A0A47006897E8 /* clientAddress.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = clientAddress.h; sourceTree = "<group>"; };
+		06F9654B1C83EF6200A7D304 /* SparkFont.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = SparkFont.ttf; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -78,6 +81,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0603F1791C8534E300867A06 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				0603F17A1C8535AB00867A06 /* WaypointsOverlay.h */,
+				0603F17B1C8535AB00867A06 /* WaypointsOverlay.m */,
+			);
+			name = Models;
+			sourceTree = "<group>";
+		};
 		0628E0E41C32F4CE00640110 = {
 			isa = PBXGroup;
 			children = (
@@ -99,6 +111,8 @@
 		0628E0EF1C32F4CE00640110 /* AVC Controller */ = {
 			isa = PBXGroup;
 			children = (
+				0603F1791C8534E300867A06 /* Models */,
+				06F9654B1C83EF6200A7D304 /* SparkFont.ttf */,
 				066588621C4079EB00EB5E40 /* controls */,
 				0628E0F31C32F4CE00640110 /* AppDelegate.h */,
 				0628E0F41C32F4CE00640110 /* AppDelegate.m */,
@@ -114,7 +128,6 @@
 				06031F191C39AE8B002EA52F /* Waypoint.h */,
 				06031F1A1C39AE8B002EA52F /* Waypoint.m */,
 				06A798CF1C3A0A47006897E8 /* clientAddress.h */,
-				0665882A1C3EF52B00EB5E40 /* diagnostics.storyboard */,
 				066588661C40D17000EB5E40 /* diagnosticViewController.h */,
 				066588671C40D17000EB5E40 /* diagnosticViewController.m */,
 				066588691C40D28400EB5E40 /* SensorReadings.h */,
@@ -208,9 +221,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				0628E1001C32F4CE00640110 /* LaunchScreen.storyboard in Resources */,
-				0665882B1C3EF52B00EB5E40 /* diagnostics.storyboard in Resources */,
 				0628E0FD1C32F4CE00640110 /* Assets.xcassets in Resources */,
 				0628E0FB1C32F4CE00640110 /* Main.storyboard in Resources */,
+				06F9654C1C83EF6200A7D304 /* SparkFont.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -224,6 +237,7 @@
 				062CFB031C83AA7C00B56210 /* SnapshotAnnotationView.m in Sources */,
 				0665886E1C43428700EB5E40 /* Errors.m in Sources */,
 				06565B591C331EA3008919CF /* ThumbStickControl.m in Sources */,
+				0603F17C1C8535AB00867A06 /* WaypointsOverlay.m in Sources */,
 				062CFAFD1C83953D00B56210 /* SnapshotDisplay.m in Sources */,
 				066588681C40D17000EB5E40 /* diagnosticViewController.m in Sources */,
 				066588651C407A5200EB5E40 /* PointPlotControl.m in Sources */,

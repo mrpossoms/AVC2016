@@ -31,6 +31,14 @@
     }
 }
 
+- (void)scalePoints:(CGPoint*)points withCount:(NSInteger)n andFactor:(CGFloat)s
+{
+    for(;n--;){
+        points[n].x *= s;
+        points[n].y *= s;
+    }
+}
+
 - (void)transformPoints:(CGPoint*)points withCount:(NSInteger)n to:(CGRect)rect
 {
     CGSize size = { rect.size.width / 2, rect.size.height / 2 };
@@ -69,11 +77,15 @@
     };
 
     CGPoint filteredMag[] = {
-        { 0, 0 }, { _snapshot.imu.adj.mag.x, _snapshot.imu.adj.mag.y }
+        { 0, 0 }, { -_snapshot.imu.adj.mag.x, -_snapshot.imu.adj.mag.y }
+    };
+
+    CGPoint heading[] = {
+        { 0, 0 }, { _snapshot.estimated.heading.x, _snapshot.estimated.heading.y }
     };
 
     CGPoint goal[] = {
-        { 0, 0 }, { _snapshot.estimated.goalHeading.x, _snapshot.estimated.goalHeading.y }
+        { 0, 0 }, { _snapshot.estimated.goalHeading.y, -_snapshot.estimated.goalHeading.x }
     };
 
     static CGFloat black[] = { 0, 0, 0, 1 };
@@ -81,17 +93,30 @@
     static CGFloat red[]  = { 1, 0, 0, 1 };
     static CGFloat blue[] = { 0, 0, 1, 1 };
     static CGFloat green[] = { 0, 1, 0, 1 };
+    static CGFloat yellow[] = { 1, 1, 0, 1 };
+
 
 
     CGContextRef ctx = UIGraphicsGetCurrentContext();
 
-
+    [self scalePoints:rawMag withCount:2 andFactor: 0.9 / sqrt(pow(rawMag[1].x, 2) + pow(rawMag[1].y, 2))];
+    [self scalePoints:filteredMag withCount:2 andFactor: 0.9];
+    [self scalePoints:heading withCount:2 andFactor:0.9];
+    [self scalePoints:goal withCount:2 andFactor:0.9];
 
     [self rotatePoints:body withCount:POINTS(body) toAngle:_snapshot.estimated.headingAngle];
     [self rotatePoints:wheels withCount:POINTS(wheels) toAngle:_snapshot.estimated.headingAngle];
 
     [self transformPoints:body withCount:POINTS(body) to:rect];
     [self transformPoints:wheels withCount:POINTS(wheels) to:rect];
+
+    [self transformPoints:rawMag withCount:2 to:rect];
+    [self transformPoints:filteredMag withCount:2 to:rect];
+    [self transformPoints:goal withCount:2 to:rect];
+    [self transformPoints:heading withCount:2 to:rect];
+
+    CGContextScaleCTM(ctx, 0.5, 0.5);
+    CGContextTranslateCTM(ctx, rect.size.width / 2, rect.size.height / 2);
 
     CGContextSetStrokeColor(ctx, white);
     CGContextStrokeLineSegments(ctx, body, POINTS(body));
@@ -100,14 +125,19 @@
     CGContextSetLineWidth(ctx, 4);
     CGContextStrokeLineSegments(ctx, wheels, POINTS(wheels));
 
+    CGContextSetLineWidth(ctx, 3);
+
     CGContextSetStrokeColor(ctx, red);
     CGContextStrokeLineSegments(ctx, rawMag, 2);
 
-    CGContextSetStrokeColor(ctx, blue);
+    CGContextSetStrokeColor(ctx, yellow);
     CGContextStrokeLineSegments(ctx, filteredMag, 2);
 
     CGContextSetStrokeColor(ctx, green);
     CGContextStrokeLineSegments(ctx, goal, 2);
+
+    CGContextSetStrokeColor(ctx, blue);
+    CGContextStrokeLineSegments(ctx, heading, 2);
 
 }
 
