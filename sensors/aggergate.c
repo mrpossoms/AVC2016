@@ -66,7 +66,7 @@ static void estimateHeading(fusedObjState_t* body, float dt)
 
 	// use the gyro to estimate how confident we should be in the magnetometer's
 	// current measured heading
-	float w = body->imu.adjReadings.rotational.z / -640000.0f;
+	float w = body->imu.adjReadings.rotational.z / -32000.0f;
 
 	// update the heading according to magnetometer readings
 	mea->heading.x = -body->imu.adjReadings.mag.x;
@@ -91,10 +91,6 @@ ONCE_END
 	//float coincidence = powf(vec3fDot(&mea->heading, &est->gyroHeading), 128);
 	float da = vec3fAng(&mea->heading, &lastHeading);
 
-
-	// TODO check for car facing the opposite direction
-	//      of the goal. Right now it will steer in the opposite
-	//      direction if it is far enough off course
 	if(fabs(da) > 0.0001){
 		float coincidence = fabs(w) / da;
 		if(coincidence < 0) coincidence = 0;
@@ -103,7 +99,7 @@ ONCE_END
 		vec3Lerp(est->heading, lastHeading, mea->heading, coincidence);
 	}
 	//est->heading = est->gyroHeading;
-//	est->heading = mea->heading;
+	est->heading = mea->heading;
 
 	//assert(!isnan(coincidence));
 /*
@@ -137,7 +133,6 @@ int senUpdate(fusedObjState_t* body)
 	//	*estimated = *measured;
 
 		estimated->position = measured->position;
-		
 		body->lastMeasureTime = SYS.timeUp;
 		body->lastEstTime     = SYS.timeUp;
 	}
@@ -145,18 +140,20 @@ int senUpdate(fusedObjState_t* body)
 	{
 		estimated->position = measured->position;
 
-/*
+
 		// integrate position using velocity
 		vec3f_t* estVelLin = &estimated->velocity.linear;
+
+/*
 		estimated->position.x += estVelLin->x * dt;
 		estimated->position.y += estVelLin->y * dt;
 		estimated->position.z += estVelLin->z * dt;
-
+*/
 		// integrate IMU acceleration into velocity
 		estVelLin->x += body->imu.adjReadings.linear.x * dt;
 		estVelLin->y += body->imu.adjReadings.linear.y * dt;
 		estVelLin->z += body->imu.adjReadings.linear.z * dt;
-*/
+
 		body->lastEstTime = SYS.timeUp;
 	}
 	return 0;

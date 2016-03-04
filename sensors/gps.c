@@ -15,7 +15,7 @@ static pthread_t GPS_THREAD;
 
 static void* gpsWorker(void* args)
 {
-	char buf[256] = {};
+	char buf[512] = {};
 
 
 	while(1){
@@ -53,7 +53,7 @@ int gpsShutdown()
 //-----------------------------------------------------------------------------
 int gpsHasNewReadings()
 {
-	return LAST_CHK_SUM != GPS_STATE.checksum;
+	return LAST_CHK_SUM != GPS_STATE.checksum || !LAST_CHK_SUM;
 }
 //-----------------------------------------------------------------------------
 static void latLon2meters(vec3f_t* coord)

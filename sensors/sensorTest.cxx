@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
 		vec3f_t gry = SYS.body.imu.adjReadings.rotational;
 		sensorStatei_t *m = SYS.body.imu.calMinMax, *M = SYS.body.imu.calMinMax + 1;
 		icTextf(IC_TERM_WIDTH - 60, 2, "acc (%f, %f, %f)\nmag (%f, %f, %f)\ngyro (%f, %f, %f)", acc.x, acc.y, acc.z, mag.x, mag.y, mag.z, gry.x, gry.y, gry.z);
-		icTextf(IC_TERM_WIDTH - 60, 8, "acc range { (%d, %d), (%d, %d), (%d, %d) }", m->linear.x, M->linear.x, m->linear.y, M->linear.y, m->linear.z, M->linear.z);
+		icTextf(IC_TERM_WIDTH - 60, 8, "GPS loc (%f, %f)", SYS.body.measured.position.x, SYS.body.measured.position.y);
 		
 		icPresent();
 
