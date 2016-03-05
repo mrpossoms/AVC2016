@@ -9,8 +9,9 @@
 #import <MapKit/MapKit.h>
 #import "system.h"
 
-@interface SnapshotDisplay : MKMapView <MKMapViewDelegate, CLLocationManagerDelegate, MKAnnotation>
+@interface SnapshotMapView : MKMapView <MKMapViewDelegate, CLLocationManagerDelegate, MKAnnotation>
 
 @property (nonatomic) sysSnap_t snapshot;
+@property (nonatomic) CLLocationCoordinate2D coordinate;
 
 @end

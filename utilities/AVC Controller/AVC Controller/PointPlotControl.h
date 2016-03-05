@@ -14,10 +14,13 @@
     CGPoint*       points;
     NSUInteger     pointCount;
     const CGFloat *pointColor, *clearColor;
-    
-    @private
+
     CGPoint min, max;
 }
+
+@property BOOL minMaxSet;
+
+- (void)addPoint:(CGPoint)magReading;
 
 + (instancetype)plotWithFrame:(CGRect)frame;
 

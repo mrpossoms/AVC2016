@@ -6,19 +6,19 @@
 //  Copyright © 2016 PossomGames. All rights reserved.
 //
 
-#import "SnapshotDisplay.h"
+#import "SnapshotMapView.h"
 #import "SnapshotAnnotationView.h"
 #import "WaypointsOverlay.h"
 
-@interface SnapshotDisplay()
+@interface SnapshotMapView()
 
 @property CLLocationManager* locationManager;
-@property SnapshotAnnotationView* annotaion;
+@property SnapshotAnnotationView* carAnnotationView;
 @property vec3f_t lastPosition;
 
 @end
 
-@implementation SnapshotDisplay
+@implementation SnapshotMapView
 
 - (void)setSnapshot:(sysSnap_t)snapshot
 {
@@ -30,19 +30,19 @@
 
     _snapshot = snapshot;
 
+    const float dia = 6371000 * 2; // diameter of the earth (meters)
+    [self setCoordinate:CLLocationCoordinate2DMake(
+                                                   (_snapshot.estimated.position.y / dia) / (M_PI / 180.0f),
+                                                   (_snapshot.estimated.position.x / dia) / (M_PI / 180.0f)
+                                                   )];
+
     vec3Sub(h, snapshot.estimated.position, _lastPosition);
-
-    _snapshot.estimated.headingAngle = atan2f(h.y, h.x);
-    
-    [self focusOnLocation:[[CLLocation alloc] initWithLatitude:self.coordinate.latitude longitude:self.coordinate.longitude]];
-
-    while(self.annotations.count){
-        [self removeAnnotation:self.annotations.firstObject];
-    }
-
-    [self addAnnotation:self];
-    [self addAnnotation:[WaypointsOverlay overlayAt:_snapshot.currentWaypoint.location]];
-    [self addAnnotation:[WaypointsOverlay overlayAt:_snapshot.nextWaypoint.location]];
+//    dispatch_async(dispatch_get_main_queue(), ^{
+        [self focusOnLocation:[[CLLocation alloc] initWithLatitude:self.coordinate.latitude longitude:self.coordinate.longitude]];
+        self.carAnnotationView.snapshot = snapshot;
+//        self.carAnnotationView.center = [self convertCoordinate:self.coordinate toPointToView:self];
+        [self.carAnnotationView setNeedsDisplay];
+//    });
 }
 
 - (instancetype)initWithCoder:(NSCoder *)aDecoder
@@ -56,8 +56,6 @@
     self.showsScale = YES;
     self.mapType = MKMapTypeSatellite;
 
-    [self addAnnotation:self];
-
     if([CLLocationManager locationServicesEnabled]){
         self.locationManager = [[CLLocationManager alloc] init];
         self.locationManager.activityType = CLActivityTypeOther;
@@ -66,6 +64,8 @@
         [self.locationManager requestWhenInUseAuthorization];
         [self.locationManager startUpdatingLocation];
     }
+
+    [self addAnnotation:self];
 
     return self;
 }
@@ -85,16 +85,6 @@
 - (NSString*)title
 {
     return @"Das Robit";
-}
-
-- (CLLocationCoordinate2D) coordinate
-{
-    const float dia = 6371000 * 2; // diameter of the earth (meters)
-
-    return CLLocationCoordinate2DMake(
-                                      (_snapshot.estimated.position.y / dia) / (M_PI / 180.0f),
-                                      (_snapshot.estimated.position.x / dia) / (M_PI / 180.0f)
-                                      );
 }
 
 #pragma mark - Location manager delegate
@@ -123,17 +113,17 @@
 - (nullable MKAnnotationView *)mapView:(MKMapView *)mapView viewForAnnotation:(id <MKAnnotation>)annotation
 {
     if([annotation isKindOfClass:[self class]]){
-        SnapshotAnnotationView* annoView = (SnapshotAnnotationView*)[mapView dequeueReusableAnnotationViewWithIdentifier:@"RobitAnnotation"];
+        self.carAnnotationView = (SnapshotAnnotationView*)[mapView dequeueReusableAnnotationViewWithIdentifier:@"RobitAnnotation"];
 
-        if(!annoView){
-            annoView = [[SnapshotAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:@"RobitAnnotation"];
+        if(!self.carAnnotationView){
+            self.carAnnotationView = [[SnapshotAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:@"RobitAnnotation"];
         }
-        annoView.bounds = CGRectMake(0, 0, 160, 160);
-        annoView.snapshot = _snapshot;
+        self.carAnnotationView.bounds = CGRectMake(0, 0, 160, 160);
+        self.carAnnotationView.snapshot = _snapshot;
 
-        [annoView setNeedsDisplay];
+        [self.carAnnotationView setNeedsDisplay];
 
-        return annoView;
+        return self.carAnnotationView;
     }
 
     if([annotation isKindOfClass:[WaypointsOverlay class]]){

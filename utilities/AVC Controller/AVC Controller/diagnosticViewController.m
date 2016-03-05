@@ -6,13 +6,14 @@
 //  Copyright © 2016 PossomGames. All rights reserved.
 //
 
+#include <sys/ioctl.h>
 #include <sys/socket.h>
 
 #import "diagnosticViewController.h"
 #import "PointPlotControl.h"
 #import "VectorPlotControl.h"
 #import "Errors.h"
-#import "SnapshotDisplay.h"
+#import "SnapshotMapView.h"
 
 #include "types.h"
 #include "system.h"
@@ -30,9 +31,10 @@
     uint32_t blackboxSamples;
 }
 
+@property (weak, nonatomic) IBOutlet UILabel *gpCoordLabel;
 @property (weak, nonatomic) IBOutlet UILabel *stateNumberLabel;
 @property (weak, nonatomic) IBOutlet UISlider *scrubber;
-@property (weak, nonatomic) IBOutlet SnapshotDisplay *snapshotDisplay;
+@property (weak, nonatomic) IBOutlet SnapshotMapView *snapshotDisplay;
 @property (weak, nonatomic) IBOutlet UITableView *blackboxTable;
 @property (weak, nonatomic) IBOutlet UIActivityIndicatorView *connectingIndicator;
 @property dispatch_queue_t pollQueue;
@@ -79,9 +81,13 @@ NSString* DIAG_DATA_TITLES[] = {
 }
 
 - (IBAction)didDismiss:(id)sender {
-    [self dismissViewControllerAnimated:YES completion:^{
-        // no-op
-    }];
+    self.shouldPoll = NO;
+
+    dispatch_after(DISPATCH_TIME_NOW + NSEC_PER_SEC * 1, dispatch_get_main_queue(), ^{
+        [self dismissViewControllerAnimated:YES completion:^{
+            // no-op
+        }];
+    });
 }
 
 - (void)viewWillAppear:(BOOL)animated
@@ -198,26 +204,32 @@ NSString* DIAG_DATA_TITLES[] = {
         while(self.shouldPoll){
             CFAbsoluteTime now = CFAbsoluteTimeGetCurrent();
 
+            NSLog(@"Polling");
+
+
             if(now - last < 0.1){
                 usleep(100000);
                 continue;
             }
-            NSLog(@"Polling");
 
-            int written = write(sock, "X", 1);
-
-            fd_set readfd;
-            struct timeval timeout = { 1, 0 };
+            ssize_t bytes = 0;
             sysSnap_t snapShot = {};
-            FD_ZERO(&readfd);
-            FD_SET(sock, &readfd);
 
-            if(select(sock + 1, &readfd, NULL, NULL, &timeout) > 0){
-                int bytes = read(sock, &snapShot, sizeof(sysSnap_t));
+            write(sock, "X", 1);
+
+            while(bytes < sizeof(sysSnap_t)){
+                ioctl(sock, FIONREAD, &bytes);
+                usleep(10000);
             }
 
-            self.data.data = snapShot;
+            bytes = read(sock, &snapShot, sizeof(sysSnap_t));
+
             self.snapshotDisplay.snapshot = snapShot;
+
+            dispatch_async(dispatch_get_main_queue(), ^{
+                self.gpCoordLabel.text = [NSString stringWithFormat:@"%f lat, %f lon", self.snapshotDisplay.coordinate.latitude, self.snapshotDisplay.coordinate.longitude];
+            });
+
 
             last = now;
         }
@@ -242,26 +254,8 @@ NSString* DIAG_DATA_TITLES[] = {
 
         return cell;
     }
-    else{
-        UITableViewCell* cell = [tableView dequeueReusableCellWithIdentifier:@"DIAG-CELL"];
 
-        NSString* descriptions[] = {
-            self.data.mesPosition, self.data.mesVelocity, self.data.mesHeading,
-            self.data.estPosition, self.data.estVelocity, self.data.estHeading,
-            self.data.hasGpsFix
-        };
-
-        cell.textLabel.text       = DIAG_DATA_TITLES[indexPath.row];
-        cell.detailTextLabel.text = descriptions[indexPath.row];
-
-        int r = 0xC1 - (indexPath.row % 2 ? 0xA : 0);
-        int g = 0x31 - (indexPath.row % 2 ? 0xA : 0);
-        int b = 0x1D - (indexPath.row % 2 ? 0xA : 0);
-        cell.backgroundColor = cell.contentView.backgroundColor = [UIColor colorWithRed:r / 255.0f green:g / 255.0f blue:b / 255.0f alpha:1];
-        
-        return cell;
-
-    }
+    return nil;
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
@@ -271,8 +265,12 @@ NSString* DIAG_DATA_TITLES[] = {
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    [self.connectingIndicator startAnimating];
-    [self.scrubber setValue:0 animated:NO];
+    if(self.connectingIndicator.isAnimating) return;
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self.connectingIndicator startAnimating];
+        [self.scrubber setValue:0 animated:NO];
+    });
 
     dispatch_async(self.pollQueue, ^{
         int sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -310,18 +308,20 @@ NSString* DIAG_DATA_TITLES[] = {
         blackbox = (sysSnap_t*)calloc(blackboxSamples + 1, sizeof(sysSnap_t));
 
         for(int i = 0; i < blackboxSamples; ++i){
-            usleep(1000);
-            size_t bytes = read(sock, blackbox + i, sizeof(sysSnap_t));
+            size_t bytes = 0;
+            while(bytes < sizeof(sysSnap_t)){
+                ioctl(sock, FIONREAD, &bytes);
+                usleep(10000);
+            }
+
+            bytes = read(sock, blackbox + i, sizeof(sysSnap_t));
             assert(bytes == sizeof(sysSnap_t));
         }
 
         dispatch_async(dispatch_get_main_queue(), ^{
             [self.connectingIndicator stopAnimating];
             self.snapshotDisplay.snapshot = blackbox[1];
-
-//            [UIView animateWithDuration:10 animations:^{
-//                [self.scrubber setValue:1.0 animated:YES];
-//            }];
+            self.gpCoordLabel.text = [NSString stringWithFormat:@"%f lat, %f lon", self.snapshotDisplay.coordinate.latitude, self.snapshotDisplay.coordinate.longitude];
         });
 
         close(sock);
@@ -334,10 +334,12 @@ NSString* DIAG_DATA_TITLES[] = {
 }
 
 - (IBAction)didScrub:(id)sender {
-    UISlider* slider = sender;
+    if(blackboxSamples <= 0) return;
 
+    UISlider* slider = sender;
     NSUInteger index = (NSUInteger)(blackboxSamples * slider.value);
     self.snapshotDisplay.snapshot = blackbox[index];
+    self.gpCoordLabel.text = [NSString stringWithFormat:@"%f lat, %f lon", self.snapshotDisplay.coordinate.latitude, self.snapshotDisplay.coordinate.longitude];
 
     self.stateNumberLabel.text = [NSString stringWithFormat:@"%lu / %d", (unsigned long)index, blackboxSamples];
 }
