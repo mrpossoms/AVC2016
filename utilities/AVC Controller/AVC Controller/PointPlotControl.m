@@ -131,19 +131,21 @@
     }
     
     NSMutableParagraphStyle* style = [[[NSParagraphStyle alloc] init] mutableCopy];
-    NSDictionary* attrs = nil;
+    NSDictionary* attrs = @{
+                            NSForegroundColorAttributeName: [UIColor whiteColor]
+                            };
     style.alignment = NSTextAlignmentLeft;
     CGFloat textBoxWidth = radius.dx / 2;
-    [[NSString stringWithFormat:@"%f", min.x] drawInRect:CGRectMake(horizontalAxis[0].x, horizontalAxis[0].y, textBoxWidth, 20) withAttributes:attrs];
+    [[NSString stringWithFormat:@"%0.3f", min.x] drawInRect:CGRectMake(horizontalAxis[0].x, horizontalAxis[0].y, textBoxWidth, 20) withAttributes:attrs];
     
     style.alignment = NSTextAlignmentRight;
-    [[NSString stringWithFormat:@"%f", max.x] drawInRect:CGRectMake(horizontalAxis[1].x - textBoxWidth, horizontalAxis[1].y, textBoxWidth, 20) withAttributes:attrs];
+    [[NSString stringWithFormat:@"%0.3f", max.x] drawInRect:CGRectMake(horizontalAxis[1].x - textBoxWidth, horizontalAxis[1].y, textBoxWidth, 20) withAttributes:attrs];
 
     style.alignment = NSTextAlignmentLeft;
-    [[NSString stringWithFormat:@"%f", min.y] drawInRect:CGRectMake(verticalAxis[0].x, verticalAxis[0].y, textBoxWidth, 20) withAttributes:attrs];
+    [[NSString stringWithFormat:@"%0.3f", min.y] drawInRect:CGRectMake(verticalAxis[0].x, verticalAxis[0].y, textBoxWidth, 20) withAttributes:attrs];
     
     style.alignment = NSTextAlignmentRight;
-    [[NSString stringWithFormat:@"%f", max.y] drawInRect:CGRectMake(verticalAxis[1].x, verticalAxis[1].y - 20, textBoxWidth, 20) withAttributes:attrs];
+    [[NSString stringWithFormat:@"%0.3f", max.y] drawInRect:CGRectMake(verticalAxis[1].x, verticalAxis[1].y - 20, textBoxWidth, 20) withAttributes:attrs];
 }
 
 + (instancetype)plotWithFrame:(CGRect)frame

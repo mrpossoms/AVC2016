@@ -212,6 +212,8 @@ void imuUpdateState(int fd, imuState_t* state, int contCal)
 			if(reading.mag.x < magMin->x){ magMin->x = reading.mag.x; updatedMagWindow = 1; }
 			if(reading.mag.y > magMax->y){ magMax->y = reading.mag.y; updatedMagWindow = 1; }
 			if(reading.mag.y < magMin->y){ magMin->y = reading.mag.y; updatedMagWindow = 1; }
+			if(reading.mag.z > magMax->z){ magMax->z = reading.mag.z; updatedMagWindow = 1; }
+			if(reading.mag.z < magMin->z){ magMin->z = reading.mag.z; updatedMagWindow = 1; }
 		}
 
 		// write new mag min and max if applicable
@@ -233,16 +235,11 @@ void imuUpdateState(int fd, imuState_t* state, int contCal)
 
 		// map the mag from [-1, 1] based on the measured range
 		{
-			float w = magMax->x - magMin->x, h = magMax->y - magMin->y;
-			vec2f_t magOff = { w / 2, h / 2 };
-			vec2f_t min = { magMin->x - magOff.x, magMin->y - magOff.y };
-			vec2f_t max = { magMax->x - magOff.x, magMax->y - magOff.y };
-
-			adj_r->mag.x = map(raw->mag.x - magOff.x, min.x, max.x);
-			adj_r->mag.y = map(raw->mag.y - magOff.y, min.y, max.y);
-			//adj_r->mag.z = raw->mag.z;//map(raw->mag.z, magMin->z, magMax->z);
+			adj_r->mag.x = map(raw->mag.x, magMin->x, magMax->x);
+			adj_r->mag.y = map(raw->mag.y, magMin->y, magMax->y);
+			adj_r->mag.z = map(raw->mag.z, magMin->z, magMax->z);
 		}
-		
+
 		adj_r->rotational.x = raw->rotational.x - GYRO_MEAN[0];
 		adj_r->rotational.y = raw->rotational.y - GYRO_MEAN[1];
 		adj_r->rotational.z = raw->rotational.z - GYRO_MEAN[2];
