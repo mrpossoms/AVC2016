@@ -4,11 +4,6 @@
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="9530"/>
     </dependencies>
-    <customFonts key="customFonts">
-        <mutableArray key="SparkFont.ttf">
-            <string>SparkFont</string>
-        </mutableArray>
-    </customFonts>
     <scenes>
         <!--View Controller-->
         <scene sceneID="EHf-IW-A2E">
@@ -22,17 +17,17 @@
                         <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" misplaced="YES" text="" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Ddl-Bw-an5">
-                                <rect key="frame" x="168" y="226" width="264" height="148"/>
-                                <fontDescription key="fontDescription" name="SparkFont" family="SparkFont" pointSize="85"/>
-                                <color key="textColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
-                                <nil key="highlightedColor"/>
-                            </label>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Logo" translatesAutoresizingMaskIntoConstraints="NO" id="1iJ-Ki-ZXK">
+                                <rect key="frame" x="200" y="190" width="200" height="220"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="200" id="2dw-4P-0q2"/>
+                                </constraints>
+                            </imageView>
                         </subviews>
                         <color key="backgroundColor" red="0.87843137250000003" green="0.19215686269999999" blue="0.1137254902" alpha="1" colorSpace="calibratedRGB"/>
                         <constraints>
-                            <constraint firstItem="Ddl-Bw-an5" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="Ekq-g9-ugG"/>
-                            <constraint firstItem="Ddl-Bw-an5" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="qMc-wb-bEj"/>
+                            <constraint firstItem="1iJ-Ki-ZXK" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="ALQ-tj-MOA"/>
+                            <constraint firstItem="1iJ-Ki-ZXK" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="bae-PB-HR6"/>
                         </constraints>
                     </view>
                 </viewController>
@@ -41,4 +36,7 @@
             <point key="canvasLocation" x="53" y="375"/>
         </scene>
     </scenes>
+    <resources>
+        <image name="Logo" width="438" height="220"/>
+    </resources>
 </document>

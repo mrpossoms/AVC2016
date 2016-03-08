@@ -17,7 +17,6 @@ static void* gpsWorker(void* args)
 {
 	char buf[512] = {};
 
-
 	while(1){
 		lnReadMsg(buf, sizeof(buf));
 		lnParseMsg(&GPS_STATE, buf);

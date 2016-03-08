@@ -7,10 +7,11 @@
 //
 
 #import "PointPlotControl.h"
+#include "system.h"
 
 @interface PointPlotControl()
 
-@property BOOL minMaxSet;
+@property uint8_t index;
 
 @end
 
@@ -23,6 +24,8 @@
     
     pointColor = black;
     clearColor = white;
+
+    self->points = (CGPoint*)calloc(256, sizeof(CGPoint));
 }
 
 - (instancetype)init
@@ -35,6 +38,11 @@
     return self;
 }
 
+- (void)dealloc
+{
+    free(self->points);
+}
+
 - (instancetype)initWithFrame:(CGRect)frame
 {
     self = [super initWithFrame:frame];
@@ -43,6 +51,17 @@
     }
     
     return self;
+}
+
+- (void)addPoint:(CGPoint)magReading
+{
+    points[_index] = magReading;
+
+    _index++;
+
+    if(_index > pointCount){
+        pointCount = _index;
+    }
 }
 
 - (BOOL)findMinMax
@@ -92,13 +111,17 @@
     CGContextStrokeLineSegments(ctx, horizontalAxis, 2);
     
     
-    if(![self findMinMax]) return;
+    if(!self.minMaxSet && ![self findMinMax]) return;
     
 //    const float s = 1.25f;
 //    min.x *= s; min.y *= s;
 //    max.x *= s; max.y *= s;
-    
-    CGContextSetFillColor(ctx, pointColor);
+
+    CGFloat color[4];
+    memcpy(color, pointColor, sizeof(color));
+    color[3] *= 0.5;
+
+    CGContextSetFillColor(ctx, color);
     for(NSUInteger i = pointCount; i--;){
         CGPoint point = points[i];
 

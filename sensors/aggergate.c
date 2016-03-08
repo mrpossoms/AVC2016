@@ -94,7 +94,7 @@ ONCE_END
 	if(fabs(da) > 0.0001){
 		float coincidence = fabs(w) / da;
 		if(coincidence < 0) coincidence = 0;
-		
+
 //		printf("da = %f w = %f\n", da, w);
 		vec3Lerp(est->heading, lastHeading, mea->heading, coincidence);
 	}
@@ -129,11 +129,9 @@ int senUpdate(fusedObjState_t* body)
 		vec3Sub(*velLin, measured->position, lastPos);
 		vec3Scl(*velLin, *velLin, dt);
 
-		// since we now have measurements, reset the estimates
-	//	*estimated = *measured;
-
 		estimated->position = measured->position;
-		body->lastMeasureTime = SYS.timeUp;
+
+        body->lastMeasureTime = SYS.timeUp;
 		body->lastEstTime     = SYS.timeUp;
 	}
 	else

@@ -5,12 +5,35 @@
 //  Created by Kirk Roerig on 2/28/16.
 //  Copyright © 2016 PossomGames. All rights reserved.
 //
-
 #import "SnapshotAnnotationView.h"
+#import "PointPlotControl.h"
 
 #define POINTS(e) (sizeof(e) / sizeof(CGPoint))
 
+@import MapKit;
+
+@interface SnapshotAnnotationView()
+@property (nonatomic) NSObject<MKAnnotation>* myAnno;
+@property PointPlotControl* magPlot;
+@end
+
 @implementation SnapshotAnnotationView
+
+- (void)setSnapshot:(sysSnap_t)snapshot
+{
+    _snapshot = snapshot;
+    _snapshot.estimated.headingAngle = atan2f(snapshot.estimated.heading.y, snapshot.estimated.heading.x) + M_PI_2;
+
+    [self.magPlot addPoint:CGPointMake(snapshot.imu.raw.mag.x, snapshot.imu.raw.mag.y)];
+    self.magPlot.frame = self.bounds;
+    [self.magPlot setNeedsDisplay];
+}
+
+- (void)setFrame:(CGRect)frame
+{
+    super.frame = frame;
+    _magPlot.frame = self.bounds;
+}
 
 - (instancetype)initWithAnnotation:(id<MKAnnotation>)annotation reuseIdentifier:(NSString *)reuseIdentifier
 {
@@ -18,6 +41,19 @@
     if(!self) return nil;
 
     self.opaque = NO;
+    _myAnno = annotation;
+    _magPlot = [[PointPlotControl alloc] initWithFrame:self.frame];
+    _magPlot.opaque = NO;
+    _magPlot->min = CGPointMake(-3000, -3000);
+    _magPlot->max = CGPointMake( 3000,  3000);
+    _magPlot.minMaxSet = YES;
+
+    static CGFloat pointColor[4] = { 1, 0, 0, 1 };
+    static CGFloat clearColor[4] = { 0, 0, 0, 0.1 };
+
+    [self addSubview: _magPlot];
+    _magPlot->pointColor = pointColor;
+    _magPlot->clearColor = clearColor;
 
     return self;
 }
@@ -51,6 +87,8 @@
 
 - (void)drawRect:(CGRect)rect
 {
+    [super drawRect:rect];
+
     CGPoint body[] = {
         // chassis
         { 0, -0.8 }, { 0.3, 0.2 },

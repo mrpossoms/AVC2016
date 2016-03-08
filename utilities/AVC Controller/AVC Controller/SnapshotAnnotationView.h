@@ -11,6 +11,6 @@
 
 @interface SnapshotAnnotationView : MKAnnotationView
 
-@property sysSnap_t snapshot;
+@property (nonatomic) sysSnap_t snapshot;
 
 @end
