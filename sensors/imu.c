@@ -89,7 +89,7 @@ sensorStatei_t imuGetReadings(int fd)
 		sendByte(fd, ADDR_GYRO, 0x20, 0x0F);
 
 		isSetup = 1;
-		usleep(100000);
+		usleep(1000000);
 	}
 
 	res += requestBytes(fd, ADDR_ACC_MAG, ACC_REG, &reading.linear, sizeof(vec3i16_t));
