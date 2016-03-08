@@ -217,16 +217,16 @@ NSString* DIAG_DATA_TITLES[] = {
 
             write(sock, "X", 1);
 
-            while(bytes < sizeof(sysSnap_t)){
+            for(int i = 1000; i && bytes < sizeof(sysSnap_t); i--){
                 ioctl(sock, FIONREAD, &bytes);
                 usleep(10000);
             }
 
             bytes = read(sock, &snapShot, sizeof(sysSnap_t));
 
-            self.snapshotDisplay.snapshot = snapShot;
 
             dispatch_async(dispatch_get_main_queue(), ^{
+                self.snapshotDisplay.snapshot = snapShot;
                 self.gpCoordLabel.text = [NSString stringWithFormat:@"%f lat, %f lon", self.snapshotDisplay.coordinate.latitude, self.snapshotDisplay.coordinate.longitude];
             });
 

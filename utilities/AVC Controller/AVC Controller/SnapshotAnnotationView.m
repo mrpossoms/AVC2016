@@ -24,7 +24,7 @@
     _snapshot = snapshot;
     _snapshot.estimated.headingAngle = atan2f(snapshot.estimated.heading.y, snapshot.estimated.heading.x) + M_PI_2;
 
-    [self.magPlot addPoint:CGPointMake(snapshot.imu.raw.mag.x, snapshot.imu.raw.mag.y)];
+    [self.magPlot addPoint:CGPointMake(snapshot.imu.adj.mag.x, snapshot.imu.adj.mag.y)];
     self.magPlot.frame = self.bounds;
     [self.magPlot setNeedsDisplay];
 }
@@ -44,9 +44,9 @@
     _myAnno = annotation;
     _magPlot = [[PointPlotControl alloc] initWithFrame:self.frame];
     _magPlot.opaque = NO;
-    _magPlot->min = CGPointMake(-3000, -3000);
-    _magPlot->max = CGPointMake( 3000,  3000);
-    _magPlot.minMaxSet = YES;
+//    _magPlot->min = CGPointMake(-3000, -3000);
+//    _magPlot->max = CGPointMake( 3000,  3000);
+//    _magPlot.minMaxSet = NO;
 
     static CGFloat pointColor[4] = { 1, 0, 0, 1 };
     static CGFloat clearColor[4] = { 0, 0, 0, 0.1 };

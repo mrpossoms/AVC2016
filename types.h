@@ -4,6 +4,11 @@
 #include <inttypes.h>
 #include <math.h>
 
+#define vec2Sub(r, v1, v2){\
+	(r).v[0] = (v1).v[0] - (v2).v[0];\
+	(r).v[1] = (v1).v[1] - (v2).v[1];\
+}\
+
 #define vec3Add(r, v1, v2){\
 	(r).v[0] = (v1).v[0] + (v2).v[0];\
 	(r).v[1] = (v1).v[1] + (v2).v[1];\

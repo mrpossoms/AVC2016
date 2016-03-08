@@ -68,11 +68,6 @@
 {
     if(!points) return NO;
     
-    if(!self.minMaxSet){
-        self.minMaxSet = YES;
-        max = min = points[0];
-    }
-    
     for(NSUInteger i = pointCount; i--;){
         if(points[i].x > max.x){
             max.x = points[i].x;
