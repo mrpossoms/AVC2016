@@ -10,7 +10,9 @@
 #import "SnapshotAnnotationView.h"
 #import "WaypointsOverlay.h"
 
-@interface SnapshotMapView()
+@interface SnapshotMapView(){
+    vec3f_t lastWaypoint;
+}
 
 @property CLLocationManager* locationManager;
 @property SnapshotAnnotationView* carAnnotationView;
@@ -35,6 +37,16 @@
                                                    (_snapshot.estimated.position.y / dia) / (M_PI / 180.0f),
                                                    (_snapshot.estimated.position.x / dia) / (M_PI / 180.0f)
                                                    )];
+
+    if(memcpy(&lastWaypoint, &_snapshot.currentWaypoint.location, sizeof(vec3f_t))){
+        for(WaypointsOverlay* annotation in self.annotations){
+            [self removeAnnotation:annotation];
+        }
+
+        [self addAnnotation:[WaypointsOverlay overlayAt:_snapshot.currentWaypoint.location]];
+        [self addAnnotation:[WaypointsOverlay overlayAt:_snapshot.nextWaypoint.location]];
+    }
+
 
     vec3Sub(h, snapshot.estimated.position, _lastPosition);
 //    dispatch_async(dispatch_get_main_queue(), ^{
