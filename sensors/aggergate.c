@@ -131,7 +131,7 @@ int senUpdate(fusedObjState_t* body)
 
 		estimated->position = measured->position;
 
-        body->lastMeasureTime = SYS.timeUp;
+		body->lastMeasureTime = SYS.timeUp;
 		body->lastEstTime     = SYS.timeUp;
 	}
 	else

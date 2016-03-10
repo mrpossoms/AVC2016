@@ -242,12 +242,21 @@ void imuUpdateState(int fd, imuState_t* state, int contCal)
 			vec3Sub(magRad, *magMax, *magMin); 	
 			vec3Scl(magRad, magRad, 1.0f / 2.0f);
 
+			assert(!vec3fIsNan(&magRad));	
+
 			// compute the offset vector 
 			vec3Sub(magOff, *magMax, magRad);
 
+			assert(!vec3fIsNan(&magOff));
+
 			// do the rest!
 			vec3Sub(adj_r->mag, raw->mag, magOff);
+
+			//assert(magRad.x > 0 && magRad.y > 0 && magRad.z > 0);
+			
 			vec3Div(adj_r->mag, adj_r->mag, magRad);
+
+			assert(!vec3fIsNan(&adj_r->mag));
 /*
 			adj_r->mag.x = map(raw->mag.x, magMin->x, magMax->x);
 			adj_r->mag.y = map(raw->mag.y, magMin->y, magMax->y);
