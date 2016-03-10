@@ -47,7 +47,7 @@ void listBlackBoxLogs(int connfd)
 
 	// if we couldn't open the dir, tell them to expect nothing
 	if(!dir){
-		syslog(0, "Failed to open dir\n");
+		syslog(0, "Failed to open dir '%s'\n", bbPath);
 		files = 0;
 	}
 	syslog(0, "sending %d files\n", files);
