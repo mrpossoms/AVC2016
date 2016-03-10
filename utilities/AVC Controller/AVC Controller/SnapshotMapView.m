@@ -39,10 +39,14 @@
                                                    )];
 
     if(memcpy(&lastWaypoint, &_snapshot.currentWaypoint.location, sizeof(vec3f_t))){
-        for(WaypointsOverlay* annotation in self.annotations){
-            [self removeAnnotation:annotation];
+        NSMutableArray<id<MKAnnotation>>* toRemove = [NSMutableArray array];
+        for(id<MKAnnotation> annotation in self.annotations){
+            if([annotation isKindOfClass:[WaypointsOverlay class]]){
+                [toRemove addObject:annotation];
+            }
         }
 
+        [self removeAnnotations:toRemove];
         [self addAnnotation:[WaypointsOverlay overlayAt:_snapshot.currentWaypoint.location]];
         [self addAnnotation:[WaypointsOverlay overlayAt:_snapshot.nextWaypoint.location]];
     }
