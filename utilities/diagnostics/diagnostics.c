@@ -113,7 +113,10 @@ int diagHost(short port)
 int diagBlkBoxLog()
 {
 	static char* name;
+	static int counter;
 	int fd;
+
+	if(!(counter++ % 10)) return;
 
 	if(!name){
 		name = (char*)malloc(64);

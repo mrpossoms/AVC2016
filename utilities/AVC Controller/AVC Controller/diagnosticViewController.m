@@ -31,6 +31,7 @@
     uint32_t blackboxSamples;
 }
 
+@property (weak, nonatomic) IBOutlet UIProgressView *downloadView;
 @property (weak, nonatomic) IBOutlet UILabel *gpCoordLabel;
 @property (weak, nonatomic) IBOutlet UILabel *stateNumberLabel;
 @property (weak, nonatomic) IBOutlet UISlider *scrubber;
@@ -111,6 +112,7 @@ NSString* DIAG_DATA_TITLES[] = {
     }
 
     [self.connectingIndicator startAnimating];
+    self.downloadView.hidden = YES;
 
     dispatch_async(self.pollQueue, ^{
         int sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -267,10 +269,9 @@ NSString* DIAG_DATA_TITLES[] = {
 {
     if(self.connectingIndicator.isAnimating) return;
 
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [self.connectingIndicator startAnimating];
-        [self.scrubber setValue:0 animated:NO];
-    });
+    [self.connectingIndicator startAnimating];
+    [self.scrubber setValue:0 animated:NO];
+    self.downloadView.hidden = NO;
 
     dispatch_async(self.pollQueue, ^{
         int sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -292,11 +293,6 @@ NSString* DIAG_DATA_TITLES[] = {
             return;
         }
 
-        // connected!
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self.connectingIndicator stopAnimating];
-        });
-
         uint32_t action = MISS_SRV_BLKBOX_DOWNLOAD;
 
         write(sock, &action, sizeof(action));
@@ -315,10 +311,14 @@ NSString* DIAG_DATA_TITLES[] = {
             }
 
             bytes = read(sock, blackbox + i, sizeof(sysSnap_t));
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self.downloadView setProgress: (i / (float)blackboxSamples) animated:YES];
+            });
             assert(bytes == sizeof(sysSnap_t));
         }
 
         dispatch_async(dispatch_get_main_queue(), ^{
+            self.downloadView.hidden = YES;
             [self.connectingIndicator stopAnimating];
             self.snapshotDisplay.snapshot = blackbox[1];
             self.gpCoordLabel.text = [NSString stringWithFormat:@"%f lat, %f lon", self.snapshotDisplay.coordinate.latitude, self.snapshotDisplay.coordinate.longitude];

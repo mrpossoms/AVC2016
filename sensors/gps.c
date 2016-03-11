@@ -67,7 +67,7 @@ static void latLon2meters(vec3f_t* coord)
 	coord->y = dia * latRad;
 }
 //-----------------------------------------------------------------------------
-int gpsGetReadings(vec3f_t* position, vec3f_t* velocity)
+int gpsGetReadings(vec3f_t* position, vec3f_t* heading)
 {
 	vec3f_t lastPos = *position;
 
@@ -82,12 +82,24 @@ int gpsGetReadings(vec3f_t* position, vec3f_t* velocity)
 
 	latLon2meters(position);
 
-	vec3f_t heading  = { position->x - lastPos.x, position->y - lastPos.y, position->z - lastPos.z };
-	float headingMag = sqrt(heading.x * heading.x + heading.y * heading.y + heading.z * heading.z);
+	vec3f_t delta  = { position->x - lastPos.x, position->y - lastPos.y, position->z - lastPos.z };
+	float deltaMag = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
 
-	velocity->x = GPS_STATE.Speed * heading.x / headingMag;
-	velocity->y = GPS_STATE.Speed * heading.y / headingMag;
-	velocity->z = GPS_STATE.Speed * heading.z / headingMag;
+	// use GPS to try to determine the heading
+	if(deltaMag > 0){
+		vec3f_t newHeading = {};
+		float d;
+
+		vec3Scl(newHeading, delta, 1 / deltaMag);
+		
+		if((d = vec3Dot(newHeading, heading)) <= 0){
+			// the direction reverse, just take the new heading
+			*heading = newHeading;
+		}
+		else{ // otherwise prefer new velocities that are near the current
+			vec3Lerp(*heading, *heading, newHeading, d / deltaMag);
+		}
+	}
 
 	LAST_CHK_SUM = GPS_STATE.checksum;
 

@@ -33,6 +33,8 @@
 	(r).v[2] = (a).v[2] / (b).v[2];\
 }\
 
+#define vec3Dot(a, b) ((a).x * (b).x + (a).y * (b).y + (a).z * (b).z)
+
 #define vec3Lerp(r, a, b, p){\
 	(r).v[0] = (a).v[0] * (1.0f - p) + (b).v[0] * p;\
 	(r).v[1] = (a).v[1] * (1.0f - p) + (b).v[1] * p;\
