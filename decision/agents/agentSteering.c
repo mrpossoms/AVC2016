@@ -1,6 +1,5 @@
-#include "decision/agents.h"
+#include "agents.h"
 #include "controls/servos.h"
-#include "system.h"
 
 #include <string.h>
 
@@ -13,17 +12,17 @@ static float angleToNextWayPoint(objectState_t* o, gpsWaypointCont_t* waypoint)
 {
 	const vec3f_t zero = {};
 	if(!memcmp(&o->position, &zero, sizeof(vec3f_t))) return 0;
- 
+
 	vec3f_t toWaypoint = vec3fSub(&o->position, &waypoint->self.location);
-	vec3f_t tempHeading = o->heading;	
+	vec3f_t tempHeading = o->heading;
 	toWaypoint.x *= -1;
 
-	toWaypoint.z = tempHeading.z= 0; 
+	toWaypoint.z = tempHeading.z= 0;
 	toWaypoint = vec3fNorm(&toWaypoint);
 	tempHeading = vec3fNorm(&tempHeading);
 
 	float d1 = vec3fDot(&toWaypoint, &tempHeading);
-	
+
 	float x = cos(M_PI / 2) * tempHeading.x - sin(M_PI / 2) * tempHeading.y;
 	float y = sin(M_PI / 2) * tempHeading.x + cos(M_PI / 2) * tempHeading.y;
 	tempHeading.x = x; tempHeading.y = y;
@@ -62,7 +61,7 @@ static float utility(agent_t* current, void* args)
 	// thus nothing to steer toward
 	if(!SYS.route.start || !SYS.route.currentWaypoint){
 		if(SYS.debugging){
-			printf("No route (%x) or waypoint\n", SYS.route);
+			printf("No route (%x) or waypoint\n", (unsigned int)SYS.route.currentWaypoint);
 		}
 		return 0;
 	}

@@ -1,7 +1,7 @@
 #ifndef AVC_GPS
 #define AVC_GPS
 
-#include "types.h"
+#include "base/types.h"
 
 #ifdef __cplusplus
 extern "C" {

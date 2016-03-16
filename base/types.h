@@ -3,6 +3,13 @@
 
 #include <inttypes.h>
 #include <math.h>
+#include <arpa/inet.h>
+
+#ifdef DEBUG
+#include "kf.h"
+#else
+#include <kf.h>
+#endif
 
 #define vec2Sub(r, v1, v2){\
 	(r).v[0] = (v1).v[0] - (v2).v[0];\
@@ -43,6 +50,10 @@
 
 #define vec3Dist(a, b) sqrt(pow((a).x - (b).x, 2) + pow((a).y - (b).y, 2) + pow((a).z - (b).z, 2))
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //    _____
 //   |_   _|  _ _ __  ___ ___
 //     | || || | '_ \/ -_|_-<
@@ -68,6 +79,34 @@ typedef union{
 		float x, y, z;
 	};
 } vec3f_t;
+
+typedef struct{
+	vec3i16_t linear;
+	vec3i16_t rotational;
+	vec3i16_t mag;
+} sensorStatei_t;
+
+typedef struct{
+	vec3f_t linear;
+	vec3f_t rotational;
+	vec3f_t mag;
+} sensorStatef_t;
+
+typedef struct{
+	kf_t linear, rotational, mag;
+	uint8_t isSetup;
+} readingFilter_t;
+
+typedef struct{
+	sensorStatei_t  rawReadings;
+	sensorStatef_t  adjReadings;
+	readingFilter_t filter;
+	sensorStatei_t  calMinMax[2];
+	sensorStatef_t  means;
+	sensorStatef_t  standardDeviations;
+	float           samples;
+	int             isCalibrated;
+}imuState_t;
 
 typedef enum{
 	MISS_SRV_UPLOAD = 0,
@@ -98,75 +137,19 @@ typedef struct __GpsWaypoint{
 	struct __GpsWaypoint* next;
 } gpsWaypointCont_t;
 
-inline int vec3fIsNan(vec3f_t* v)
-{
-	return isnan(v->x) || isnan(v->y) || isnan(v->z);
-}
+void    vec3iEndianSwap(vec3i16_t* v);
+int     vec3fIsNan(vec3f_t* v);
+vec3f_t vec3fSub(vec3f_t* v1, vec3f_t* v2);
+vec3f_t vec3fScl(vec3f_t* v, float s);
+vec3f_t vec3fMul(vec3f_t* v1, vec3f_t* v2);
+float   vec3fDot(vec3f_t* v1, vec3f_t* v2);
+float   vec3fMag(vec3f_t* v);
+vec3f_t vec3fNorm(vec3f_t* v);
+void    vec2fRot(vec2f_t* r, vec2f_t* v, float theta);
+float   vec3fAng(vec3f_t* a, vec3f_t* b);
 
-inline vec3f_t vec3fSub(vec3f_t* v1, vec3f_t* v2)
-{
-	vec3f_t res = {
-		v1->x - v2->x,
-		v1->y - v2->y,
-		v1->z - v2->z,
-	};
-	return res;
+#ifdef __cplusplus
 }
-
-inline vec3f_t vec3fScl(vec3f_t* v, float s)
-{
-	vec3f_t res = {
-		v->x * s,
-		v->y * s,
-		v->z * s,
-	};
-	return res;
-}
-
-inline vec3f_t vec3fMul(vec3f_t* v1, vec3f_t* v2)
-{
-	vec3f_t res = {
-		v1->x * v2->x,
-		v1->y * v2->y,
-		v1->z * v2->z,
-	};
-	return res;
-}
-
-inline float vec3fDot(vec3f_t* v1, vec3f_t* v2)
-{
-	return v1->x * v2->x + v1->y * v2->y +v1->z * v2->z;
-}
-
-inline float vec3fMag(vec3f_t* v)
-{
-	return sqrt(v->x * v->x + v->y * v->y);
-}
-
-inline vec3f_t vec3fNorm(vec3f_t* v)
-{
-	float mag = vec3fMag(v);
-
-	vec3f_t res = {
-		v->x / mag,
-		v->y / mag,
-		v->z / mag,
-	};
-	return res;
-}
-
-inline void vec2fRot(vec2f_t* r, vec2f_t* v, float theta)
-{
-	float c = cos(theta), s = sin(theta);
-	r->x = c * v->x - s * v->y;
-	r->y = s * v->x + c * v->y;
-}
-
-inline float vec3fAng(vec3f_t* a, vec3f_t* b)
-{
-	vec3f_t an = vec3fNorm(a);
-	vec3f_t bn = vec3fNorm(b);
-	return acosf(vec3fDot(&an, &bn));
-}
+#endif
 
 #endif

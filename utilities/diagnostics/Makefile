@@ -2,34 +2,30 @@
 #     /_\ \ / / __| | _ )_  _(_) |__| |
 #    / _ \ V / (__  | _ \ || | | / _` |
 #   /_/ \_\_/ \___| |___/\_,_|_|_\__,_|
-# --- Sensors ---
+#
 CMP = gcc
 
-SYS  = ./../base
-DIAG = ./../utilities/diagnostics
+SYS = ./../../base
 
-INC=-I./../ -I./../utilities -I/usr/local/include
+INC=-I./../../ -I/usr/local/include
 LIB=-L/usr/lib -L/usr/local/lib
-LINK=-lm -lNEMA -lpthread -lKF
-FLAGS= -std=c99 -Wall -Werror -fpic
-
-INC += -I$(SYS)
-INC += -I$(DIAG)
+LINK=-lm -lpthread
 
 SRCS = $(wildcard ./*.c)
 OBJS = $(SRCS:.c=.o)
 
 LINK += $(SYS)/.so
-LINK += $(DIAG)/.so
 
-all: $(OBJS) system diagnostic
+all: $(OBJS)
 	gcc -shared -o .so $(OBJS) $(LINK)
 
 system:
 	make -C $(SYS)
 
-diagnostic:
+sensor-demo: $(OBJS)
 	make -C $(DIAG)
+	$(CMP) $(INC) $(FLAGS) -c sensorTest.cxx -o sensorTest.o
+	$(CMP) $(INC) $(FLAGS) $(OBJS) sensorTest.o -o SensorTest $(LINK)
 
 .c.o:
 	$(CMP) $(INC) $(FLAGS) -c $< -o $@

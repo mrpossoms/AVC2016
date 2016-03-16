@@ -1,6 +1,5 @@
-#include "decision/agents.h"
+#include "agents.h"
 #include "controls/servos.h"
-#include "system.h"
 
 static void throttleInit(void)
 {

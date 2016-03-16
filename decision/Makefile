@@ -2,34 +2,31 @@
 #     /_\ \ / / __| | _ )_  _(_) |__| |
 #    / _ \ V / (__  | _ \ || | | / _` |
 #   /_/ \_\_/ \___| |___/\_,_|_|_\__,_|
-# --- Sensors ---
+# --- Decision ---
 CMP = gcc
 
 SYS  = ./../base
-DIAG = ./../utilities/diagnostics
+CONTROLS = ./../controls
 
-INC=-I./../ -I./../utilities -I/usr/local/include
+INC= -I/usr/local/include -I./ -I./../ -I$(SYS)
 LIB=-L/usr/lib -L/usr/local/lib
-LINK=-lm -lNEMA -lpthread -lKF
+LINK=-lm
 FLAGS= -std=c99 -Wall -Werror -fpic
 
-INC += -I$(SYS)
-INC += -I$(DIAG)
-
-SRCS = $(wildcard ./*.c)
+SRCS  = $(wildcard ./*.c)
+SRCS += $(wildcard ./agents/*.c)
 OBJS = $(SRCS:.c=.o)
 
-LINK += $(SYS)/.so
-LINK += $(DIAG)/.so
+LINK += $(SYS)/.so $(CONTROLS)/.so
 
-all: $(OBJS) system diagnostic
+all: system controls $(OBJS)
 	gcc -shared -o .so $(OBJS) $(LINK)
 
 system:
 	make -C $(SYS)
 
-diagnostic:
-	make -C $(DIAG)
+controls:
+	make -C $(CONTROLS)
 
 .c.o:
 	$(CMP) $(INC) $(FLAGS) -c $< -o $@

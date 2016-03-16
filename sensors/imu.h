@@ -9,13 +9,8 @@
 #include <stdio.h>
 #include <strings.h>
 
-#ifdef DEBUG
-#include "kf.h"
-#else
-#include <kf.h>
-#endif
-
-#include "types.h"
+#include "base/types.h"
+#include "i2c.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,39 +18,6 @@ extern "C" {
 
 #define SMF_SAMP_TYPE int16_t
 #define WIN_SIZE 21
-
-//    _____
-//   |_   _|  _ _ __  ___ ___
-//     | || || | '_ \/ -_|_-<
-//     |_| \_, | .__/\___/__/
-//         |__/|_|
-typedef struct{
-	vec3i16_t linear;
-	vec3i16_t rotational;
-	vec3i16_t mag;
-} sensorStatei_t;
-
-typedef struct{
-	vec3f_t linear;
-	vec3f_t rotational;
-	vec3f_t mag;
-} sensorStatef_t;
-
-typedef struct{
-	kf_t linear, rotational, mag;
-	uint8_t isSetup;
-} readingFilter_t;
-
-typedef struct{
-	sensorStatei_t  rawReadings;
-	sensorStatef_t  adjReadings;
-	readingFilter_t filter;
-	sensorStatei_t  calMinMax[2];
-	sensorStatef_t  means;
-	sensorStatef_t  standardDeviations;
-	float           samples;
-	int             isCalibrated;
-}imuState_t;
 
 static inline void print_v3i16(vec3i16_t* v)
 {

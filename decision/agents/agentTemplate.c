@@ -1,5 +1,4 @@
-#include "decision/agents.h"
-#include "system.h"
+#include "agents.h"
 
 static void templateInit(void)
 {

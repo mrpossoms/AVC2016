@@ -13,4 +13,3 @@ void agentInitAgents()
 		AGENTS_ALL[i]->init();
 	}
 }
-

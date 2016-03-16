@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <indicurses.h>
 
-#include "system.h"
+#include "base/system.h"
 #include "aggergate.h"
 #include "utilities/diagnostics/diagnostics.h"
 
@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
 	int readings[3][50] = {{},{},{}};
 	int origin[100] = {};
 	//int minMax[2] = { -32000, 32000 };
-	int minMax[2] = { -20, 20 };	
+	int minMax[2] = { -20, 20 };
 
 	bzero(readings[0], sizeof(int) * samples);
 
@@ -54,8 +54,8 @@ int main(int argc, char* argv[])
 		senUpdate(&SYS.body);
 
 		int topLeft[2] = { 5, 2 };
-		int bottomRight[2] = { IC_TERM_WIDTH - 5, IC_TERM_HEIGHT - 2};	
-		
+		int bottomRight[2] = { IC_TERM_WIDTH - 5, IC_TERM_HEIGHT - 2};
+
 		readings[0][i] = SYS.body.imu.adjReadings.rotational.z / 1000.0f;
 		readings[1][i] = SYS.body.estimated.velocity.linear.y * 10;
 
@@ -67,7 +67,7 @@ int main(int argc, char* argv[])
 		icLineGraph(topLeft, bottomRight, 'r', readings[0], samples, minMax);
 		//attron(COLOR_PAIR(2));
 		//icLineGraph(topLeft, bottomRight, 'e', readings[1], samples, minMax);
-		
+
 		attroff(COLOR_PAIR(2));
 		icLineGraph(topLeft, bottomRight, '-', origin, 10, minMax);
 
@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
 		sensorStatei_t *m = SYS.body.imu.calMinMax, *M = SYS.body.imu.calMinMax + 1;
 		icTextf(IC_TERM_WIDTH - 60, 2, "acc (%f, %f, %f)\nmag (%f, %f, %f)\ngyro (%f, %f, %f)", acc.x, acc.y, acc.z, mag.x, mag.y, mag.z, gry.x, gry.y, gry.z);
 		icTextf(IC_TERM_WIDTH - 60, 8, "GPS loc (%f, %f)", SYS.body.measured.position.x, SYS.body.measured.position.y);
-		
+
 		icPresent();
 
 		sysTimerUpdate();

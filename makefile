@@ -1,15 +1,50 @@
-CMP=g++
-CFLAGS=
+#      ___   _____   ___      _ _    _
+#     /_\ \ / / __| | _ )_  _(_) |__| |
+#    / _ \ V / (__  | _ \ || | | / _` |
+#   /_/ \_\_/ \___| |___/\_,_|_|_\__,_|
+#
+CMP = gcc
+
+SYS     = ./base
+DIAG    = ./utilities/diagnostics
+SENSORS = ./sensors
+CTRLS   = ./controls
+DESC    = ./decision
+
 INC=-I./ -I/usr/local/include
-LIB=-L/usr/local/lib
-SRC=./controls/*.c ./utilities/diagnostics/*.c ./sensors/*.c ./decision/*.c ./decision/agents/*.c  ./comms/*.c system.c timer.c avc.cxx
+LIB=-L/usr/lib -L/usr/local/lib
 LINK=-lm -lpthread -lNEMA -lKF
 
+DEPENDS = $(SYS)/ $(DIAG)/ $(SENSORS)/ $(CTRLS)/ $(DESC)/
+LIB += -Wl,-rpath=$(SYS)/ -Wl,-rpath=$(DIAG)/ -Wl,-rpath=$(SENSORS)/ -Wl,-rpath=$(CTRLS)/ -Wl,-rpath=$(DESC)/
 
-all:
-	$(CMP) $(CFLAGS) $(INC) $(LIB) $(SRC) -o AVC $(LINK)
+SRC = avc.cxx
+OBJS = avc.o
+
+all: dependencies
+	$(eval LINK += $(DEPENDS:/=/.so))
+	$(CMP) $(CFLAGS) $(INC) $(LIB) -c avc.cxx -o avc.o
+	$(CMP) $(CFLAGS) $(INC) $(LIB) $(OBJS) -o AVC $(LINK)
+
+.PHONY: dependencies $(DEPENDS)
+dependencies: $(DEPENDS)
+
+$(DEPENDS):
+	make -C $@
+
 calibrator:
 	$(CMP) -I./ system.c ./sensors/*.c calibrator.c -o calibrator.bin $(LINK)
 
 clear-logs:
 	rm ./blackbox/1*
+
+.cxx.o:
+	$(CMP) $(INC) $(FLAGS) -c $< -o $@
+
+clean:
+	find . -type f -name '*.o' -exec rm {} +
+	# make clean -C $(DEPENDS)
+	make clean -C $(DIAG)
+	make clean -C $(SENSORS)
+	make clean -C $(CTRLS)
+	make clean -C $(DESC)

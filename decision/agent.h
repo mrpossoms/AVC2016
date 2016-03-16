@@ -1,6 +1,8 @@
 #ifndef AVC_DEC_STATE
 #define AVC_DEC_STATE
 
+#include "base/system.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

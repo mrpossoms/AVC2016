@@ -1,5 +1,4 @@
 #include "diagnostics.h"
-#include "system.h"
 
 #include <stdio.h>
 #include <fcntl.h>
@@ -49,12 +48,12 @@ static void* handler(void* params)
 				if(ci > usedConnections) usedConnections = ci;
 				ci %= (sizeof(connections) / sizeof(int));
 				if(newConnection > maxFd) maxFd = newConnection;
-			}	
+			}
 		}
-		
+
 		FD_ZERO(&readFd);
 		for(int i = usedConnections; i--;){
-			
+
 			FD_SET(connections[i], &readFd);
 		}
 		if(maxFd <= 0){
@@ -71,7 +70,7 @@ static void* handler(void* params)
 			int fd = connections[i];
 			char byte;
 
-	
+
 			if(FD_ISSET(fd, &readFd)){
 				int bytesToRead = 0;
 				ioctl(fd, FIONREAD, &bytesToRead);
@@ -116,7 +115,7 @@ int diagBlkBoxLog()
 	static int counter;
 	int fd;
 
-	if(!(counter++ % 10)) return;
+	if(!(counter++ % 10)) return 1;
 
 	if(!name){
 		name = (char*)malloc(64);
@@ -131,4 +130,6 @@ int diagBlkBoxLog()
 	write(fd, &snapshot, sizeof(snapshot));
 
 	close(fd);
+
+	return 0;
 }

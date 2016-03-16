@@ -9,19 +9,19 @@
 #include <assert.h>
 #include <signal.h>
 
-#include "system.h"
+#include "base/system.h"
 #include "controls/servos.h"
 #include "sensors/aggergate.h"
 #include "decision/agents.h"
 #include "utilities/diagnostics/diagnostics.h"
 
 void sigHandler(int sig)
-{	
+{
 	if(sig == SIGINT){
 		ctrlSet(SERVO_STEERING, 50);
 		ctrlSet(SERVO_THROTTLE, 50);
 		exit(0);
-	}	
+	}
 }
 
 int hasOpt(char* argv[], int argc, const char* target){
@@ -35,12 +35,12 @@ int hasOpt(char* argv[], int argc, const char* target){
 int main(int argc, char* argv[])
 {
 	int err = 0;
-	openlog("AVC_BOT", 0, 0);	
+	openlog("AVC_BOT", 0, 0);
 
 	if(hasOpt(argv, argc, "--debug")){
 		SYS.debugging = 1;
 	}
-	
+
 	if(hasOpt(argv, argc, "--mag-cal")){
 		SYS.magCal = 1;
 	}
@@ -93,12 +93,12 @@ int main(int argc, char* argv[])
 			AGENT_THROTTLE.action(NULL, NULL);
 		}
 		sysTimerUpdate();
-	
+
 		// record system state, if indicated
 		if(useBlackBox){
 			diagBlkBoxLog();
-		}		
-	
+		}
+
 		// if there is no next goal or GPS then terminate
 		if(!SYS.route.currentWaypoint){
 			break;
@@ -110,4 +110,3 @@ int main(int argc, char* argv[])
 	sigHandler(SIGINT);
 	return 0;
 }
-

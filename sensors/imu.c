@@ -1,14 +1,7 @@
 #include "imu.h"
-#include <fcntl.h>    // File control definitions
 #include <stdlib.h>
-#include <sys/ioctl.h>
 #include <assert.h>
-#include <arpa/inet.h>
 #include <math.h>
-
-#ifdef __linux__
-#include <linux/i2c-dev.h>
-#endif
 
 #define ADDR_ACC_MAG 0x1D
 #define ADDR_GYRO    0x6B
@@ -29,47 +22,8 @@ static sensorStatei_t READINGS[WARMUP_SAMPLES];
 //   | (__/ _ \ '  \| '  \(_-<_
 //    \___\___/_|_|_|_|_|_/__(_)
 //
-static void endianSwapVec3(vec3i16_t* v)
-{
-	return;
-	v->x = ntohs(v->x);
-	v->y = ntohs(v->y);
-	v->z = ntohs(v->z);
-}
 
-static int sendByte(int fd, uint8_t devAddr, uint8_t dstReg, uint8_t byte)
-{
-#ifndef __linux__
-	return 1;
-#else
 
-	uint8_t buf[] = { dstReg, byte };
-
-	ioctl(fd, I2C_SLAVE, devAddr);
-	write(fd, buf, 2);
-
-	return 0;
-#endif
-}
-
-static int requestBytes(int fd, uint8_t devAddr, uint8_t srcReg, void* dstBuf, size_t bytes)
-{
-#ifndef __linux__
-	return 1;
-#else
-
-	uint8_t commByte;
-	ioctl(fd, I2C_SLAVE, devAddr);
-	commByte = 0x80 | srcReg;
-	write(fd, &commByte, 1);
-
-	if(read(fd, dstBuf, bytes) != bytes){
-		return -1;
-	}
-
-	return 0;
-#endif
-}
 
 //    ___       _          ___     _ _ _
 //   |   \ __ _| |_ __ _  | _ \___| | (_)_ _  __ _
@@ -83,24 +37,20 @@ sensorStatei_t imuGetReadings(int fd)
 	int res = 0;
 
 	if(!isSetup){
-		sendByte(fd, ADDR_ACC_MAG, 0x20, 0x67);
-		sendByte(fd, ADDR_ACC_MAG, 0x21, 0x00);
-		sendByte(fd, ADDR_ACC_MAG, 0x26, 0x00);
-		sendByte(fd, ADDR_GYRO, 0x20, 0x0F);
+		i2cSendByte(fd, ADDR_ACC_MAG, 0x20, 0x67);
+		i2cSendByte(fd, ADDR_ACC_MAG, 0x21, 0x00);
+		i2cSendByte(fd, ADDR_ACC_MAG, 0x26, 0x00);
+		i2cSendByte(fd, ADDR_GYRO, 0x20, 0x0F);
 
 		isSetup = 1;
 		usleep(1000000);
 	}
 
-	res += requestBytes(fd, ADDR_ACC_MAG, ACC_REG, &reading.linear, sizeof(vec3i16_t));
-	res += requestBytes(fd, ADDR_GYRO,    GYR_REG, &reading.rotational, sizeof(vec3i16_t));
-	res += requestBytes(fd, ADDR_ACC_MAG, MAG_REG, &reading.mag, sizeof(vec3i16_t));
+	res += i2cReqBytes(fd, ADDR_ACC_MAG, ACC_REG, &reading.linear, sizeof(vec3i16_t));
+	res += i2cReqBytes(fd, ADDR_GYRO,    GYR_REG, &reading.rotational, sizeof(vec3i16_t));
+	res += i2cReqBytes(fd, ADDR_ACC_MAG, MAG_REG, &reading.mag, sizeof(vec3i16_t));
 
 	assert(res == 0);
-
-	endianSwapVec3(&reading.linear);
-	endianSwapVec3(&reading.rotational);
-	endianSwapVec3(&reading.mag);
 
 	return reading;
 }
@@ -237,14 +187,14 @@ void imuUpdateState(int fd, imuState_t* state, int contCal)
 		{
 			vec3f_t magRad = {};
 			vec3f_t magOff = {};
-	
+
 			// compute the radii for each axis
-			vec3Sub(magRad, *magMax, *magMin); 	
+			vec3Sub(magRad, *magMax, *magMin);
 			vec3Scl(magRad, magRad, 1.0f / 2.0f);
 
-			assert(!vec3fIsNan(&magRad));	
+			assert(!vec3fIsNan(&magRad));
 
-			// compute the offset vector 
+			// compute the offset vector
 			vec3Sub(magOff, *magMax, magRad);
 
 			assert(!vec3fIsNan(&magOff));
@@ -253,7 +203,7 @@ void imuUpdateState(int fd, imuState_t* state, int contCal)
 			vec3Sub(adj_r->mag, raw->mag, magOff);
 
 			//assert(magRad.x > 0 && magRad.y > 0 && magRad.z > 0);
-			
+
 			vec3Div(adj_r->mag, adj_r->mag, magRad);
 
 			assert(!vec3fIsNan(&adj_r->mag));

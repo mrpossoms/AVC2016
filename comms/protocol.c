@@ -16,11 +16,10 @@ static rxProc_t RX_PROCESSORS[MSG_COUNT];
 
 static int                SOCK;
 static struct sockaddr_in HOST_ADDR;
-
 static const uint32_t SIG = MSG_SIG;
 
 int commInitClient(const char* hostname, uint16_t port, struct sockaddr_in* host)
-{			
+{
 	struct sockaddr_in addr = {};
 	struct hostent* he;
 	int res = 0;
@@ -28,7 +27,7 @@ int commInitClient(const char* hostname, uint16_t port, struct sockaddr_in* host
 	addr.sin_family      = AF_INET;
 	addr.sin_port        = htons(0);
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	
+
 	// open the socket
 	if(!(SOCK = socket(AF_INET, SOCK_DGRAM, 0))){
 		return -1;
@@ -47,7 +46,7 @@ int commInitClient(const char* hostname, uint16_t port, struct sockaddr_in* host
 	HOST_ADDR.sin_family = AF_INET;
 	HOST_ADDR.sin_port   = htons(port);
 	memcpy((void*)&(HOST_ADDR.sin_addr), he->h_addr_list[0], he->h_length);
-	
+
 	memcpy(host, &HOST_ADDR, sizeof(HOST_ADDR));
 
 	return 0;
@@ -60,7 +59,7 @@ int commInitHost(uint16_t port)
 	addr.sin_family      = AF_INET;
 	addr.sin_port        = htons(port);
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	
+
 	// open the socket
 	if(!(SOCK = socket(AF_INET, SOCK_DGRAM, 0))){
 		return -1;
@@ -151,4 +150,3 @@ int commListen()
 
 	return 0;
 }
-
