@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
 	}
 
 	if(signal(SIGINT, sigHandler) == SIG_ERR){
-		SYS_ERR("Registering signal SIGINT failed", NULL);
+		SYS_ERR("Registering signal SIGINT failed %d", errno);
 		return err;
 	}
 

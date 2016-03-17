@@ -1,7 +1,9 @@
 #include "agents.h"
 #include "controls/servos.h"
 
+#include <unistd.h>
 #include <string.h>
+#include <math.h>
 
 static void steeringInit(void)
 {

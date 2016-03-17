@@ -114,7 +114,7 @@ static int hasStatProps(imuState_t* state)
 	for(int i = WARMUP_SAMPLES; i--;){
 		for(int j = 3; j--;){
 			double v = READINGS[i].linear.v[j] - ACCEL_MEAN[j];
-			double w = READINGS[i].rotational.v[j] - GYRO_MEAN[j];
+			//double w = READINGS[i].rotational.v[j] - GYRO_MEAN[j];
 			varLin[j] += (v * v) / (float)WARMUP_SAMPLES;
 		}
 	}
@@ -146,7 +146,6 @@ void imuUpdateState(int fd, imuState_t* state, int contCal)
 
 	if(!hasStatProps(state)) return;
 
-	readingFilter_t* filter = &state->filter;
 
 	if(state->isCalibrated){
 		vec3i16_t* accMin = &state->calMinMax[0].linear;

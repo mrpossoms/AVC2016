@@ -11,7 +11,7 @@ DIAG = ./../utilities/diagnostics
 INC=-I./../ -I./../utilities -I/usr/local/include
 LIB=-L/usr/lib -L/usr/local/lib
 LINK=-lm -lNEMA -lpthread -lKF
-FLAGS= -std=c99 -Wall -Werror -fpic
+FLAGS= -std=c99 -Wall -Werror -Wno-comment -Wno-missing-braces -fpic -D_XOPEN_SOURCE=500
 
 INC += -I$(SYS)
 INC += -I$(DIAG)
@@ -19,17 +19,8 @@ INC += -I$(DIAG)
 SRCS = $(wildcard ./*.c)
 OBJS = $(SRCS:.c=.o)
 
-LINK += $(SYS)/.so
-LINK += $(DIAG)/.so
-
-all: $(OBJS) system diagnostic
+all: $(OBJS)
 	gcc -shared -o .so $(OBJS) $(LINK)
-
-system:
-	make -C $(SYS)
-
-diagnostic:
-	make -C $(DIAG)
 
 .c.o:
 	$(CMP) $(INC) $(FLAGS) -c $< -o $@

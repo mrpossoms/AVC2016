@@ -14,9 +14,10 @@ DESC    = ./decision
 INC=-I./ -I/usr/local/include
 LIB=-L/usr/lib -L/usr/local/lib
 LINK=-lm -lpthread -lNEMA -lKF
+FLAGS=-Wno-format-extra-args
 
 DEPENDS = $(SYS)/ $(DIAG)/ $(SENSORS)/ $(CTRLS)/ $(DESC)/
-LIB += -Wl,-rpath=$(SYS)/ -Wl,-rpath=$(DIAG)/ -Wl,-rpath=$(SENSORS)/ -Wl,-rpath=$(CTRLS)/ -Wl,-rpath=$(DESC)/
+#LIB += -Wl,-rpath=$(SYS)/ -Wl,-rpath=$(DIAG)/ -Wl,-rpath=$(SENSORS)/ -Wl,-rpath=$(CTRLS)/ -Wl,-rpath=$(DESC)/
 
 SRC = avc.cxx
 OBJS = avc.o
@@ -48,3 +49,4 @@ clean:
 	make clean -C $(SENSORS)
 	make clean -C $(CTRLS)
 	make clean -C $(DESC)
+	rm AVC

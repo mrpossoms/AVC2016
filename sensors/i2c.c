@@ -2,6 +2,7 @@
 
 #include <sys/ioctl.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 #ifdef __linux__
 #include <linux/i2c-dev.h>

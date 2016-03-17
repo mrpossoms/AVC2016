@@ -10,11 +10,10 @@ SYS = ./../../base
 INC=-I./../../ -I/usr/local/include
 LIB=-L/usr/lib -L/usr/local/lib
 LINK=-lm -lpthread
+FLAGS=-std=c99
 
 SRCS = $(wildcard ./*.c)
 OBJS = $(SRCS:.c=.o)
-
-LINK += $(SYS)/.so
 
 all: $(OBJS)
 	gcc -shared -o .so $(OBJS) $(LINK)

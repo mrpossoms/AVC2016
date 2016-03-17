@@ -29,6 +29,7 @@
 *.x86_64
 *.hex
 objectDetection
+AVC
 
 # Debug files
 *.dSYM/
