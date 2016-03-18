@@ -10,7 +10,6 @@
 #define MAG_REG 0x08
 #define GYR_REG 0x28
 
-#define G 9.8
 #define WARMUP_SAMPLES 10
 
 static int32_t ACCEL_MEAN[3], GYRO_MEAN[3];
@@ -178,9 +177,9 @@ void imuUpdateState(int fd, imuState_t* state, int contCal)
 		// from the calibration profile
 		sensorStatef_t* adj_r = &state->adjReadings;
 		sensorStatei_t* raw = &state->rawReadings;
-		adj_r->linear.x = G * map(raw->linear.x, accMin->x, accMax->x);
-		adj_r->linear.y = G * map(raw->linear.y, accMin->y, accMax->y);
-		adj_r->linear.z = G * map(raw->linear.z, accMin->z, accMax->z);
+		adj_r->linear.x = LIL_G * map(raw->linear.x, accMin->x, accMax->x);
+		adj_r->linear.y = LIL_G * map(raw->linear.y, accMin->y, accMax->y);
+		adj_r->linear.z = LIL_G * map(raw->linear.z, accMin->z, accMax->z);
 
 		// map the mag from [-1, 1] based on the measured range
 		{
