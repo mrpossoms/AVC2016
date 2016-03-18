@@ -92,6 +92,8 @@ int main(int argc, char* argv[])
 		if(hasOpt(argv, argc, "--use-throttle")){
 			AGENT_THROTTLE.action(NULL, NULL);
 		}
+		AGENT_CRASH_DETECTOR.action(NULL, NULL);
+
 		sysTimerUpdate();
 
 		// record system state, if indicated

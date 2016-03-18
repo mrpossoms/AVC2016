@@ -5,6 +5,7 @@ agent_t* AGENTS_ALL[] = {
 	&AGENT_STEERING,
 	&AGENT_ROUTING,
 	&AGENT_THROTTLE,
+	&AGENT_CRASH_DETECTOR,
 };
 
 void agentInitAgents()

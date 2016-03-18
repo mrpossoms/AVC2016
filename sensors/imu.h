@@ -10,6 +10,7 @@
 #include <strings.h>
 
 #include "base/types.h"
+#include "base/constants.h"
 #include "i2c.h"
 
 #ifdef __cplusplus

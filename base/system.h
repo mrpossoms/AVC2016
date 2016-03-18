@@ -9,8 +9,7 @@
 #include <unistd.h>
 
 #include "types.h"
-
-#define MAX_FEATURES 900
+#include "constants.h"
 
 #define SYS_ERR(fmt, ...){\
 	char msg[256], prefix[512];\

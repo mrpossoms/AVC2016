@@ -12,6 +12,7 @@ extern agent_t AGENT_TEMPLATE;
 extern agent_t AGENT_STEERING;
 extern agent_t AGENT_ROUTING;
 extern agent_t AGENT_THROTTLE;
+extern agent_t AGENT_CRASH_DETECTOR;
 
 // list of all agent objects
 extern agent_t* AGENTS_ALL[];
