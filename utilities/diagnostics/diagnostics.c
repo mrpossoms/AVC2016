@@ -111,11 +111,12 @@ int diagHost(short port)
 
 int diagBlkBoxLog()
 {
+	static float lastTime;
 	static char* name;
-	static int counter;
 	int fd;
 
-	if(!(counter++ % 10)) return 1;
+	if(SYS.timeUp - lastTime < 0.1) return 1;
+	lastTime = SYS.timeUp;
 
 	if(!name){
 		name = (char*)malloc(64);

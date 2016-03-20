@@ -19,9 +19,10 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	int res = senInit(argv[1], argv[2], "./../imu.cal");
+	int res = senInit(argv[1], argv[2], "./../../imu.cal");
 	printf("Res %d\n", res);
-
+	assert(!res);
+	
 	gpsWaypointCont_t* waypoints;
 	assert(!gpsRouteLoad(argv[3], &waypoints));
 	assert(!diagHost(1340));
@@ -36,9 +37,8 @@ int main(int argc, char* argv[])
 	start_color();
 	init_pair(1, COLOR_RED, COLOR_BLACK);
 	init_pair(2, COLOR_BLUE, COLOR_BLACK);
+	init_pair(3, COLOR_GREEN, COLOR_BLACK);
 	clear();
-
-	assert(!res);
 
 	const int samples = 50;
 	int i = 0;
@@ -57,7 +57,8 @@ int main(int argc, char* argv[])
 		int bottomRight[2] = { IC_TERM_WIDTH - 5, IC_TERM_HEIGHT - 2};
 
 		readings[0][i] = SYS.body.imu.adjReadings.rotational.z / 1000.0f;
-		readings[1][i] = SYS.body.estimated.velocity.linear.y * 10;
+		readings[1][i] = SYS.body.imu.adjReadings.linear.y;
+		readings[2][i] = SYS.body.imu.adjReadings.linear.z;
 
 		++i;
 		i %= samples;
@@ -65,10 +66,14 @@ int main(int argc, char* argv[])
 		clear();
 		attron(COLOR_PAIR(1));
 		icLineGraph(topLeft, bottomRight, 'r', readings[0], samples, minMax);
-		//attron(COLOR_PAIR(2));
-		//icLineGraph(topLeft, bottomRight, 'e', readings[1], samples, minMax);
+		
+		attron(COLOR_PAIR(2));
+		icLineGraph(topLeft, bottomRight, 'y', readings[1], samples, minMax);
 
-		attroff(COLOR_PAIR(2));
+		attron(COLOR_PAIR(3));
+		icLineGraph(topLeft, bottomRight, 'z', readings[2], samples, minMax);
+
+		attroff(COLOR_PAIR(3));
 		icLineGraph(topLeft, bottomRight, '-', origin, 10, minMax);
 
 		vec3f_t acc = SYS.body.imu.adjReadings.linear;

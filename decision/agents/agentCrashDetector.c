@@ -18,6 +18,7 @@ static void* action(agent_t* lastState, void* args)
 	if(vec3fMag(&SYS.body.imu.adjReadings.linear) > LIL_G + 5){
 		// set the current waypoint to NULL, this will terminate the
 		// program
+		printf("IMPACT DETECTED\n");
 		SYS.route.currentWaypoint = NULL;
 	} 
 

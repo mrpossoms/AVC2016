@@ -38,7 +38,7 @@ sensor-demo: shared-obj dependencies
 	$(CMP) $(INC) $(FLAGS) $(OBJS) sensorTest.o -o SensorTest $(LINK) ./.so
 
 .c.o:
-	$(MP) $(INC) $(FLAGS) -c $< -o $@
+	$(CMP) $(INC) $(FLAGS) -c $< -o $@
    
 clean:
 	find . -type f -name '*.o' -exec rm {} +

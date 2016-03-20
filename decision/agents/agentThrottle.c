@@ -20,6 +20,7 @@ static void* action(agent_t* lastState, void* args)
 		ctrlSet(SERVO_THROTTLE, 53);
 	}
 	else{
+		printf("none\n");
 		ctrlSet(SERVO_THROTTLE, 50);
 	}
 	return NULL;
