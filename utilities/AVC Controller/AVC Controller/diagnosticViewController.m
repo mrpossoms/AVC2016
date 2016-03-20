@@ -15,8 +15,8 @@
 #import "Errors.h"
 #import "SnapshotMapView.h"
 
-#include "types.h"
-#include "system.h"
+#include "base/types.h"
+#include "base/system.h"
 #include "clientAddress.h"
 
 @interface diagnosticViewController (){

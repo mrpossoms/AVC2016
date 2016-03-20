@@ -7,8 +7,8 @@
 //
 
 #import <Foundation/Foundation.h>
-#include "system.h"
-#include "types.h"
+#include "base/system.h"
+#include "base/types.h"
 
 @interface SensorReadings : NSObject
 

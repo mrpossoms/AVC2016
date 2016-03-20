@@ -11,24 +11,32 @@ SENSORS = ./sensors
 CTRLS   = ./controls
 DESC    = ./decision
 
-INC=-I./ -I/usr/local/include
+EXTERNALS = ./external/libNEMA/ ./external/indicurses/ ./external/libKF/
+DEPENDS = $(SYS)/ $(DIAG)/ $(SENSORS)/ $(CTRLS)/ $(DESC)/
+
+INC=-I./ -I/usr/local/include $(EXTERNALS:./%/=-I./%/include)
 LIB=-L/usr/lib -L/usr/local/lib
 LINK=-lm -lpthread -lNEMA -lKF
 FLAGS=-Wno-format-extra-args
 
-DEPENDS = $(SYS)/ $(DIAG)/ $(SENSORS)/ $(CTRLS)/ $(DESC)/
-#LIB += -Wl,-rpath=$(SYS)/ -Wl,-rpath=$(DIAG)/ -Wl,-rpath=$(SENSORS)/ -Wl,-rpath=$(CTRLS)/ -Wl,-rpath=$(DESC)/
+LIB += -Wl,-rpath=$(SYS)/ -Wl,-rpath=$(DIAG)/ -Wl,-rpath=$(SENSORS)/ -Wl,-rpath=$(CTRLS)/ -Wl,-rpath=$(DESC)/
 
 SRC = avc.cxx
 OBJS = avc.o
 
-all: dependencies
+all: dependencies externals
 	$(eval LINK += $(DEPENDS:/=/.so))
 	$(CMP) $(CFLAGS) $(INC) $(LIB) -c avc.cxx -o avc.o
 	$(CMP) $(CFLAGS) $(INC) $(LIB) $(OBJS) -o AVC $(LINK)
 
 .PHONY: dependencies $(DEPENDS)
 dependencies: $(DEPENDS)
+
+.PHONY: externals
+externals: $(EXTERNALS)	
+
+$(EXTERNALS):
+	make -C $@	
 
 $(DEPENDS):
 	make -C $@

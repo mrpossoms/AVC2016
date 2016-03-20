@@ -1,0 +1,14 @@
+location: .gdm
+sources:
+- repo: https://github.com/mrpossoms/libNEMA
+  dir: libNEMA
+  rev: master
+  link: ./external/libNEMA
+- repo: https://github.com/mrpossoms/indicurses
+  dir: indicurses
+  rev: master
+  link: ./external/indicurses
+- repo: https://github.com/mrpossoms/libKF
+  dir: libKF
+  rev: master
+  link: ./external/libKF
