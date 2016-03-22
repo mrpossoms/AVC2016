@@ -63,6 +63,21 @@ static void estimateHeading(fusedObjState_t* body, float dt)
 {
 	objectState_t *mea= &body->measured;
 	objectState_t *est= &body->estimated;
+	vec3f_t* heading = &body->imu.adjReadings.mag;
+	vec3f_t  up      = vec3fNorm(&body->imu.adjReadings.linear);
+	vec3f_t forward = { 0, 1, 0 };
+	static kfMat_t rotMat;
+
+	if(!rotMat.col){
+		rotMat = kfMatAlloc(3, 3);
+	}
+
+	kfVecCross(rotMat.col[0], up.v, forward.v, 3); // left
+	memcpy(rotMat.col[2], &up, sizeof(up));        // up
+	kfVecCross(rotMat.col[1], rotMat.col[0], up.v, 3);   // forward
+
+	// rotate the mag vector back into the world frame
+	kfMatMulVec(body->imu.adjReadings.mag.v, rotMat, heading->v, 3);
 
 	// use the gyro to estimate how confident we should be in the magnetometer's
 	// current measured heading
@@ -77,7 +92,6 @@ static void estimateHeading(fusedObjState_t* body, float dt)
 	if(vec3fIsNan(&mea->heading)) return;
 
 ONCE_START
-	printf("ONCE\n");
 	*est= *mea;
 ONCE_END
 
@@ -116,7 +130,6 @@ int senUpdate(fusedObjState_t* body)
 	objectState_t *estimated = &body->estimated;
 
 	imuUpdateState(FD_IMU, &body->imu, SYS.magCal);
-
 	estimateHeading(body, dt);
 
 	if(gpsHasNewReadings()){
@@ -141,11 +154,6 @@ int senUpdate(fusedObjState_t* body)
 		// integrate position using velocity
 		vec3f_t* estVelLin = &estimated->velocity.linear;
 
-/*
-		estimated->position.x += estVelLin->x * dt;
-		estimated->position.y += estVelLin->y * dt;
-		estimated->position.z += estVelLin->z * dt;
-*/
 		// integrate IMU acceleration into velocity
 		estVelLin->x += body->imu.adjReadings.linear.x * dt;
 		estVelLin->y += body->imu.adjReadings.linear.y * dt;
