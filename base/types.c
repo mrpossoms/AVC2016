@@ -50,7 +50,7 @@ float vec3fDot(vec3f_t* v1, vec3f_t* v2)
 
 float vec3fMag(vec3f_t* v)
 {
-	return sqrt(v->x * v->x + v->y * v->y);
+	return sqrt(v->x * v->x + v->y * v->y + v->z * v->z);
 }
 
 vec3f_t vec3fNorm(vec3f_t* v)

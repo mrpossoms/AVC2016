@@ -15,7 +15,7 @@ static float utility(agent_t* current, void* args)
 static void* action(agent_t* lastState, void* args)
 {
 	// do stuff here, choose a successor state if appropriate
-	if(fabs(&SYS.body.imu.adjReadings.linear.y) > 5){
+	if(fabs(SYS.body.imu.adjReadings.linear.y) > 5){
 		// set the current waypoint to NULL, this will terminate the
 		// program
 		printf("IMPACT DETECTED\n");

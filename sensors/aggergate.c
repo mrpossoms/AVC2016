@@ -63,8 +63,8 @@ static void estimateHeading(fusedObjState_t* body, float dt)
 {
 	objectState_t *mea= &body->measured;
 	objectState_t *est= &body->estimated;
-	vec3f_t* heading = &body->imu.adjReadings.mag;
-	vec3f_t  up      = vec3fNorm(&body->imu.adjReadings.linear);
+	vec3f_t heading = body->imu.adjReadings.mag;
+	vec3f_t up      = vec3fNorm(&body->imu.adjReadings.linear);
 	vec3f_t forward = { 0, 1, 0 };
 	static kfMat_t rotMat;
 
@@ -72,12 +72,23 @@ static void estimateHeading(fusedObjState_t* body, float dt)
 		rotMat = kfMatAlloc(3, 3);
 	}
 
-	kfVecCross(rotMat.col[0], up.v, forward.v, 3); // left
-	memcpy(rotMat.col[2], &up, sizeof(up));        // up
-	kfVecCross(rotMat.col[1], rotMat.col[0], up.v, 3);   // forward
+	if(!vec3fIsNan(&up)){
+		//printf("up = (%f, %f, %f)\n", heading.x, heading.y, heading.z);
 
-	// rotate the mag vector back into the world frame
-	kfMatMulVec(body->imu.adjReadings.mag.v, rotMat, heading->v, 3);
+		kfVecCross(rotMat.col[0], up.v, forward.v, 3); // left
+		memcpy(rotMat.col[2], &up, sizeof(up));        // up
+		kfVecCross(rotMat.col[1], rotMat.col[0], up.v, 3);   // forward
+
+		rotMat.col[0][0] *= -1;
+		rotMat.col[0][1] *= -1;
+		rotMat.col[0][2] *= -1;
+
+		//kfMatPrint(rotMat);
+		// rotate the mag vector back into the world frame
+
+		//kfMatIdent(rotMat);
+		kfMatMulVec(body->imu.adjReadings.mag.v, rotMat, heading.v, 3);
+	}
 
 	// use the gyro to estimate how confident we should be in the magnetometer's
 	// current measured heading

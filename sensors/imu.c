@@ -73,8 +73,6 @@ static int filterReading(imuState_t* state)
 	}
 
 	for(int i = 3; i--;){
-		if(i == 0) continue; // skip the filter on the accelerometer	
-	
 		kf_t* filter = (&f->linear) + i;
 		float* x = (&state->adjReadings.linear)[i].v;
 
