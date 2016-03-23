@@ -69,11 +69,6 @@ NSString* DIAG_DATA_TITLES[] = {
 - (void)viewDidLayoutSubviews
 {
 
-    static const char* labels[] = {
-        "filtered_mag",
-        "est_heading",
-        "goal"
-    };
 }
 
 - (void)didReceiveMemoryWarning {

@@ -13,6 +13,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
+#import <AudioToolbox/AudioServices.h>
 #import "clientAddress.h"
 #import "RouteViewController.h"
 #import "Waypoint.h"
@@ -160,21 +161,22 @@ typedef enum{
         
         return;
     }
-    
-    self.uploadProgress.hidden = NO;
-    self.uploadProgress.progress = 0;
-    
+
     [self reduceRoute:WAYPOINT_START];
     [self updateRecordedRoute];
     
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-    
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self.uploadProgress setHidden:NO];
+            [self.uploadProgress setProgress:0 animated:NO];
+        });
+
         int sockfd;
         if((sockfd = socket(AF_INET, SOCK_STREAM, 0)))
         {
             struct sockaddr_in addr = *HOST_ADDRESS;
             addr.sin_port = htons(1339);
-            
+
             if(connect(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
             {
                 UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Error"
@@ -221,7 +223,8 @@ typedef enum{
             // clean up
             close(sockfd);
             free(waypoints);
-            dispatch_async(dispatch_get_main_queue(), ^{ self.uploadProgress.hidden = YES; });
+            sleep(1);
+            dispatch_async(dispatch_get_main_queue(), ^{ [self.uploadProgress setHidden:YES]; });
         }
         else{
             
@@ -246,6 +249,7 @@ typedef enum{
                 break;
             case MODE_MANUAL:
                 [self addWaypointWithCoordinate:self.map.centerCoordinate];
+                AudioServicesPlayAlertSound(kSystemSoundID_Vibrate);
                 break;
         }
     }
