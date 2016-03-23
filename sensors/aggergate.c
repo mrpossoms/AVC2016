@@ -6,6 +6,7 @@
 #include <libNEMA.h>
 
 static int FD_IMU;
+static kfMat_t ROT_MAT, TEMP_MAT[2];
 
 //-----------------------------------------------------------------------------
 static int openSensor(const char* dev, int* fd, int flags)
@@ -29,6 +30,10 @@ int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile
 		return -2;
 	}
 	printf("OK!\n");
+
+	ROT_MAT = kfMatAlloc(3, 3);
+	TEMP_MAT[0] = kfMatAlloc(3, 3);
+	TEMP_MAT[1] = kfMatAlloc(3, 3);
 
 	if(calProfile){
 		int calFd = open(calProfile, O_RDONLY);
@@ -66,28 +71,23 @@ static void estimateHeading(fusedObjState_t* body, float dt)
 	vec3f_t heading = body->imu.adjReadings.mag;
 	vec3f_t up      = vec3fNorm(&body->imu.adjReadings.linear);
 	vec3f_t forward = { 0, 1, 0 };
-	static kfMat_t rotMat;
 
-	if(!rotMat.col){
-		rotMat = kfMatAlloc(3, 3);
-	}
 
-	if(!vec3fIsNan(&up)){
+	if(!vec3fIsNan(&up) && vec3fMag(&up) <= LIL_G){
 		//printf("up = (%f, %f, %f)\n", heading.x, heading.y, heading.z);
 
-		kfVecCross(rotMat.col[0], up.v, forward.v, 3); // left
-		memcpy(rotMat.col[2], &up, sizeof(up));        // up
-		kfVecCross(rotMat.col[1], rotMat.col[0], up.v, 3);   // forward
+		kfVecCross(ROT_MAT.col[0], up.v, forward.v, 3); // left
+		memcpy(ROT_MAT.col[2], &up, sizeof(up));        // up
+		kfVecCross(ROT_MAT.col[1], ROT_MAT.col[0], up.v, 3);   // forward
 
-		rotMat.col[0][0] *= -1;
-		rotMat.col[0][1] *= -1;
-		rotMat.col[0][2] *= -1;
+		ROT_MAT.col[0][0] *= -1;
+		ROT_MAT.col[0][1] *= -1;
+		ROT_MAT.col[0][2] *= -1;
 
-		//kfMatPrint(rotMat);
 		// rotate the mag vector back into the world frame
-
-		//kfMatIdent(rotMat);
-		kfMatMulVec(body->imu.adjReadings.mag.v, rotMat, heading.v, 3);
+		kfMatCpy(TEMP_MAT[0], ROT_MAT);
+		kfMat3Inverse(ROT_MAT, TEMP_MAT[0], TEMP_MAT[1]);		
+		kfMatMulVec(body->imu.adjReadings.mag.v, ROT_MAT, heading.v, 3);
 	}
 
 	// use the gyro to estimate how confident we should be in the magnetometer's
