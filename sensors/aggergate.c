@@ -64,8 +64,9 @@ int senShutdown()
 
 #define ONCE_END } }
 
-static void estimateHeading(fusedObjState_t* body, float dt)
+static void estimateHeading(float dt)
 {
+	fusedObjState_t* body = &SYS.body;
 	objectState_t *mea= &body->measured;
 	objectState_t *est= &body->estimated;
 	vec3f_t heading = body->imu.adjReadings.mag;
@@ -73,6 +74,11 @@ static void estimateHeading(fusedObjState_t* body, float dt)
 	vec3f_t forward = { 0, 1, 0 };
 
 
+	// use the accelerometer's up/down vector to
+	// help the system determine how the vehicle is
+	// resting on the ground. This vector is used as
+	// the basis for the Z axis in the vehicle's body
+	// reference frame
 	if(!vec3fIsNan(&up) && vec3fMag(&up) <= LIL_G){
 		//printf("up = (%f, %f, %f)\n", heading.x, heading.y, heading.z);
 
@@ -106,32 +112,34 @@ ONCE_START
 	*est= *mea;
 ONCE_END
 
-	vec3f_t lastHeading = est->heading;
+	// Use the gyro's angular velocity to help correlate the
+	// change in heading according to the magnetometer with
+	// the apparent rate of vehicle rotation
+	{
+		vec3f_t lastHeading = est->heading;
+		float da = vec3fAng(&mea->heading, &lastHeading);
 
-	//printf("dt = %f, w = %f\n", dt, w);
-	//printf("last heading= (%f, %f)\n", lastHeading.x, lastHeading.y);
-	//vec2fRot((vec2f_t*)&est->gyroHeading, (vec2f_t*)&lastHeading, w * dt);
-	//printf("gyro = (%f, %f)\n", est->gyroHeading.x, est->gyroHeading.y);
-	//float coincidence = powf(vec3fDot(&mea->heading, &est->gyroHeading), 128);
-	float da = vec3fAng(&mea->heading, &lastHeading);
+		if(fabs(da) > 0.0001){
+			float coincidence = fabs(w) / da;
+			if(coincidence < 0) coincidence = 0;
 
-	if(fabs(da) > 0.0001){
-		float coincidence = fabs(w) / da;
-		if(coincidence < 0) coincidence = 0;
-
-//		printf("da = %f w = %f\n", da, w);
-		vec3Lerp(est->heading, lastHeading, mea->heading, coincidence);
+			vec3Lerp(est->heading, lastHeading, mea->heading, coincidence);
+		}
+		//est->heading = est->gyroHeading;
+		est->heading = mea->heading;
 	}
-	//est->heading = est->gyroHeading;
-	est->heading = mea->heading;
 
-	//assert(!isnan(coincidence));
-/*
-	if(fabs(lastC - coincidence) > 0.001){
-		lastC = coincidence;
-		printf("w = %f, %f\n", w, coincidence);
+	// grab the bearing that the GPS module has
+	// determined, use the land speed as an inverse weight
+	//  for interpolation between the GPS heading and the mag / gyro heading
+	{
+		float C = cosf(GPS_STATE.Bearing), S = sinf(GPS_STATE.Bearing);
+		vec3f_t gpsHeading = { S, C, 0 };
+		float p = 1.0f / (GPS_STATE.Speed + 0.0001);
+		
+		p = p > 1 ? 1 : p;
+		vec3Lerp(est->heading, gpsHeading, est->heading, p);
 	}
-*/
 }
 //-----------------------------------------------------------------------------
 int senUpdate(fusedObjState_t* body)
@@ -141,7 +149,7 @@ int senUpdate(fusedObjState_t* body)
 	objectState_t *estimated = &body->estimated;
 
 	imuUpdateState(FD_IMU, &body->imu, SYS.magCal);
-	estimateHeading(body, dt);
+	estimateHeading(dt);
 
 	if(gpsHasNewReadings()){
 		vec3f_t lastPos = measured->position;

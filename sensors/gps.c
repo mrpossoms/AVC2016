@@ -7,9 +7,7 @@
 #include <pthread.h>
 #include <stdio.h>
 
-#include <libNEMA.h>
-
-static gpsState_t GPS_STATE;
+gpsState_t GPS_STATE;
 static unsigned char LAST_CHK_SUM;
 static pthread_t GPS_THREAD;
 
@@ -55,7 +53,7 @@ static int termiosHack(const char* devPath)
 //-----------------------------------------------------------------------------
 int gpsInit(const char* devPath)
 {
-	termiosHack(devPath);	
+	termiosHack(devPath);
 
 	if(lnConnect(devPath, 57600) <= 0){
 		return -2;

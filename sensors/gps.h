@@ -1,11 +1,15 @@
 #ifndef AVC_GPS
 #define AVC_GPS
 
+#include <libNEMA.h>
+
 #include "base/types.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+extern gpsState_t GPS_STATE;
 
 int gpsInit(const char* device);
 int gpsShutdown();
