@@ -69,7 +69,7 @@ static void estimateHeading(float dt)
 	fusedObjState_t* body = &SYS.body;
 	objectState_t *mea= &body->measured;
 	objectState_t *est= &body->estimated;
-	
+
 /*
 	vec3f_t heading = body->imu.adjReadings.mag;
 	vec3f_t up      = vec3fNorm(&body->imu.adjReadings.linear);
@@ -94,7 +94,7 @@ static void estimateHeading(float dt)
 
 		// rotate the mag vector back into the world frame
 		kfMatCpy(TEMP_MAT[0], ROT_MAT);
-		kfMat3Inverse(ROT_MAT, TEMP_MAT[0], TEMP_MAT[1]);		
+		kfMat3Inverse(ROT_MAT, TEMP_MAT[0], TEMP_MAT[1]);
 		kfMatMulVec(body->imu.adjReadings.mag.v, ROT_MAT, heading.v, 3);
 	}
 
@@ -106,16 +106,16 @@ static void estimateHeading(float dt)
 	{
 		// use the gyro to estimate how confident we should be in the magnetometer's
 		// current measured heading
-		float w = body->imu.adjReadings.rotational.z / -32000.0f;
+		float w = body->imu.raw.gyro.z / -32000.0f;
 
 		// update the heading according to magnetometer readings
-		mea->heading.x = -body->imu.adjReadings.mag.x;
-		mea->heading.y = -body->imu.adjReadings.mag.y;
-		mea->heading.z =  body->imu.adjReadings.mag.z;
+		mea->heading.x = -body->imu.filtered.mag.x;
+		mea->heading.y = -body->imu.filtered.mag.y;
+		mea->heading.z =  body->imu.filtered.mag.z;
 		mea->heading = vec3fNorm(&mea->heading);
 
 		if(vec3fIsNan(&mea->heading)) return;
-		
+
 		ONCE_START
 		*est= *mea;
 		ONCE_END
@@ -141,7 +141,7 @@ static void estimateHeading(float dt)
 		float C = cosf(GPS_STATE.Bearing), S = sinf(GPS_STATE.Bearing);
 		vec3f_t gpsHeading = { S, C, 0 };
 		float p = 1.0f / (GPS_STATE.Speed + 0.0001);
-		
+
 		p = p > 1 ? 1 : p;
 		vec3Lerp(est->heading, gpsHeading, est->heading, p);
 	}
@@ -180,9 +180,9 @@ int senUpdate(fusedObjState_t* body)
 		vec3f_t* estVelLin = &estimated->velocity.linear;
 
 		// integrate IMU acceleration into velocity
-		estVelLin->x += body->imu.adjReadings.linear.x * dt;
-		estVelLin->y += body->imu.adjReadings.linear.y * dt;
-		estVelLin->z += body->imu.adjReadings.linear.z * dt;
+		estVelLin->x += body->imu.filtered.acc.x * dt;
+		estVelLin->y += body->imu.filtered.acc.y * dt;
+		estVelLin->z += body->imu.filtered.acc.z * dt;
 
 		body->lastEstTime = SYS.timeUp;
 	}

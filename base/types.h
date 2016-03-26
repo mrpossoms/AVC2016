@@ -81,26 +81,27 @@ typedef union{
 } vec3f_t;
 
 typedef struct{
-	vec3i16_t linear;
-	vec3i16_t rotational;
+	vec3i16_t acc;
+	vec3i16_t gyro;
 	vec3i16_t mag;
 } sensorStatei_t;
 
 typedef struct{
-	vec3f_t linear;
-	vec3f_t rotational;
+	vec3f_t acc;
+	vec3f_t gyro;
 	vec3f_t mag;
 } sensorStatef_t;
 
 typedef struct{
-	kf_t linear, rotational, mag;
+	kf_t acc, gyro, mag;
 	uint8_t isSetup;
 } readingFilter_t;
 
 typedef struct{
-	sensorStatei_t  rawReadings;
-	sensorStatef_t  adjReadings;
-	readingFilter_t filter;
+	sensorStatei_t  raw;
+	sensorStatef_t  cal;
+	sensorStatef_t  filtered;
+	readingFilter_t filters;
 	sensorStatei_t  calMinMax[2];
 	sensorStatef_t  means;
 	sensorStatef_t  standardDeviations;

@@ -45,8 +45,8 @@ sensorStatei_t imuGetReadings(int fd)
 		usleep(1000000);
 	}
 
-	res += i2cReqBytes(fd, ADDR_ACC_MAG, ACC_REG, &reading.linear, sizeof(vec3i16_t));
-	res += i2cReqBytes(fd, ADDR_GYRO,    GYR_REG, &reading.rotational, sizeof(vec3i16_t));
+	res += i2cReqBytes(fd, ADDR_ACC_MAG, ACC_REG, &reading.acc, sizeof(vec3i16_t));
+	res += i2cReqBytes(fd, ADDR_GYRO,    GYR_REG, &reading.gyro, sizeof(vec3i16_t));
 	res += i2cReqBytes(fd, ADDR_ACC_MAG, MAG_REG, &reading.mag, sizeof(vec3i16_t));
 
 	assert(res == 0);
@@ -57,11 +57,11 @@ sensorStatei_t imuGetReadings(int fd)
 static int filterReading(imuState_t* state)
 {
 	int err = 0;
-	readingFilter_t* f = &state->filter;
+	readingFilter_t* f = &state->filters;
 
-	if(!state->filter.isSetup){
+	if(!state->filters.isSetup){
 		for(int i = 3; i--;){
-			kf_t* filter = (&f->linear) + i;
+			kf_t* filter = (&f->acc) + i;
 			kfCreateFilter(filter, 3);
 			kfMatScl(filter->matQ, filter->matQ, 0.001);
 			kfMatScl(filter->matR, filter->matR, 0.1);
@@ -73,11 +73,12 @@ static int filterReading(imuState_t* state)
 	}
 
 	for(int i = 3; i--;){
-		kf_t* filter = (&f->linear) + i;
-		float* x = (&state->adjReadings.linear)[i].v;
+		kf_t* filter = (&f->acc) + i;
+		float* src = (&state->cal.acc)[i].v;      // calibrated measurements
+		float* dst = (&state->filtered.acc)[i].v; // filtered calibrated measurements
 
 		kfPredict(filter, NULL);
-		kfUpdate(filter, x, x);
+		kfUpdate(filter, dst, src);
 	}
 
 	return err;
@@ -89,42 +90,36 @@ static int hasStatProps(imuState_t* state)
 
 	if(isFinished) return 1;
 	if(READINGS_COLLECTED < WARMUP_SAMPLES){
-		// vec3Add(state->means.linear, state->mean.linear, state->rawReadings.linear);
+		// vec3Add(state->means.acc, state->mean.acc, state->raw.acc);
 		for(int i = 3; i--;){
-			ACCEL_MEAN[i] += state->rawReadings.linear.v[i];
-			GYRO_MEAN[i]  += state->rawReadings.rotational.v[i];
+			ACCEL_MEAN[i] += state->raw.acc.v[i];
+			GYRO_MEAN[i]  += state->raw.gyro.v[i];
 		}
 		++READINGS_COLLECTED;
 		return 0;
 	}
 
 	// compute the mean when still
-	ACCEL_MEAN[0] /= WARMUP_SAMPLES;
-	ACCEL_MEAN[1] /= WARMUP_SAMPLES;
-	ACCEL_MEAN[2] /= WARMUP_SAMPLES;
-	GYRO_MEAN[0] /= WARMUP_SAMPLES;
-	GYRO_MEAN[1] /= WARMUP_SAMPLES;
-	GYRO_MEAN[2] /= WARMUP_SAMPLES;
-
+	for(int i = 3; i--;){
+		ACCEL_MEAN[i] /= WARMUP_SAMPLES;
+		GYRO_MEAN[i] /= WARMUP_SAMPLES;
+	}
 
 	// compute the variance for standard deviation
 	bzero(&state->standardDeviations, sizeof(sensorStatei_t));
 	double varLin[3] = {};
 	for(int i = WARMUP_SAMPLES; i--;){
 		for(int j = 3; j--;){
-			double v = READINGS[i].linear.v[j] - ACCEL_MEAN[j];
-			//double w = READINGS[i].rotational.v[j] - GYRO_MEAN[j];
+			double v = READINGS[i].acc.v[j] - ACCEL_MEAN[j];
+			//double w = READINGS[i].gyro.v[j] - GYRO_MEAN[j];
 			varLin[j] += (v * v) / (float)WARMUP_SAMPLES;
 		}
 	}
 
 	// set standard deviations
-	state->standardDeviations.linear.x = sqrt(varLin[0]);
-	state->standardDeviations.linear.y = sqrt(varLin[1]);
-	state->standardDeviations.linear.z = sqrt(varLin[2]);
-	// state->standardDeviations.rotational.x = sqrt(varRot[0]);
-	// state->standardDeviations.rotational.y = sqrt(varRot[1]);
-	// state->standardDeviations.rotational.z = sqrt(varRot[2]);
+	for(int i = 3; i--;){
+		state->standardDeviations.acc.v[i] = sqrt(varLin[i]);
+	}
 
 	isFinished = 1;
 	return 1;
@@ -135,33 +130,32 @@ static float map(float x, float min, float max)
 	return (x - min) * 2 / (max - min) - 1.0f;
 }
 
-void imuUpdateState(int fd, imuState_t* state, int contCal)
+void imuUpdateState(int fd, imuState_t* imu, int contCal)
 {
 	sensorStatei_t reading = {};
 
 	// get fresh data from the device
 	reading = imuGetReadings(fd);
-	state->rawReadings = reading;
+	imu->raw = reading;
 
-	if(!hasStatProps(state)) return;
+	if(!hasStatProps(imu)) return;
 
 
-	if(state->isCalibrated){
-		vec3i16_t* accMin = &state->calMinMax[0].linear;
-		vec3i16_t* accMax = &state->calMinMax[1].linear;
-		vec3i16_t* magMin = &state->calMinMax[0].mag;
-		vec3i16_t* magMax = &state->calMinMax[1].mag;
+	if(imu->isCalibrated){
+		vec3i16_t* accMin = &imu->calMinMax[0].acc;
+		vec3i16_t* accMax = &imu->calMinMax[1].acc;
+		vec3i16_t* magMin = &imu->calMinMax[0].mag;
+		vec3i16_t* magMax = &imu->calMinMax[1].mag;
 
 		// update the mag window
 		int updatedMagWindow = 0;
 
 		if(contCal){
-			if(reading.mag.x > magMax->x){ magMax->x = reading.mag.x; updatedMagWindow = 1; }
-			if(reading.mag.x < magMin->x){ magMin->x = reading.mag.x; updatedMagWindow = 1; }
-			if(reading.mag.y > magMax->y){ magMax->y = reading.mag.y; updatedMagWindow = 1; }
-			if(reading.mag.y < magMin->y){ magMin->y = reading.mag.y; updatedMagWindow = 1; }
-			if(reading.mag.z > magMax->z){ magMax->z = reading.mag.z; updatedMagWindow = 1; }
-			if(reading.mag.z < magMin->z){ magMin->z = reading.mag.z; updatedMagWindow = 1; }
+			// check each axis of the min and max windows, update them accordingly
+			for(int i = 3; i--;){
+				if(reading.mag.v[i] > magMax->v[i]){ magMax->v[i] = reading.mag.v[i]; updatedMagWindow = 1; }
+				if(reading.mag.v[i] < magMin->v[i]){ magMin->v[i] = reading.mag.v[i]; updatedMagWindow = 1; }
+			}
 		}
 
 		// write new mag min and max if applicable
@@ -169,17 +163,24 @@ void imuUpdateState(int fd, imuState_t* state, int contCal)
 			int calFd = open("./imu.cal", O_WRONLY);
 
 			assert(calFd > 0);
-			write(calFd, &state->calMinMax, sizeof(state->calMinMax));
+			write(calFd, &imu->calMinMax, sizeof(imu->calMinMax));
 			close(calFd);
 		}
 
 		// map the readings to the 1G [-1, 1] calibration window that was obtained
 		// from the calibration profile
-		sensorStatef_t* adj_r = &state->adjReadings;
-		sensorStatei_t* raw = &state->rawReadings;
-		adj_r->linear.x = LIL_G * map(raw->linear.x, accMin->x, accMax->x);
-		adj_r->linear.y = LIL_G * map(raw->linear.y, accMin->y, accMax->y);
-		adj_r->linear.z = LIL_G * map(raw->linear.z, accMin->z, accMax->z);
+		sensorStatef_t* cal = &imu->cal;
+		sensorStatei_t* raw = &imu->raw;
+
+		// scale the accelerometer readings into the calibrated range
+		for(int i = 3; i--;){
+			cal->acc.v[i] = LIL_G * map(raw->acc.v[i], accMin->v[i], accMax->v[i]);
+		}
+
+		// subtract the gyro bias
+		for(int i = 3; i--;){
+			cal->gyro.v[i] = raw->gyro.v[i] - GYRO_MEAN[i];
+		}
 
 		// map the mag from [-1, 1] based on the measured range
 		{
@@ -198,25 +199,13 @@ void imuUpdateState(int fd, imuState_t* state, int contCal)
 			assert(!vec3fIsNan(&magOff));
 
 			// do the rest!
-			vec3Sub(adj_r->mag, raw->mag, magOff);
+			vec3Sub(cal->mag, raw->mag, magOff);
+			vec3Div(cal->mag, cal->mag, magRad);
 
-			//assert(magRad.x > 0 && magRad.y > 0 && magRad.z > 0);
-
-			vec3Div(adj_r->mag, adj_r->mag, magRad);
-
-			assert(!vec3fIsNan(&adj_r->mag));
-/*
-			adj_r->mag.x = map(raw->mag.x, magMin->x, magMax->x);
-			adj_r->mag.y = map(raw->mag.y, magMin->y, magMax->y);
-			adj_r->mag.z = map(raw->mag.z, magMin->z, magMax->z);
-*/
+			assert(!vec3fIsNan(&cal->mag));
 		}
 
-		adj_r->rotational.x = raw->rotational.x - GYRO_MEAN[0];
-		adj_r->rotational.y = raw->rotational.y - GYRO_MEAN[1];
-		adj_r->rotational.z = raw->rotational.z - GYRO_MEAN[2];
-
-		filterReading(state);
+		filterReading(imu);
 	}
 }
 
@@ -235,13 +224,13 @@ int16_t axisAcc(char axis, int isMax, int fd_imu)
 	switch(axis){
 		case 'X':
 		case 'x':
-			return readings.linear.x;
+			return readings.acc.x;
 		case 'Y':
 		case 'y':
-			return readings.linear.y;
+			return readings.acc.y;
 		case 'Z':
 		case 'z':
-			return readings.linear.z;
+			return readings.acc.z;
 	}
 
 	return 0;
@@ -271,8 +260,8 @@ float axisGyro(char axis, imuState_t* imu, int fd_imu)
 
 	gettimeofday(&lastTime, NULL);
 
-	lastHeading.x = imu->adjReadings.mag.x;
-	lastHeading.y = imu->adjReadings.mag.y;
+	lastHeading.x = imu->cal.mag.x;
+	lastHeading.y = imu->cal.mag.y;
 	lastHeading.z = 0;
 	lastHeading = vec3fNorm(&lastHeading);
 	printf("lastHeading = %f, %f, %f\n", lastHeading.x, lastHeading.y, lastHeading.z);
@@ -288,21 +277,21 @@ float axisGyro(char axis, imuState_t* imu, int fd_imu)
 			switch(axis){
 				case 'X':
 				case 'x':
-					acc += imu->adjReadings.rotational.x;
+					acc += imu->cal.gyro.x;
 				case 'Y':
 				case 'y':
-					acc += imu->adjReadings.rotational.y;
+					acc += imu->cal.gyro.y;
 				case 'Z':
 				case 'z':
-					acc += imu->adjReadings.rotational.z;
+					acc += imu->cal.gyro.z;
 			}
 			++samples;
 			gettimeofday(&now, NULL);
 		}
 		acc /= samples;
 
-		heading.x = imu->adjReadings.mag.x;
-		heading.y = imu->adjReadings.mag.y;
+		heading.x = imu->cal.mag.x;
+		heading.y = imu->cal.mag.y;
 		heading.z = 0;
 		heading = vec3fNorm(&heading);
 
@@ -347,12 +336,12 @@ int imuPerformCalibration(int fd_storage, int fd_imu, imuState_t* state)
 	getchar();
 
 	printf("Calibrating accelerometer\n");
-	state->calMinMax[0].linear.x = axisAcc('x', 0, fd_imu);
-	state->calMinMax[1].linear.x = axisAcc('x', 1, fd_imu);
-	state->calMinMax[0].linear.y = axisAcc('y', 0, fd_imu);
-	state->calMinMax[1].linear.y = axisAcc('y', 1, fd_imu);
-	state->calMinMax[0].linear.z = axisAcc('z', 0, fd_imu);
-	state->calMinMax[1].linear.z = axisAcc('z', 1, fd_imu);
+	state->calMinMax[0].acc.x = axisAcc('x', 0, fd_imu);
+	state->calMinMax[1].acc.x = axisAcc('x', 1, fd_imu);
+	state->calMinMax[0].acc.y = axisAcc('y', 0, fd_imu);
+	state->calMinMax[1].acc.y = axisAcc('y', 1, fd_imu);
+	state->calMinMax[0].acc.z = axisAcc('z', 0, fd_imu);
+	state->calMinMax[1].acc.z = axisAcc('z', 1, fd_imu);
 
 	// store the results
 	write(fd_storage, &state->calMinMax, sizeof(state->calMinMax));
