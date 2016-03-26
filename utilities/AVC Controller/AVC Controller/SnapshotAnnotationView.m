@@ -123,7 +123,7 @@
     };
 
     CGPoint goal[] = {
-        { 0, 0 }, { _snapshot.estimated.goalHeading.y, -_snapshot.estimated.goalHeading.x }
+        { 0, 0 }, { -_snapshot.estimated.goalHeading.x, _snapshot.estimated.goalHeading.y }
     };
 
     static CGFloat black[] = { 0, 0, 0, 1 };
@@ -133,7 +133,11 @@
     static CGFloat green[] = { 0, 1, 0, 1 };
     static CGFloat yellow[] = { 1, 1, 0, 1 };
 
-
+    static CGFloat* axisColors[] = {
+        blue,
+        green,
+        red
+    };
 
     CGContextRef ctx = UIGraphicsGetCurrentContext();
 
@@ -152,6 +156,21 @@
     [self transformPoints:filteredMag withCount:2 to:rect];
     [self transformPoints:goal withCount:2 to:rect];
     [self transformPoints:heading withCount:2 to:rect];
+
+    CGPoint accOrigin[] = { { 0, 15 }, { 20, 15 } };
+    CGContextSetLineWidth(ctx, 0.5);
+    CGContextSetStrokeColor(ctx, white);
+    CGContextStrokeLineSegments(ctx, accOrigin, 2);
+    CGContextSetLineWidth(ctx, 3);
+    for(int i = 3; i--;){
+        CGPoint line[] = {
+            { 5 + i * 5, 15 },
+            { 5 + i * 5, 15 + _snapshot.imu.adj.linear.v[i] * 2 }
+        };
+
+        CGContextSetStrokeColor(ctx, axisColors[i]);
+        CGContextStrokeLineSegments(ctx, line, 2);
+    }
 
     CGContextScaleCTM(ctx, 0.5, 0.5);
     CGContextTranslateCTM(ctx, rect.size.width / 2, rect.size.height / 2);
@@ -176,7 +195,6 @@
 
     CGContextSetStrokeColor(ctx, blue);
     CGContextStrokeLineSegments(ctx, heading, 2);
-
 }
 
 @end

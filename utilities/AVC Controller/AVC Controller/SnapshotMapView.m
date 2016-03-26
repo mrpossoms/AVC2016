@@ -92,7 +92,6 @@
     if(location.coordinate.longitude > -180 && location.coordinate.longitude < 180 &&
        location.coordinate.latitude > -90 && location.coordinate.latitude < 90){
         [self setRegion:MKCoordinateRegionMakeWithDistance(location.coordinate, 10, 10) animated:YES];
-//        [self setCenterCoordinate:location.coordinate animated:NO];
     }
 }
 
