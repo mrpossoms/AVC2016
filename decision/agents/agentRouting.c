@@ -27,6 +27,7 @@ static void* action(agent_t* lastState, void* args)
 
 	gpsWaypointCont_t* waypoint = SYS.route.currentWaypoint;
 	vec3f_t delta = vec3fSub(&SYS.body.measured.position, &waypoint->self.location);
+	delta.z = 0; // we don't give a shit about altitude
 
 	SYS.body.estimated.goalHeading = vec3fNorm(&delta);
 

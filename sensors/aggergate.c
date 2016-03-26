@@ -69,6 +69,8 @@ static void estimateHeading(float dt)
 	fusedObjState_t* body = &SYS.body;
 	objectState_t *mea= &body->measured;
 	objectState_t *est= &body->estimated;
+	
+/*
 	vec3f_t heading = body->imu.adjReadings.mag;
 	vec3f_t up      = vec3fNorm(&body->imu.adjReadings.linear);
 	vec3f_t forward = { 0, 1, 0 };
@@ -96,26 +98,28 @@ static void estimateHeading(float dt)
 		kfMatMulVec(body->imu.adjReadings.mag.v, ROT_MAT, heading.v, 3);
 	}
 
-	// use the gyro to estimate how confident we should be in the magnetometer's
-	// current measured heading
-	float w = body->imu.adjReadings.rotational.z / -32000.0f;
-
-	// update the heading according to magnetometer readings
-	mea->heading.x = -body->imu.adjReadings.mag.x;
-	mea->heading.y = -body->imu.adjReadings.mag.y;
-	mea->heading.z =  body->imu.adjReadings.mag.z;
-	mea->heading = vec3fNorm(&mea->heading);
-
-	if(vec3fIsNan(&mea->heading)) return;
-
-ONCE_START
-	*est= *mea;
-ONCE_END
+*/
 
 	// Use the gyro's angular velocity to help correlate the
 	// change in heading according to the magnetometer with
 	// the apparent rate of vehicle rotation
 	{
+		// use the gyro to estimate how confident we should be in the magnetometer's
+		// current measured heading
+		float w = body->imu.adjReadings.rotational.z / -32000.0f;
+
+		// update the heading according to magnetometer readings
+		mea->heading.x = -body->imu.adjReadings.mag.x;
+		mea->heading.y = -body->imu.adjReadings.mag.y;
+		mea->heading.z =  body->imu.adjReadings.mag.z;
+		mea->heading = vec3fNorm(&mea->heading);
+
+		if(vec3fIsNan(&mea->heading)) return;
+		
+		ONCE_START
+		*est= *mea;
+		ONCE_END
+
 		vec3f_t lastHeading = est->heading;
 		float da = vec3fAng(&mea->heading, &lastHeading);
 
@@ -132,6 +136,7 @@ ONCE_END
 	// grab the bearing that the GPS module has
 	// determined, use the land speed as an inverse weight
 	//  for interpolation between the GPS heading and the mag / gyro heading
+/*
 	{
 		float C = cosf(GPS_STATE.Bearing), S = sinf(GPS_STATE.Bearing);
 		vec3f_t gpsHeading = { S, C, 0 };
@@ -140,6 +145,7 @@ ONCE_END
 		p = p > 1 ? 1 : p;
 		vec3Lerp(est->heading, gpsHeading, est->heading, p);
 	}
+*/
 }
 //-----------------------------------------------------------------------------
 int senUpdate(fusedObjState_t* body)
