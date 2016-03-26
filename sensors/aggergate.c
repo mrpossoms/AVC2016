@@ -70,35 +70,28 @@ static void estimateHeading(float dt)
 	objectState_t *mea= &body->measured;
 	objectState_t *est= &body->estimated;
 
-/*
-	vec3f_t heading = body->imu.adjReadings.mag;
-	vec3f_t up      = vec3fNorm(&body->imu.adjReadings.linear);
-	vec3f_t forward = { 0, 1, 0 };
-
-
 	// use the accelerometer's up/down vector to
 	// help the system determine how the vehicle is
 	// resting on the ground. This vector is used as
 	// the basis for the Z axis in the vehicle's body
 	// reference frame
+	vec3f_t heading = body->imu.cal.mag;
+	vec3f_t up      = vec3fNorm(&body->imu.cal.acc);
+	vec3f_t forward = { 0, 1, 0 };
+
 	if(!vec3fIsNan(&up) && vec3fMag(&up) <= LIL_G){
-		//printf("up = (%f, %f, %f)\n", heading.x, heading.y, heading.z);
 
-		kfVecCross(ROT_MAT.col[0], up.v, forward.v, 3); // left
-		memcpy(ROT_MAT.col[2], &up, sizeof(up));        // up
-		kfVecCross(ROT_MAT.col[1], ROT_MAT.col[0], up.v, 3);   // forward
+		kfVecCross(ROT_MAT.col[0], up.v, forward.v, 3);      // left
+		memcpy(ROT_MAT.col[2], &up, sizeof(up));             // up
+		kfVecCross(ROT_MAT.col[1], ROT_MAT.col[0], up.v, 3); // forward
 
-		ROT_MAT.col[0][0] *= -1;
-		ROT_MAT.col[0][1] *= -1;
-		ROT_MAT.col[0][2] *= -1;
+		vec3fScl((vec3f_t*)ROT_MAT.col[0], -1);
 
 		// rotate the mag vector back into the world frame
 		kfMatCpy(TEMP_MAT[0], ROT_MAT);
 		kfMat3Inverse(ROT_MAT, TEMP_MAT[0], TEMP_MAT[1]);
-		kfMatMulVec(body->imu.adjReadings.mag.v, ROT_MAT, heading.v, 3);
+		kfMatMulVec(body->imu.cal.mag.v, ROT_MAT, heading.v, 3);
 	}
-
-*/
 
 	// Use the gyro's angular velocity to help correlate the
 	// change in heading according to the magnetometer with
@@ -130,7 +123,7 @@ static void estimateHeading(float dt)
 			vec3Lerp(est->heading, lastHeading, mea->heading, coincidence);
 		}
 		//est->heading = est->gyroHeading;
-		est->heading = mea->heading;
+		// est->heading = mea->heading;
 	}
 
 	// grab the bearing that the GPS module has
@@ -175,14 +168,13 @@ int senUpdate(fusedObjState_t* body)
 	{
 		estimated->position = measured->position;
 
-
 		// integrate position using velocity
 		vec3f_t* estVelLin = &estimated->velocity.linear;
 
 		// integrate IMU acceleration into velocity
-		estVelLin->x += body->imu.filtered.acc.x * dt;
-		estVelLin->y += body->imu.filtered.acc.y * dt;
-		estVelLin->z += body->imu.filtered.acc.z * dt;
+		for(int i = 3; i--;){
+			estVelLin->v[i] += body->imu.filtered.acc.v[i] * dt;
+		}
 
 		body->lastEstTime = SYS.timeUp;
 	}

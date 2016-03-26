@@ -72,7 +72,8 @@ typedef struct{
 typedef struct{
 	struct{
 		sensorStatei_t raw;
-		sensorStatef_t adj;
+		sensorStatef_t cal;
+		sensorStatef_t filtered;
 	} imu;
 	objectState_t estimated;
 

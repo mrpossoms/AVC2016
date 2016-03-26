@@ -16,13 +16,15 @@ static int32_t ACCEL_MEAN[3], GYRO_MEAN[3];
 static int READINGS_COLLECTED;
 static sensorStatei_t READINGS[WARMUP_SAMPLES];
 
-//     ___
-//    / __|___ _ __  _ __  ___
-//   | (__/ _ \ '  \| '  \(_-<_
-//    \___\___/_|_|_|_|_|_/__(_)
-//
-
-
+//    _  _     _
+//   | || |___| |_ __  ___ _ _ ___
+//   | __ / -_) | '_ \/ -_) '_(_-<
+//   |_||_\___|_| .__/\___|_| /__/
+//              |_|
+static float map(float x, float min, float max)
+{
+	return (x - min) * 2 / (max - min) - 1.0f;
+}
 
 //    ___       _          ___     _ _ _
 //   |   \ __ _| |_ __ _  | _ \___| | (_)_ _  __ _
@@ -54,6 +56,11 @@ sensorStatei_t imuGetReadings(int fd)
 	return reading;
 }
 
+//    ___ _ _ _           _
+//   | __(_) | |_ ___ _ _(_)_ _  __ _
+//   | _|| | |  _/ -_) '_| | ' \/ _` |
+//   |_| |_|_|\__\___|_| |_|_||_\__, |
+//                              |___/
 static int filterReading(imuState_t* state)
 {
 	int err = 0;
@@ -83,7 +90,7 @@ static int filterReading(imuState_t* state)
 
 	return err;
 }
-
+//-----------------------------------------------------------------------------
 static int hasStatProps(imuState_t* state)
 {
 	static int isFinished;
@@ -125,11 +132,11 @@ static int hasStatProps(imuState_t* state)
 	return 1;
 }
 
-static float map(float x, float min, float max)
-{
-	return (x - min) * 2 / (max - min) - 1.0f;
-}
-
+//    __  __      _
+//   |  \/  |__ _(_)_ _
+//   | |\/| / _` | | ' \
+//   |_|  |_\__,_|_|_||_|
+//                          
 void imuUpdateState(int fd, imuState_t* imu, int contCal)
 {
 	sensorStatei_t reading = {};
@@ -139,7 +146,6 @@ void imuUpdateState(int fd, imuState_t* imu, int contCal)
 	imu->raw = reading;
 
 	if(!hasStatProps(imu)) return;
-
 
 	if(imu->isCalibrated){
 		vec3i16_t* accMin = &imu->calMinMax[0].acc;
@@ -235,100 +241,7 @@ int16_t axisAcc(char axis, int isMax, int fd_imu)
 
 	return 0;
 }
-
-static float elapsed(struct timeval last, struct timeval now)
-{
-	float us = (now.tv_sec - last.tv_sec) * 1000000 + (now.tv_usec - last.tv_usec);
-	return us / 1000000.0;
-}
-
-float axisGyro(char axis, imuState_t* imu, int fd_imu)
-{
-	vec3f_t lastHeading = {}, heading = {};
-	struct timeval lastTime = {}, now = {};
-	float w = 0;
-	float sf = 1;
-
-	//printf(isMax ? "(+%c) [Press any key]\n" : "(-%c) [Press any key to start sampling]\n", axis);
-	//getchar();
-
-
-	for(int i = 1000; i--;){
-		imuUpdateState(fd_imu, imu, 0);
-		usleep(1000);
-	}
-
-	gettimeofday(&lastTime, NULL);
-
-	lastHeading.x = imu->cal.mag.x;
-	lastHeading.y = imu->cal.mag.y;
-	lastHeading.z = 0;
-	lastHeading = vec3fNorm(&lastHeading);
-	printf("lastHeading = %f, %f, %f\n", lastHeading.x, lastHeading.y, lastHeading.z);
-
-	for(int i = 1000; i--;){
-		float dt = 0;
-
-		// wait for ~10ms to elapse
-		float acc = 0;
-		unsigned int samples = 0;
-		while((dt = elapsed(lastTime, now)) < 0.01){
-			imuUpdateState(fd_imu, imu, 0);
-			switch(axis){
-				case 'X':
-				case 'x':
-					acc += imu->cal.gyro.x;
-				case 'Y':
-				case 'y':
-					acc += imu->cal.gyro.y;
-				case 'Z':
-				case 'z':
-					acc += imu->cal.gyro.z;
-			}
-			++samples;
-			gettimeofday(&now, NULL);
-		}
-		acc /= samples;
-
-		heading.x = imu->cal.mag.x;
-		heading.y = imu->cal.mag.y;
-		heading.z = 0;
-		heading = vec3fNorm(&heading);
-
-		printf("heading = %f, %f, %f\n", heading.x, heading.y, heading.z);
-
-		float w0 = w;
-		float dw = acos(vec3fDot(&heading, &lastHeading)) / dt;
-		w += dw;
-
-		float expAcc = (w - w0) / dt;
-
-		// expAcc = acc * sf
-		// sf = expAcc / acc;
-		if(acc != 0){
-			sf = expAcc / acc;
-		}
-
-		printf("%0.3f rads/s %0.3f rads/s^2 (%f)\n", w, expAcc, sf);
-
-		lastTime = now;
-		lastHeading = heading;
-	}
-
-	return sf;
-}
-
-int imuPerformGyroCalibration(int fd_storage, int fd_imu, imuState_t* state)
-{
-	printf("Rotate on the z axis, back and forth.\n");
-	printf("[Press any key to begin]\n");
-	getchar();
-
-	axisGyro('z', state, fd_imu);
-
-	return 0;
-}
-
+//-----------------------------------------------------------------------------
 int imuPerformCalibration(int fd_storage, int fd_imu, imuState_t* state)
 {
 	printf("Point each axis toward the center of the earth when prompted.\n");
@@ -348,7 +261,7 @@ int imuPerformCalibration(int fd_storage, int fd_imu, imuState_t* state)
 
 	return 0;
 }
-
+//-----------------------------------------------------------------------------
 int imuLoadCalibrationProfile(int fd_storage, imuState_t* state)
 {
 	int isOk = read(fd_storage, &state->calMinMax, sizeof(state->calMinMax)) == sizeof(state->calMinMax);

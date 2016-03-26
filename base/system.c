@@ -14,7 +14,8 @@ sysSnap_t sysSnapshot(system_t* sys)
 	snap.estimated = sys->body.estimated;
 	snap.hasGpsFix = sys->body.hasGpsFix;
 	snap.imu.raw = sys->body.imu.raw;
-	snap.imu.adj = sys->body.imu.filtered;
+	snap.imu.cal = sys->body.imu.cal;
+	snap.imu.filtered = sys->body.imu.filtered;
 
 	gpsWaypointCont_t* waypoint = sys->route.currentWaypoint;
 	if(waypoint){
