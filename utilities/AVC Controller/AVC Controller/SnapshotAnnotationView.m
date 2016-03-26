@@ -24,7 +24,7 @@
     _snapshot = snapshot;
     _snapshot.estimated.headingAngle = atan2f(snapshot.estimated.heading.y, snapshot.estimated.heading.x) + M_PI_2;
 
-    [self.magPlot addPoint:CGPointMake(snapshot.imu.adj.mag.x, snapshot.imu.adj.mag.y)];
+    [self.magPlot addPoint:CGPointMake(snapshot.imu.cal.mag.x, snapshot.imu.cal.mag.y)];
     self.magPlot.frame = self.bounds;
     [self.magPlot setNeedsDisplay];
 }
@@ -115,7 +115,7 @@
     };
 
     CGPoint filteredMag[] = {
-        { 0, 0 }, { -_snapshot.imu.adj.mag.x, -_snapshot.imu.adj.mag.y }
+        { 0, 0 }, { -_snapshot.imu.cal.mag.x, -_snapshot.imu.cal.mag.y }
     };
 
     CGPoint heading[] = {
@@ -165,7 +165,7 @@
     for(int i = 3; i--;){
         CGPoint line[] = {
             { 5 + i * 5, 15 },
-            { 5 + i * 5, 15 + _snapshot.imu.adj.linear.v[i] * 2 }
+            { 5 + i * 5, 15 + _snapshot.imu.cal.acc.v[i] * 2 }
         };
 
         CGContextSetStrokeColor(ctx, axisColors[i]);
