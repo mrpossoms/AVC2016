@@ -46,6 +46,13 @@ int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile
 		close(calFd);
 	}
 
+	if(imuSetup(FD_IMU, &SYS.body.imu)){
+		printf("IMU stat collection failed.\n");
+		return -4;
+	}
+
+	printf("IMU stats collected.\n");
+
 	return 0;
 }
 //-----------------------------------------------------------------------------
@@ -147,7 +154,7 @@ int senUpdate(fusedObjState_t* body)
 	objectState_t *measured  = &body->measured;
 	objectState_t *estimated = &body->estimated;
 
-	imuUpdateState(FD_IMU, &body->imu, SYS.magCal);
+	if(imuUpdateState(FD_IMU, &body->imu, SYS.magCal)) return -1;
 	estimateHeading(dt);
 
 	if(gpsHasNewReadings()){

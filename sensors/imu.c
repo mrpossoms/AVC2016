@@ -137,15 +137,21 @@ static int hasStatProps(imuState_t* state)
 //   | |\/| / _` | | ' \
 //   |_|  |_\__,_|_|_||_|
 //                          
-void imuUpdateState(int fd, imuState_t* imu, int contCal)
+int imuSetup(int fd, imuState_t* imu)
 {
-	sensorStatei_t reading = {};
+	do
+	{
+		imu->raw = imuGetReadings(fd);
+	}
+	while(!hasStatProps(imu));
+	
+	return 0;
+}
 
-	// get fresh data from the device
-	reading = imuGetReadings(fd);
+int imuUpdateState(int fd, imuState_t* imu, int contCal)
+{
+	sensorStatei_t reading = imuGetReadings(fd);
 	imu->raw = reading;
-
-	if(!hasStatProps(imu)) return;
 
 	if(imu->isCalibrated){
 		vec3i16_t* accMin = &imu->calMinMax[0].acc;
@@ -213,6 +219,8 @@ void imuUpdateState(int fd, imuState_t* imu, int contCal)
 
 		filterReading(imu);
 	}
+
+	return 0;
 }
 
 //     ___      _ _ _             _   _

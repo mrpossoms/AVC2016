@@ -29,10 +29,13 @@ all: dependencies #externals
 	$(CMP) $(CFLAGS) $(INC) $(LIB) -c avc.cxx -o avc.o
 	$(CMP) $(CFLAGS) $(INC) $(LIB) $(OBJS) -o AVC $(LINK)
 
+.PHONY: run
+.PHONY: run-throttle
+.PHONY: externals
 .PHONY: dependencies $(DEPENDS)
+
 dependencies: $(DEPENDS)
 
-.PHONY: externals
 externals: $(EXTERNALS)	
 
 $(EXTERNALS):
@@ -40,6 +43,13 @@ $(EXTERNALS):
 
 $(DEPENDS):
 	make -C $@
+
+run:
+	./AVC ./mission.gps
+
+run-throttle:
+	./AVC ./mission --use-throttle
+
 
 calibrator:
 	$(CMP) -I./ system.c ./sensors/*.c calibrator.c -o calibrator.bin $(LINK)
