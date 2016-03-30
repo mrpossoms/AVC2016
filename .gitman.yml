@@ -12,3 +12,7 @@ sources:
   dir: libKF
   rev: master
   link: ./external/libKF
+- repo: https://github.com/mrpossoms/linmath.h
+  dir: linmath.h
+  rev: master
+  link: ./external/linmath.h
