@@ -15,11 +15,12 @@ public:
    vec3 min, max;
    float scaleFactor;
    GLenum style;
+   vec3* points;
+   int count;
 private:
    void init();
 
-   vec3* points;
-   int count, current;
+   int current;
    bool shouldFree;
 };
 

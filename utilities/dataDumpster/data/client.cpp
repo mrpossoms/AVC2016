@@ -2,24 +2,72 @@
 
 using namespace data;
 
-typedef struct {
-   int sock;
-   void(*onConnect)();
-   void(*onData)(sysSnap_t snap);
-} clientEvents_t;
-
-static void* pollingHandler(void* args)
+static int resolve(clientThreadArgs_t* args)
 {
-   clientEvents_t* params = (clientEvents_t*)args;
-   int sock = params->sock;
-   ssize_t bytes = 0;
-   sysSnap_t snapShot = {};
+   printf("Resolving '%s'\n", args->hostName);
+   struct hostent* he = gethostbyname(args->hostName);
 
-   if(params->onConnect){
-      params->onConnect();
+   if(!he){
+      *args->state = ccs_failed;
+      free(args);
+      printf("Failed to resolve hostname\n");
+      return -1;
    }
 
+   unsigned char* addr = (unsigned char*)he->h_addr_list[0];
+   memcpy((void*)&(args->host->sin_addr), addr, he->h_length);
+
+   printf("Resolved to %d.%d.%d.%d\n", addr[0], addr[1], addr[2], addr[3]);
+
+   return 0;
+}
+
+static void connectionFail(clientThreadArgs_t* args)
+{
+      close(args->sock);
+      *args->state = ccs_failed;
+      args->onConnect(ccs_failed);
+      free(args);
+}
+
+static void* connectionHandler(void* args)
+{
+   clientThreadArgs_t* params = (clientThreadArgs_t*)args;
+
+   if(resolve(params)){
+      connectionFail(params);
+      return NULL;
+   }
+
+   int sock = params->sock = socket(AF_INET, SOCK_STREAM, 0);
+   if(sock < 0){
+      printf("Failed to open socket\n");
+      connectionFail(params);
+      return NULL;
+   }
+
+   if(::connect(sock, (struct sockaddr *)params->host, sizeof(struct sockaddr_in)) < 0){
+      printf("Failed to establish connection\n");
+      connectionFail(params);
+      return NULL;
+   }
+
+   uint32_t action = 0; // indicate that we want data streaming
+   if(write(sock, &action, sizeof(action)) < sizeof(action)){
+      printf("Failed to establish intention\n");
+      connectionFail(params);
+      return NULL;
+   }
+
+   if(params->onConnect){
+      *params->state = ccs_connected;
+      params->onConnect(ccs_connected);
+   }
+
+   // polling loop
    while(1){
+      sysSnap_t snapShot = {};
+      int bytes = 0;
       write(sock, "X", 1);
 
       for(int i = 1000; i && bytes < sizeof(sysSnap_t); i--){
@@ -29,27 +77,22 @@ static void* pollingHandler(void* args)
 
       bytes = read(sock, &snapShot, sizeof(sysSnap_t));
 
-      if(bytes == sizeof(sysSnap_t)){
+      if(bytes >= sizeof(sysSnap_t)){
          params->onData(snapShot);
       }
 
-      usleep(500 * 1000);
+      usleep(100 * 1000);
    }
-}
 
+   return NULL;
+}
+//------------------------------------------------------------------------------
 Client::Client(const char* hostName, uint16_t port)
 {
-   struct hostent* he = gethostbyname(hostName);
-
-   if(!he){
-      printf("Failed to resolve hostname\n");
-      return;
-   }
-
    host.sin_family = AF_INET;
    host.sin_port   = htons(port);
-   unsigned char* addr = (unsigned char*)he->h_addr_list[0];
-   memcpy((void*)&(host.sin_addr), addr, he->h_length);
+
+   this->hostName = hostName;
 }
 //------------------------------------------------------------------------------
 Client::~Client()
@@ -59,26 +102,17 @@ Client::~Client()
 //------------------------------------------------------------------------------
 int Client::connect()
 {
-   sock = socket(AF_INET, SOCK_STREAM, 0);
-
-   if(sock < 0){
-      return -1;
-   }
-
-   if(::connect(sock, (struct sockaddr *)&host, sizeof(host)) < 0){
-      close(sock);
-      return -2;
-   }
-
-   uint32_t action = 0; // indicate that we want data streaming
-
-   if(write(sock, &action, sizeof(action)) != sizeof(action)){
-      return -3;
-   }
+   clientThreadArgs_t* cbs = (clientThreadArgs_t*)malloc(sizeof(clientThreadArgs_t));
 
    // start polling
-   clientEvents_t* cbs = (clientEvents_t*)malloc(sizeof(clientEvents_t));
    cbs->onConnect = onConnect;
    cbs->onData = onData;
-   return pthread_create(&pollingThread, 0, pollingHandler, (void*)cbs);
+   cbs->sock = sock;
+   cbs->host = &host;
+   cbs->state = &state;
+   cbs->hostName = hostName;
+
+   state = ccs_connecting;
+
+   return pthread_create(&connectionThread, 0, connectionHandler, (void*)cbs);
 }

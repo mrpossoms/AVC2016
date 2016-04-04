@@ -70,7 +70,7 @@ void PointCloud::draw(Renderer* renderer)
          vec3_t color = colorForPoint(points[i], min, max, scaleFactor);
          glColor3f(color.x, color.y, color.z);
          // switch Z and Y since the data uses a right handed coord sys
-         glVertex3f(points[i][0], points[i][2], points[i][1]);
+         glVertex3f(points[i][0] * scaleFactor, points[i][2] * scaleFactor, points[i][1] * scaleFactor);
       }
    }
    glEnd();
