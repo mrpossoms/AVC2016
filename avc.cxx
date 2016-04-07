@@ -40,18 +40,22 @@ int main(int argc, char* argv[])
 	openlog("AVC_BOT", 0, 0);
 
 	if(hasOpt(argv, argc, "--debug")){
+		printf("Showing debugging output\n");
 		SYS.debugging = 1;
 	}
 
 	if(hasOpt(argv, argc, "--mag-cal")){
+		printf("Calibrating magnetometer\n");
 		SYS.magCal = 1;
 	}
 
 	// // start servo controlling
-	err = ctrlInit();
-	if(err){
-		SYS_ERR("Starting servo driver failed %d", err);
-		return err;
+	if(!hasOpt(argv, argc, "--no-servo")){
+		err = ctrlInit();
+		if(err){
+			SYS_ERR("Starting servo driver failed %d", err);
+			return err;
+		}
 	}
 
 	if(signal(SIGINT, sigHandler) == SIG_ERR){
@@ -66,17 +70,26 @@ int main(int argc, char* argv[])
 		return err;
 	}
 
+	if(hasOpt(argv, argc, "--mag-reset")){
+		printf("Reseting magnetometer calibration readings\n");
+		bzero(SYS.body.imu.calMinMax[0].mag.v, sizeof(vec3i16_t));
+		bzero(SYS.body.imu.calMinMax[1].mag.v, sizeof(vec3i16_t));
+	}
+
 	// sensors are started, start diagnostic endpoint
 	diagHost(1340);
 
 	// load a route
 	if(argc >= 2){
+		printf("Loading route...");
 		err = gpsRouteLoad(argv[1], &SYS.route.start);
 		if(err){
+			printf("error\n");
 			SYS_ERR("Loading gps route '%s' failed", argv[1]);
 			return err;
 		}
 		SYS.route.currentWaypoint = SYS.route.start;
+		printf("OK\n");
 	}
 	else{
 		printf("No route loaded\n");
@@ -84,7 +97,9 @@ int main(int argc, char* argv[])
 
 	// setup all the decision agents
 	agentInitAgents();
+
 	int useBlackBox = !hasOpt(argv, argc, "--no-black-box");
+	printf("Starting main loop\n");
 	while(1){
 		senUpdate(&SYS.body);
 
@@ -97,10 +112,10 @@ int main(int argc, char* argv[])
 		AGENT_CRASH_DETECTOR.action(NULL, NULL);
 
 		sysTimerUpdate();
-
+		
 		// record system state, if indicated
 		if(useBlackBox){
-			diagBlkBoxLog();
+			//diagBlkBoxLog();
 		}
 
 		// if there is no next goal or GPS then terminate
@@ -108,7 +123,7 @@ int main(int argc, char* argv[])
 			break;
 		}
 
-		usleep(1000);
+		//usleep(1000);
 	}
 
 	sigHandler(SIGINT);

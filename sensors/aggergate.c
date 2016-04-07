@@ -31,10 +31,13 @@ int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile
 	}
 	printf("OK!\n");
 
+	printf("Allocating filter matrices...");
 	ROT_MAT = kfMatAlloc(3, 3);
 	TEMP_MAT[0] = kfMatAlloc(3, 3);
 	TEMP_MAT[1] = kfMatAlloc(3, 3);
+	printf("OK!\n");
 
+	printf("Loading calibration values...");
 	if(calProfile){
 		int calFd = open(calProfile, O_RDONLY);
 
@@ -45,6 +48,7 @@ int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile
 
 		close(calFd);
 	}
+	printf("OK!\n");
 
 	if(imuSetup(FD_IMU, &SYS.body.imu)){
 		printf("IMU stat collection failed.\n");
@@ -92,12 +96,18 @@ static void estimateHeading(float dt)
 		memcpy(ROT_MAT.col[2], &up, sizeof(up));             // up
 		kfVecCross(ROT_MAT.col[1], ROT_MAT.col[0], up.v, 3); // forward
 
-		vec3fScl((vec3f_t*)ROT_MAT.col[0], -1);
+		//vec3fScl((vec3f_t*)ROT_MAT.col[0], -1);
 
 		// rotate the mag vector back into the world frame
 		kfMatCpy(TEMP_MAT[0], ROT_MAT);
 		kfMat3Inverse(ROT_MAT, TEMP_MAT[0], TEMP_MAT[1]);
-		kfMatMulVec(body->imu.cal.mag.v, ROT_MAT, heading.v, 3);
+		kfMatMulVec(
+			heading.v,
+			//body->imu.cal.mag.v,
+			ROT_MAT,
+			heading.v,
+			3
+		);
 	}
 
 	// Use the gyro's angular velocity to help correlate the
@@ -109,9 +119,9 @@ static void estimateHeading(float dt)
 		float w = body->imu.raw.gyro.z / -32000.0f;
 
 		// update the heading according to magnetometer readings
-		mea->heading.x = -body->imu.filtered.mag.x;
-		mea->heading.y = -body->imu.filtered.mag.y;
-		mea->heading.z =  body->imu.filtered.mag.z;
+		mea->heading.x = body->imu.filtered.mag.x;
+		mea->heading.y = body->imu.filtered.mag.y;
+		mea->heading.z = body->imu.filtered.mag.z;
 		mea->heading = vec3fNorm(&mea->heading);
 
 		if(vec3fIsNan(&mea->heading)) return;
@@ -130,7 +140,7 @@ static void estimateHeading(float dt)
 			vec3Lerp(est->heading, lastHeading, mea->heading, coincidence);
 		}
 		//est->heading = est->gyroHeading;
-		// est->heading = mea->heading;
+		//est->heading = mea->heading;
 	}
 
 	// grab the bearing that the GPS module has
@@ -154,7 +164,11 @@ int senUpdate(fusedObjState_t* body)
 	objectState_t *measured  = &body->measured;
 	objectState_t *estimated = &body->estimated;
 
-	if(imuUpdateState(FD_IMU, &body->imu, SYS.magCal)) return -1;
+	if(imuUpdateState(FD_IMU, &body->imu, SYS.magCal)){
+		printf("imuUpdateState() failed\n");
+		return -1;
+	}
+	
 	estimateHeading(dt);
 
 	if(gpsHasNewReadings()){

@@ -10,7 +10,9 @@ agent_t* AGENTS_ALL[] = {
 
 void agentInitAgents()
 {
+	printf("Initializing Agents...");
 	for(int i = sizeof(AGENTS_ALL) / sizeof(agent_t); i--;){
 		AGENTS_ALL[i]->init();
 	}
+	printf("OK\n");
 }

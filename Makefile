@@ -52,7 +52,8 @@ run-throttle:
 
 
 calibrator:
-	$(CMP) -I./ system.c ./sensors/*.c calibrator.c -o calibrator.bin $(LINK)
+	$(eval LINK += $(DEPENDS:/=/.so))
+	$(CMP) -I./ ./base/system.c ./sensors/*.c calibrator.c -o Calibrator $(LINK)
 
 clear-logs:
 	rm ./blackbox/1*

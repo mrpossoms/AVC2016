@@ -142,6 +142,7 @@ int imuSetup(int fd, imuState_t* imu)
 	do
 	{
 		imu->raw = imuGetReadings(fd);
+		usleep(1000);
 	}
 	while(!hasStatProps(imu));
 	
@@ -165,13 +166,25 @@ int imuUpdateState(int fd, imuState_t* imu, int contCal)
 		if(contCal){
 			// check each axis of the min and max windows, update them accordingly
 			for(int i = 3; i--;){
-				if(reading.mag.v[i] > magMax->v[i]){ magMax->v[i] = reading.mag.v[i]; updatedMagWindow = 1; }
-				if(reading.mag.v[i] < magMin->v[i]){ magMin->v[i] = reading.mag.v[i]; updatedMagWindow = 1; }
-			}
+				if(reading.mag.v[i] > magMax->v[i]){
+					magMax->v[i] = reading.mag.v[i];
+					updatedMagWindow = 1;
+				}
+
+				if(reading.mag.v[i] < magMin->v[i]){
+					magMin->v[i] = reading.mag.v[i];
+					updatedMagWindow = 1;
+				}
+
+				if(updatedMagWindow)
+				printf("%d ", reading.mag.v[i]);
+			} 
+			if(updatedMagWindow) printf("\n");
 		}
 
 		// write new mag min and max if applicable
 		if(updatedMagWindow){
+			
 			int calFd = open("./imu.cal", O_WRONLY);
 
 			assert(calFd > 0);
@@ -203,18 +216,12 @@ int imuUpdateState(int fd, imuState_t* imu, int contCal)
 			vec3Sub(magRad, *magMax, *magMin);
 			vec3Scl(magRad, magRad, 1.0f / 2.0f);
 
-			assert(!vec3fIsNan(&magRad));
-
 			// compute the offset vector
 			vec3Sub(magOff, *magMax, magRad);
-
-			assert(!vec3fIsNan(&magOff));
 
 			// do the rest!
 			vec3Sub(cal->mag, raw->mag, magOff);
 			vec3Div(cal->mag, cal->mag, magRad);
-
-			assert(!vec3fIsNan(&cal->mag));
 		}
 
 		filterReading(imu);

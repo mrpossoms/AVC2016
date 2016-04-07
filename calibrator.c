@@ -21,13 +21,7 @@ int main(int argc, char* argv[])
 	int cal_fd = open(argv[2], O_WRONLY | O_CREAT);
 	imuState_t state = {};
 
-	if(hasOpt(argv, argc, "--cal-acc")){
-		imuPerformCalibration(cal_fd, imu_fd, &state);
-	}
-
-	if(hasOpt(argv, argc, "--cal-gyro")){
-		imuPerformGyroCalibration(cal_fd, imu_fd, &state);
-	}
+	imuPerformCalibration(cal_fd, imu_fd, &state);
 
 	close(cal_fd);
 	close(imu_fd);
