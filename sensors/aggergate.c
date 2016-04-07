@@ -96,11 +96,13 @@ static void estimateHeading(float dt)
 		memcpy(ROT_MAT.col[2], &up, sizeof(up));             // up
 		kfVecCross(ROT_MAT.col[1], ROT_MAT.col[0], up.v, 3); // forward
 
+		kfMatNormalize(ROT_MAT, ROT_MAT);
 		//vec3fScl((vec3f_t*)ROT_MAT.col[0], -1);
 
 		// rotate the mag vector back into the world frame
 		kfMatCpy(TEMP_MAT[0], ROT_MAT);
-		kfMat3Inverse(ROT_MAT, TEMP_MAT[0], TEMP_MAT[1]);
+		//kfMat3Inverse(ROT_MAT, TEMP_MAT[0], TEMP_MAT[1]);
+		kfMatTranspose(ROT_MAT, TEMP_MAT[0]);
 		kfMatMulVec(
 			heading.v,
 			//body->imu.cal.mag.v,
