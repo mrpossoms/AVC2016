@@ -6,6 +6,7 @@
 
 #include "gfx.h"
 #include "data.h"
+#include "axes.h"
 
 using namespace gfx;
 using namespace data;
@@ -34,14 +35,25 @@ static vec3_t pcCalColor(vec3 point, vec3 min, vec3 max, float s)
    return color;
 }
 
+static vec3_t pcEstColor(vec3 point, vec3 min, vec3 max, float s)
+{
+   vec3_t color = {
+      (point[0] - min[0]) / (max[0] - min[0]),
+      (point[1] - min[1]) / (max[1] - min[1]),
+      1
+   };
+
+   return color;
+}
+
 static void onData(sysSnap_t snap)
 {
    DAT_SNAPS[DAT_CUR_IDX] = snap;
 
    vec3 rawMag = { snap.imu.raw.mag.x, snap.imu.raw.mag.y, snap.imu.raw.mag.z };
-   printf("%f, %f, %f\n", rawMag[0], rawMag[1], rawMag[2]);
 
    memcpy(DAT_MAG_CAL + DAT_CUR_IDX, &snap.imu.cal.mag, sizeof(vec3));
+   memcpy(DAT_MAG_EST + DAT_CUR_IDX, &snap.estimated.heading, sizeof(vec3));
    memcpy(DAT_MAG_RAW + DAT_CUR_IDX, rawMag, sizeof(vec3));
    memcpy(&DAT_ACC_CAL, &snap.imu.cal.acc, sizeof(vec3));
 
@@ -75,16 +87,19 @@ int main(int argc, char* argv[])
       vec3_norm(randomPoints[i], randomPoints[i]);
    }
 
-   PointCloud accCloud((vec3*)&DAT_ACC_CAL, 1);
-   accCloud.style = GL_LINES;
+   Axes accPlot;
+   accPlot.accData = (vec3_t*)&DAT_ACC_CAL;
 
    PointCloud rawMagCloud((vec3*)DAT_MAG_RAW, SAMPLES);
-   rawMagCloud.scaleFactor = 1.0f / (float)0x7FFF;
+   rawMagCloud.scaleFactor = 1.0f / (float)0x1FFF;
    rawMagCloud.colorForPoint = pcRawColor;
 
    magCloud = new PointCloud((vec3*)randomPoints, 1000);
    magCloud->style = GL_LINES;
    magCloud->colorForPoint = pcCalColor;
+
+   PointCloud estMagCloud((vec3*)DAT_MAG_EST, 1000);
+   estMagCloud.colorForPoint = pcEstColor;
 
    Client client(argv[1], 1340);
    client.onConnect = onConnect;
@@ -114,8 +129,9 @@ int main(int argc, char* argv[])
       else{
          magCloud->draw(&win);
          rawMagCloud.draw(&win);
+         estMagCloud.draw(&win);
       }
-      accCloud.draw(&win);
+      accPlot.draw(&win);
 
       win.present();
    }

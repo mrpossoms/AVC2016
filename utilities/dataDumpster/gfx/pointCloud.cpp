@@ -24,6 +24,14 @@ void PointCloud::init()
    colorForPoint = pcDefaultColoration;
 }
 //------------------------------------------------------------------------------
+PointCloud::PointCloud()
+{
+   count  = 1;
+   points = (vec3*)calloc(1, sizeof(vec3) * count);
+   shouldFree  = true;
+   init();
+}
+//------------------------------------------------------------------------------
 PointCloud::PointCloud(int pointCount)
 {
    count       = pointCount;

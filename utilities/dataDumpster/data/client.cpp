@@ -81,7 +81,7 @@ static void* connectionHandler(void* args)
          params->onData(snapShot);
       }
 
-      usleep(100 * 1000);
+      usleep(10 * 1000);
    }
 
    return NULL;

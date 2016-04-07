@@ -1,18 +1,18 @@
 #ifndef AVC_PROTOCOL_MESSAGES
 #define AVC_PROTOCOL_MESSAGES
 
-#include "types.h"
-#include "system.h"
+#include "base/types.h"
+#include "base/system.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-//    _____                  
+//    _____
 //   |_   _|  _ _ __  ___ ___
 //     | || || | '_ \/ -_|_-<
 //     |_| \_, | .__/\___/__/
-//         |__/|_|           
+//         |__/|_|
 typedef struct{
 	uint16_t x;
 	uint16_t w;
@@ -30,7 +30,7 @@ typedef struct{
 /*
 typedef struct{
 	vec3i16_t depth[MAX_FEATURES];
-	uint16_t  detectedFeatures;	
+	uint16_t  detectedFeatures;
 } depthWindow_t;
 */
 #ifdef __cplusplus

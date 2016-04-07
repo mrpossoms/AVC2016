@@ -24,9 +24,9 @@
 #include <sys/socket.h>
 
 #include "TrackingMat.h"
-#include "system.h"
+#include "base/system.h"
 #include "stream.h"
-#include "timer.h"
+#include "base/timer.h"
 #include "comms/protocol.h"
 #include "comms/messages.h"
 #include "sensors/aggergate.h"
@@ -35,18 +35,18 @@
 using namespace cv;
 using namespace std;
 
-//     ___             _            _      
+//     ___             _            _
 //    / __|___ _ _  __| |_ __ _ _ _| |_ ___
 //   | (__/ _ \ ' \(_-<  _/ _` | ' \  _(_-<
 //    \___\___/_||_/__/\__\__,_|_||_\__/__/
-//                                         
+//
 const float FOCAL_PLANE = 1;
 
-//    _____                  
+//    _____
 //   |_   _|  _ _ __  ___ ___
 //     | || || | '_ \/ -_|_-<
 //     |_| \_, | .__/\___/__/
-//         |__/|_|           
+//         |__/|_|
 typedef struct{
 	CvPoint frameCenter;
 	struct {
@@ -68,11 +68,11 @@ typedef struct{
 	int features;
 } trackingRegion_t;
 
-//     ___ _     _          _    
+//     ___ _     _          _
 //    / __| |___| |__  __ _| |___
 //   | (_ | / _ \ '_ \/ _` | (_-<
 //    \___|_\___/_.__/\__,_|_/__/
-//                               
+//
 int FRAME_NUMBER;
 int MAX_REGION;
 trackingRegion_t REGIONS[MAX_REGIONS];
@@ -115,11 +115,11 @@ static Point2f gradient(trackingState_t* ts, int x, int y)
 	return Point2f(f1.x - f0.x, f1.y - f0.y);
 }
 
-//    ___           _   _      ___    _   _            _   _          
-//   |   \ ___ _ __| |_| |_   | __|__| |_(_)_ __  __ _| |_(_)___ _ _  
+//    ___           _   _      ___    _   _            _   _
+//   |   \ ___ _ __| |_| |_   | __|__| |_(_)_ __  __ _| |_(_)___ _ _
 //   | |) / -_) '_ \  _| ' \  | _|(_-<  _| | '  \/ _` |  _| / _ \ ' \
 //   |___/\___| .__/\__|_||_| |___/__/\__|_|_|_|_\__,_|\__|_\___/_||_|
-//            |_|                                                     
+//            |_|
 void computeDepths(trackingState_t* tracking)
 {
 	int bufInd = tracking->dblBuff;
@@ -138,7 +138,7 @@ void computeDepths(trackingState_t* tracking)
 		float dx  = (centered[0].x - centered[1].x);
 		float dy  = (centered[0].y - centered[1].y);
 		float dot = dx * dx + dy * dy;
-		
+
 		// avoid taking a square root of 0
 		if(dot == 0) continue;
 
@@ -180,7 +180,7 @@ static void computeRegionMeans(Mat* frame, trackingState_t* ts)
 {
 	for(int i = ts->features.points[ts->dblBuff].size(); i--;){
 		if(!ts->statusVector[i]) continue;
-		
+
 		uint8_t r = regionIndexForDelta(ts, i);
 
 		if(r > MAX_REGION) MAX_REGION = r;
@@ -273,7 +273,7 @@ static void computeRegionBBoxes(trackingState_t* ts)
 {
 	for(int i = ts->features.points[ts->dblBuff].size(); i--;){
 		if(!ts->statusVector[i]) continue;
-		
+
 		uint8_t r = ts->features.regionIndex[i];
 		Point2f inds = featureIndexes(r);
 		Point2f pos(ts->features.points[ts->dblBuff][i].x, ts->features.points[ts->dblBuff][i].y);
@@ -305,7 +305,7 @@ static void resetRegion(trackingRegion_t* region)
 	region->lastMean = region->mean;
 	region->mean = Point2f(0, 0);
 	region->variance = Point2f(0, 0);
-	region->features = 0;	
+	region->features = 0;
 }
 
 
@@ -356,10 +356,10 @@ int main(int argc, char* argv[])
 	}
 
 	errno = 0;
-	
+
 	namedWindow("AVC", CV_WINDOW_AUTOSIZE); //resizable window;
 	errno = 0;
-	
+
 	float side = sqrtf(MAX_FEATURES);
 	for(int i = MAX_FEATURES; i--;){
 		float x = (i % (int)side) * WIDTH / side;
@@ -374,7 +374,7 @@ int main(int argc, char* argv[])
 	for(int i = MAX_REGIONS; i--;){
 		REGION_COLORS[i][0] = random() % 128;
 		REGION_COLORS[i][1] = random() % 255;
-		REGION_COLORS[i][2] = random() % 255; 
+		REGION_COLORS[i][2] = random() % 255;
 	}
 	REGION_COLORS[0][0] = REGION_COLORS[0][1] = REGION_COLORS[0][2] = 0;
 
@@ -433,7 +433,7 @@ int main(int argc, char* argv[])
 			}
 
 			// TODO processing here
-			computeDepths(&ts);		
+			computeDepths(&ts);
 		}
 
 		// region reset
@@ -451,9 +451,9 @@ int main(int argc, char* argv[])
 		for(int r = 1; r <= MAX_REGION; ++r){
 			Point2f o(10, r * 24);
 			char buf[32] = {};
-			
+
 			if(!REGIONS[r].features) continue;
-			
+
 			sprintf(buf, "density: %f", regionDensity(r));
 			putText(
 				frame,
@@ -498,7 +498,7 @@ int main(int argc, char* argv[])
 				1,
 				8
 			);
-		}		
+		}
 
 
 		imshow("AVC", frame);

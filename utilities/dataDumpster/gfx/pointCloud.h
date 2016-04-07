@@ -1,9 +1,12 @@
+#pragma once
+
 #include "renderer.h"
 
 namespace gfx {
 
 class PointCloud : Drawable {
 public:
+   PointCloud();
    PointCloud(int pointCount);
    PointCloud(vec3* pointData, int pointCount);
    ~PointCloud();

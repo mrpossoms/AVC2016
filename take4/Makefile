@@ -4,7 +4,7 @@ CFLAGS=-g
 
 INC   = -I./../ -I./../video -I/usr/local/include
 LIB   = -L/usr/local/lib
-SRC   = ./../system.c ./../timer.c ./../sensors/*.c ./../video/*.c ./../comms/*.c TrackingMat.cpp main.cpp
+SRC   = ./../base/*.c ./../sensors/*.c ./../video/*.c ./../comms/*.c TrackingMat.cpp main.cpp
 LINK  = -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_video -lindicurses -lcurses -lpthread -lm -lKF -lNEMA
 
 ifeq ($(OS),Darwin)
