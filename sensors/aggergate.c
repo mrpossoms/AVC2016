@@ -6,6 +6,7 @@
 #include <libNEMA.h>
 
 static int FD_IMU;
+static kfMat_t ROT_MAT, TEMP_MAT[2];
 
 //-----------------------------------------------------------------------------
 static int openSensor(const char* dev, int* fd, int flags)
@@ -30,6 +31,13 @@ int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile
 	}
 	printf("OK!\n");
 
+	printf("Allocating filter matrices...");
+	ROT_MAT = kfMatAlloc(3, 3);
+	TEMP_MAT[0] = kfMatAlloc(3, 3);
+	TEMP_MAT[1] = kfMatAlloc(3, 3);
+	printf("OK!\n");
+
+	printf("Loading calibration values...");
 	if(calProfile){
 		int calFd = open(calProfile, O_RDONLY);
 
@@ -40,6 +48,14 @@ int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile
 
 		close(calFd);
 	}
+	printf("OK!\n");
+
+	if(imuSetup(FD_IMU, &SYS.body.imu)){
+		printf("IMU stat collection failed.\n");
+		return -4;
+	}
+
+	printf("IMU stats collected.\n");
 
 	return 0;
 }
@@ -59,66 +75,87 @@ int senShutdown()
 
 #define ONCE_END } }
 
-static void estimateHeading(fusedObjState_t* body, float dt)
+static void estimateHeading(float dt)
 {
+	fusedObjState_t* body = &SYS.body;
 	objectState_t *mea= &body->measured;
 	objectState_t *est= &body->estimated;
-	vec3f_t* heading = &body->imu.adjReadings.mag;
-	vec3f_t  up      = vec3fNorm(&body->imu.adjReadings.linear);
+
+	// use the accelerometer's up/down vector to
+	// help the system determine how the vehicle is
+	// resting on the ground. This vector is used as
+	// the basis for the Z axis in the vehicle's body
+	// reference frame
+	vec3f_t heading = body->imu.cal.mag;
+	vec3f_t up      = vec3fNorm(&body->imu.cal.acc);
 	vec3f_t forward = { 0, 1, 0 };
-	static kfMat_t rotMat;
 
-	if(!rotMat.col){
-		rotMat = kfMatAlloc(3, 3);
+	if(!vec3fIsNan(&up) && vec3fMag(&up) <= LIL_G){
+
+		kfVecCross(ROT_MAT.col[0], up.v, forward.v, 3);      // left
+		memcpy(ROT_MAT.col[2], &up, sizeof(up));             // up
+		kfVecCross(ROT_MAT.col[1], ROT_MAT.col[0], up.v, 3); // forward
+
+		kfMatNormalize(ROT_MAT, ROT_MAT);
+		//vec3fScl((vec3f_t*)ROT_MAT.col[0], -1);
+
+		// rotate the mag vector back into the world frame
+		kfMatCpy(TEMP_MAT[0], ROT_MAT);
+		//kfMat3Inverse(ROT_MAT, TEMP_MAT[0], TEMP_MAT[1]);
+		kfMatTranspose(ROT_MAT, TEMP_MAT[0]);
+		kfMatMulVec(
+			heading.v,
+			//body->imu.cal.mag.v,
+			ROT_MAT,
+			heading.v,
+			3
+		);
 	}
 
-	kfVecCross(rotMat.col[0], up.v, forward.v, 3); // left
-	memcpy(rotMat.col[2], &up, sizeof(up));        // up
-	kfVecCross(rotMat.col[1], rotMat.col[0], up.v, 3);   // forward
+	// Use the gyro's angular velocity to help correlate the
+	// change in heading according to the magnetometer with
+	// the apparent rate of vehicle rotation
+	{
+		// use the gyro to estimate how confident we should be in the magnetometer's
+		// current measured heading
+		float w = body->imu.raw.gyro.z / -32000.0f;
 
-	// rotate the mag vector back into the world frame
-	kfMatMulVec(body->imu.adjReadings.mag.v, rotMat, heading->v, 3);
+		// update the heading according to magnetometer readings
+		mea->heading.x = body->imu.filtered.mag.x;
+		mea->heading.y = body->imu.filtered.mag.y;
+		mea->heading.z = body->imu.filtered.mag.z;
+		mea->heading = vec3fNorm(&mea->heading);
 
-	// use the gyro to estimate how confident we should be in the magnetometer's
-	// current measured heading
-	float w = body->imu.adjReadings.rotational.z / -32000.0f;
+		if(vec3fIsNan(&mea->heading)) return;
 
-	// update the heading according to magnetometer readings
-	mea->heading.x = -body->imu.adjReadings.mag.x;
-	mea->heading.y = -body->imu.adjReadings.mag.y;
-	mea->heading.z =  body->imu.adjReadings.mag.z;
-	mea->heading = vec3fNorm(&mea->heading);
+		ONCE_START
+		*est= *mea;
+		ONCE_END
 
-	if(vec3fIsNan(&mea->heading)) return;
+		vec3f_t lastHeading = est->heading;
+		float da = vec3fAng(&mea->heading, &lastHeading);
 
-ONCE_START
-	*est= *mea;
-ONCE_END
+		if(fabs(da) > 0.0001){
+			float coincidence = fabs(w) / da;
+			if(coincidence < 0) coincidence = 0;
 
-	vec3f_t lastHeading = est->heading;
-
-	//printf("dt = %f, w = %f\n", dt, w);
-	//printf("last heading= (%f, %f)\n", lastHeading.x, lastHeading.y);
-	//vec2fRot((vec2f_t*)&est->gyroHeading, (vec2f_t*)&lastHeading, w * dt);
-	//printf("gyro = (%f, %f)\n", est->gyroHeading.x, est->gyroHeading.y);
-	//float coincidence = powf(vec3fDot(&mea->heading, &est->gyroHeading), 128);
-	float da = vec3fAng(&mea->heading, &lastHeading);
-
-	if(fabs(da) > 0.0001){
-		float coincidence = fabs(w) / da;
-		if(coincidence < 0) coincidence = 0;
-
-//		printf("da = %f w = %f\n", da, w);
-		vec3Lerp(est->heading, lastHeading, mea->heading, coincidence);
+			vec3Lerp(est->heading, lastHeading, mea->heading, coincidence);
+		}
+		//est->heading = est->gyroHeading;
+		//est->heading = mea->heading;
 	}
-	//est->heading = est->gyroHeading;
-	est->heading = mea->heading;
 
-	//assert(!isnan(coincidence));
+	// grab the bearing that the GPS module has
+	// determined, use the land speed as an inverse weight
+	//  for interpolation between the GPS heading and the mag / gyro heading
 /*
-	if(fabs(lastC - coincidence) > 0.001){
-		lastC = coincidence;
-		printf("w = %f, %f\n", w, coincidence);
+	{
+		float C = cosf(GPS_STATE.Bearing), S = sinf(GPS_STATE.Bearing);
+		vec3f_t gpsHeading = { S, C, 0 };
+		float p = 1.0f / (GPS_STATE.Speed + 0.0001);
+
+		p = p > 1 ? 1 : p;
+		vec3Lerp(est->heading, gpsHeading, est->heading, p);
 	}
 */
 }
@@ -129,8 +166,12 @@ int senUpdate(fusedObjState_t* body)
 	objectState_t *measured  = &body->measured;
 	objectState_t *estimated = &body->estimated;
 
-	imuUpdateState(FD_IMU, &body->imu, SYS.magCal);
-	estimateHeading(body, dt);
+	if(imuUpdateState(FD_IMU, &body->imu, SYS.magCal)){
+		printf("imuUpdateState() failed\n");
+		return -1;
+	}
+	
+	estimateHeading(dt);
 
 	if(gpsHasNewReadings()){
 		vec3f_t lastPos = measured->position;
@@ -150,14 +191,13 @@ int senUpdate(fusedObjState_t* body)
 	{
 		estimated->position = measured->position;
 
-
 		// integrate position using velocity
 		vec3f_t* estVelLin = &estimated->velocity.linear;
 
 		// integrate IMU acceleration into velocity
-		estVelLin->x += body->imu.adjReadings.linear.x * dt;
-		estVelLin->y += body->imu.adjReadings.linear.y * dt;
-		estVelLin->z += body->imu.adjReadings.linear.z * dt;
+		for(int i = 3; i--;){
+			estVelLin->v[i] += body->imu.filtered.acc.v[i] * dt;
+		}
 
 		body->lastEstTime = SYS.timeUp;
 	}
