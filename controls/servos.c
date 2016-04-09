@@ -32,6 +32,8 @@ int ctrlInit()
 
 int ctrlSet(int servo, int percent)
 {
+	if(!SERVO_FD) return -1;
+
 	char str[12] = {};
 	sprintf(str, "%d=%d%%\n", servo, percent);
 	write(SERVO_FD, str, strlen(str));

@@ -1,6 +1,7 @@
 #include "aggergate.h"
 
 #include <assert.h>
+#include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <libNEMA.h>
@@ -81,35 +82,54 @@ static void estimateHeading(float dt)
 	objectState_t *mea= &body->measured;
 	objectState_t *est= &body->estimated;
 
+	{
+		// update the heading according to magnetometer readings
+		mea->heading.x = body->imu.cal.mag.x;
+		mea->heading.y = body->imu.cal.mag.y;
+		mea->heading.z = body->imu.cal.mag.z;
+		mea->heading = vec3fNorm(&mea->heading);
+
+		if(vec3fIsNan(&mea->heading)) return;
+
+		ONCE_START
+		*est= *mea;
+		ONCE_END
+	}
+
 	// use the accelerometer's up/down vector to
 	// help the system determine how the vehicle is
 	// resting on the ground. This vector is used as
 	// the basis for the Z axis in the vehicle's body
 	// reference frame
-	vec3f_t heading = body->imu.cal.mag;
-	vec3f_t up      = vec3fNorm(&body->imu.cal.acc);
+	vec3f_t heading = mea->heading;
+	vec3f_t up      = vec3fNorm(&body->imu.filtered.acc);
 	vec3f_t forward = { 0, 1, 0 };
-
+	//up = vec3fScl(&up, -1);
+	
 	if(!vec3fIsNan(&up) && vec3fMag(&up) <= LIL_G){
-
 		kfVecCross(ROT_MAT.col[0], up.v, forward.v, 3);      // left
 		memcpy(ROT_MAT.col[2], &up, sizeof(up));             // up
 		kfVecCross(ROT_MAT.col[1], ROT_MAT.col[0], up.v, 3); // forward
 
 		kfMatNormalize(ROT_MAT, ROT_MAT);
-		//vec3fScl((vec3f_t*)ROT_MAT.col[0], -1);
+
+		//kfMatPrint(ROT_MAT);
 
 		// rotate the mag vector back into the world frame
 		kfMatCpy(TEMP_MAT[0], ROT_MAT);
-		//kfMat3Inverse(ROT_MAT, TEMP_MAT[0], TEMP_MAT[1]);
+		//assert(kfMat3Inverse(ROT_MAT, TEMP_MAT[0], TEMP_MAT[1]) == 0);
+		
+		//kfMatIdent(ROT_MAT);
 		kfMatTranspose(ROT_MAT, TEMP_MAT[0]);
+		
 		kfMatMulVec(
-			heading.v,
-			//body->imu.cal.mag.v,
+			est->heading.v,
 			ROT_MAT,
+			//body->imu.cal.acc.v,
 			heading.v,
 			3
 		);
+		//printf("%f, %f, %f\n", est->heading.x, est->heading.y, est->heading.z);
 	}
 
 	// Use the gyro's angular velocity to help correlate the
@@ -120,18 +140,6 @@ static void estimateHeading(float dt)
 		// current measured heading
 		float w = body->imu.raw.gyro.z / -32000.0f;
 
-		// update the heading according to magnetometer readings
-		mea->heading.x = body->imu.filtered.mag.x;
-		mea->heading.y = body->imu.filtered.mag.y;
-		mea->heading.z = body->imu.filtered.mag.z;
-		mea->heading = vec3fNorm(&mea->heading);
-
-		if(vec3fIsNan(&mea->heading)) return;
-
-		ONCE_START
-		*est= *mea;
-		ONCE_END
-
 		vec3f_t lastHeading = est->heading;
 		float da = vec3fAng(&mea->heading, &lastHeading);
 
@@ -139,7 +147,7 @@ static void estimateHeading(float dt)
 			float coincidence = fabs(w) / da;
 			if(coincidence < 0) coincidence = 0;
 
-			vec3Lerp(est->heading, lastHeading, mea->heading, coincidence);
+			//vec3Lerp(est->heading, lastHeading, mea->heading, coincidence);
 		}
 		//est->heading = est->gyroHeading;
 		//est->heading = mea->heading;
