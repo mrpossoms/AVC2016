@@ -12,6 +12,7 @@ using namespace gfx;
 using namespace data;
 
 PointCloud* magCloud;
+mat3_t ACC_BASIS_MAT;
 
 static vec3_t pcRawColor(vec3 point, vec3 min, vec3 max, float s)
 {
@@ -57,6 +58,8 @@ static void onData(sysSnap_t snap)
 	memcpy(DAT_MAG_RAW + DAT_CUR_IDX, rawMag, sizeof(vec3));
 	memcpy(&DAT_ACC_CAL, &snap.imu.cal.acc, sizeof(vec3));
 
+	memcpy(&ACC_BASIS_MAT, snap.estimated.accFrame, sizeof(snap.estimated.accFrame));
+
 	DAT_CUR_IDX++;
 	DAT_CUR_IDX %= SAMPLES;
 }
@@ -89,6 +92,9 @@ int main(int argc, char* argv[])
 
 	Axes accPlot;
 	accPlot.accData = (vec3_t*)&DAT_ACC_CAL;
+
+	Basis accBasis;
+	accBasis.matrix = &ACC_BASIS_MAT;
 
 	PointCloud rawMagCloud((vec3*)DAT_MAG_RAW, SAMPLES);
 	rawMagCloud.scaleFactor = 1.0f / (float)0x1FFF;
@@ -130,6 +136,7 @@ int main(int argc, char* argv[])
 			magCloud->draw(&win);
 			rawMagCloud.draw(&win);
 			estMagCloud.draw(&win);
+			accBasis.draw(&win);
 		}
 		accPlot.draw(&win);
 

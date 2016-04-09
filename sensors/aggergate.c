@@ -114,6 +114,9 @@ static void estimateHeading(float dt)
 		kfMatNormalize(ROT_MAT, ROT_MAT);
 
 		//kfMatPrint(ROT_MAT);
+		for(int i = 3; i--;){
+			est->accFrame[i] = *((vec3f_t*)ROT_MAT.col[i]);
+		}
 
 		// rotate the mag vector back into the world frame
 		kfMatCpy(TEMP_MAT[0], ROT_MAT);

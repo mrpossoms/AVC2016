@@ -40,6 +40,7 @@ typedef struct{
 	} velocity;
 	vec3f_t gyroHeading;
 	vec3f_t heading;
+	vec3f_t accFrame[3];
 	vec3f_t goalHeading;
 	float   headingAngle;
 }objectState_t;

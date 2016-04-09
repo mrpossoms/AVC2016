@@ -5,6 +5,8 @@
 
 namespace gfx {
 
+typedef struct { vec3_t col[3]; } mat3_t;
+
 class Renderer {
 public:
 	Renderer(int w, int h);
