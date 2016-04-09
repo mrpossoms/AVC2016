@@ -7,21 +7,21 @@ namespace gfx {
 
 class Renderer {
 public:
-   Renderer(int w, int h);
-   ~Renderer();
+	Renderer(int w, int h);
+	~Renderer();
 
-   int  isOpen();
-   void present();
+	int  isOpen();
+	void present();
 private:
-   GLFWwindow* win;
-   mat4x4 view, proj;
+	GLFWwindow* win;
+	mat4x4 view, proj;
 
-   quat rotation;
+	quat rotation;
 };
 //-----------------------------------------------------------------------------
 class Drawable {
 public:
-   virtual void draw(Renderer* renderer) = 0;
+	virtual void draw(Renderer* renderer) = 0;
 };
 
 }

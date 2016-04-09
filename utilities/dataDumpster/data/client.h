@@ -11,37 +11,37 @@
 namespace data {
 
 typedef enum {
-   ccs_none = 0,
-   ccs_connecting,
-   ccs_failed,
-   ccs_connected
+	ccs_none = 0,
+	ccs_connecting,
+	ccs_failed,
+	ccs_connected
 } clientConState_t;
 
 typedef struct {
-   int sock;
-   const char* hostName;
-   struct sockaddr_in* host;
-   clientConState_t* state;
-   void(*onConnect)(int res);
-   void(*onData)(sysSnap_t snap);
+	int sock;
+	const char* hostName;
+	struct sockaddr_in* host;
+	clientConState_t* state;
+	void(*onConnect)(int res);
+	void(*onData)(sysSnap_t snap);
 } clientThreadArgs_t;
 
 class Client {
 public:
-   Client(const char* hostName, uint16_t port);
-   ~Client();
+	Client(const char* hostName, uint16_t port);
+	~Client();
 
-   int connect();
+	int connect();
 
-   void(*onConnect)(int res);
-   void(*onData)(sysSnap_t snap);
+	void(*onConnect)(int res);
+	void(*onData)(sysSnap_t snap);
 
-   clientConState_t state;
+	clientConState_t state;
 private:
-   struct sockaddr_in host;
-   int sock;
-   const char* hostName;
-   pthread_t pollingThread, connectionThread;
+	struct sockaddr_in host;
+	int sock;
+	const char* hostName;
+	pthread_t pollingThread, connectionThread;
 };
 
 }

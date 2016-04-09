@@ -6,12 +6,12 @@ namespace gfx {
 
 class Grid : Drawable {
 public:
-   Grid(int rows, int cols);
-   ~Grid();
+	Grid(int rows, int cols);
+	~Grid();
 
-   void draw(Renderer* renderer);
+	void draw(Renderer* renderer);
 private:
-   int rows, cols;
+	int rows, cols;
 };
 
 }

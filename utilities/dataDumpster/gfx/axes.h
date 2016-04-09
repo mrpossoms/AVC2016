@@ -7,12 +7,12 @@ namespace gfx {
 
 class Axes : Drawable {
 public:
-   Axes();
+	Axes();
 
-   void draw(Renderer* renderer);
-   vec3_t* accData;
+	void draw(Renderer* renderer);
+	vec3_t* accData;
 private:
-   PointCloud x, y, z;
+	PointCloud x, y, z;
 };
 
 }

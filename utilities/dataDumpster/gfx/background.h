@@ -6,7 +6,7 @@ namespace gfx {
 
 class Background : Drawable {
 public:
-   void draw(Renderer* renderer);
+	void draw(Renderer* renderer);
 };
 
 }
