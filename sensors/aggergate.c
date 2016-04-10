@@ -81,7 +81,6 @@ static void estimateHeading(float dt)
 	fusedObjState_t* body = &SYS.body;
 	objectState_t *mea= &body->measured;
 	objectState_t *est= &body->estimated;
-
 	{
 		// update the heading according to magnetometer readings
 		mea->heading.x = body->imu.cal.mag.x;
@@ -139,31 +138,34 @@ static void estimateHeading(float dt)
 	// apply the transform, use the old matrix if it hasn't been
 	// updated this cycle
 	kfMatMulVec(
-		est->heading.v,
+		mea->heading.v,
 		ROT_MAT,
 		heading.v,
 		3
 	);
 
-	est->heading.z = 0; // z means nothing to us at this point
-	est->heading = vec3fNorm(&est->heading);
+	mea->heading.z = 0; // z means nothing to us at this point
+	mea->heading = vec3fNorm(&mea->heading);
+	mea->heading.x *= -1; mea->heading.y *= -1;
 
 	// Use the gyro's angular velocity to help correlate the
 	// change in heading according to the magnetometer with
 	// the apparent rate of vehicle rotation
 	{
+		vec3f_t lastHeading = est->heading;
+
 		// use the gyro to estimate how confident we should be in the magnetometer's
 		// current measured heading
-		float w = body->imu.raw.gyro.z / -32000.0f;
-
-		vec3f_t lastHeading = est->heading;
+		float w = body->imu.filtered.gyro.z / -32000.0f;
 		float da = vec3fAng(&mea->heading, &lastHeading);
 
-		if(fabs(da) > 0.0001){
-			float coincidence = fabs(w) / da;
+		if(fabs(da) > 0.01){
+			float coincidence = fabs(da / w);
 			if(coincidence < 0) coincidence = 0;
+			if(coincidence > 1) coincidence = 1;
 
-			//vec3Lerp(est->heading, lastHeading, mea->heading, coincidence);
+			//printf("da: %f w: %f c: %f\n", da, w, coincidence);
+			vec3Lerp(est->heading, lastHeading, mea->heading, coincidence);
 		}
 		//est->heading = est->gyroHeading;
 		//est->heading = mea->heading;
