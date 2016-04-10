@@ -105,18 +105,26 @@ static void estimateHeading(float dt)
 	vec3f_t up      = vec3fNorm(&body->imu.filtered.acc);
 	vec3f_t forward = { 0, 1, 0 };
 	//up = vec3fScl(&up, -1);
+	vec3fScl(&heading, 1);
 	
 	if(!vec3fIsNan(&up) && vec3fMag(&up) <= LIL_G){
 		kfVecCross(ROT_MAT.col[0], up.v, forward.v, 3);      // left
 		memcpy(ROT_MAT.col[2], &up, sizeof(up));             // up
 		kfVecCross(ROT_MAT.col[1], ROT_MAT.col[0], up.v, 3); // forward
 
-		kfMatNormalize(ROT_MAT, ROT_MAT);
-
-		//kfMatPrint(ROT_MAT);
-		for(int i = 3; i--;){
-			est->accFrame[i] = *((vec3f_t*)ROT_MAT.col[i]);
+		for(int j = 3; j--;){
+			float v[3] = {
+				ROT_MAT.col[j][0],
+				ROT_MAT.col[j][1],
+				ROT_MAT.col[j][2]
+			};
+			float p  = 2.f * v[2]; //vec3_mul_inner(v, n);
+			for(int i=3; i--;){
+				ROT_MAT.col[j][i] = v[i] - (i == 2 ? p : 0);
+			}
 		}
+
+		kfMatNormalize(ROT_MAT, ROT_MAT);
 
 		// rotate the mag vector back into the world frame
 		kfMatCpy(TEMP_MAT[0], ROT_MAT);
@@ -124,7 +132,12 @@ static void estimateHeading(float dt)
 		
 		//kfMatIdent(ROT_MAT);
 		kfMatTranspose(ROT_MAT, TEMP_MAT[0]);
-		
+		//kfMatScl(ROT_
+
+		for(int i = 3; i--;){
+			est->accFrame[i] = *((vec3f_t*)ROT_MAT.col[i]);
+		}
+	
 		kfMatMulVec(
 			est->heading.v,
 			ROT_MAT,
@@ -132,6 +145,7 @@ static void estimateHeading(float dt)
 			heading.v,
 			3
 		);
+
 		//printf("%f, %f, %f\n", est->heading.x, est->heading.y, est->heading.z);
 	}
 
