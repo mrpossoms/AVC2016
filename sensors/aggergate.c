@@ -104,50 +104,49 @@ static void estimateHeading(float dt)
 	vec3f_t heading = mea->heading;
 	vec3f_t up      = vec3fNorm(&body->imu.filtered.acc);
 	vec3f_t forward = { 0, 1, 0 };
-	//up = vec3fScl(&up, -1);
-	vec3fScl(&heading, 1);
 	
 	if(!vec3fIsNan(&up) && vec3fMag(&up) <= LIL_G){
 		kfVecCross(ROT_MAT.col[0], up.v, forward.v, 3);      // left
 		memcpy(ROT_MAT.col[2], &up, sizeof(up));             // up
 		kfVecCross(ROT_MAT.col[1], ROT_MAT.col[0], up.v, 3); // forward
 
+		// mirror the column vectors for the basis over the ground plane
 		for(int j = 3; j--;){
 			float v[3] = {
 				ROT_MAT.col[j][0],
 				ROT_MAT.col[j][1],
 				ROT_MAT.col[j][2]
 			};
-			float p  = 2.f * v[2]; //vec3_mul_inner(v, n);
+			float p  = 2.f * v[2]; 
 			for(int i=3; i--;){
 				ROT_MAT.col[j][i] = v[i] - (i == 2 ? p : 0);
 			}
 		}
 
-		kfMatNormalize(ROT_MAT, ROT_MAT);
+		// normalize all column vectors 
+		//kfMatNormalize(ROT_MAT, ROT_MAT);
 
 		// rotate the mag vector back into the world frame
 		kfMatCpy(TEMP_MAT[0], ROT_MAT);
-		//assert(kfMat3Inverse(ROT_MAT, TEMP_MAT[0], TEMP_MAT[1]) == 0);
-		
-		//kfMatIdent(ROT_MAT);
 		kfMatTranspose(ROT_MAT, TEMP_MAT[0]);
-		//kfMatScl(ROT_
 
+		// keep a copy of the last rot matrix for debugging purposes
 		for(int i = 3; i--;){
 			est->accFrame[i] = *((vec3f_t*)ROT_MAT.col[i]);
 		}
-	
-		kfMatMulVec(
-			est->heading.v,
-			ROT_MAT,
-			//body->imu.cal.acc.v,
-			heading.v,
-			3
-		);
-
-		//printf("%f, %f, %f\n", est->heading.x, est->heading.y, est->heading.z);
 	}
+
+	// apply the transform, use the old matrix if it hasn't been
+	// updated this cycle
+	kfMatMulVec(
+		est->heading.v,
+		ROT_MAT,
+		heading.v,
+		3
+	);
+
+	est->heading.z = 0; // z means nothing to us at this point
+	est->heading = vec3fNorm(&est->heading);
 
 	// Use the gyro's angular velocity to help correlate the
 	// change in heading according to the magnetometer with
