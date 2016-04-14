@@ -7,5 +7,6 @@
 #include "background.h"
 #include "pointCloud.h"
 #include "basis.h"
+#include "gimbal.h"
 
 #endif

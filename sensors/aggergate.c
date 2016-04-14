@@ -159,15 +159,15 @@ static void estimateHeading(float dt)
 		float w = body->imu.filtered.gyro.z / -32000.0f;
 		float da = vec3fAng(&mea->heading, &lastHeading);
 
-		if(fabs(da) > 0.01){
-			float coincidence = fabs(da / w);
-			if(coincidence < 0) coincidence = 0;
-			if(coincidence > 1) coincidence = 1;
+		if(fabs(da) > 0.01){// && da * w > 0){
+			float coincidence = 1.0f / (1.0f + (da - w) * 10);
 
 			//printf("da: %f w: %f c: %f\n", da, w, coincidence);
 			//vec3Lerp(est->heading, lastHeading, mea->heading, coincidence);
+			printf("da: %f w: %f c: %f\n", da, w, coincidence);
+			//vec3Lerp(est->heading, lastHeading, mea->heading, coincidence);
 		}
-		//est->heading = est->gyroHeading;
+
 		est->heading = mea->heading;
 	}
 

@@ -33,6 +33,7 @@ static void connectionFail(clientThreadArgs_t* args)
 static void* connectionHandler(void* args)
 {
 	clientThreadArgs_t* params = (clientThreadArgs_t*)args;
+	sleep(1);
 
 	if(resolve(params)){
 		connectionFail(params);

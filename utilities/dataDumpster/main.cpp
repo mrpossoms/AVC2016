@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
+#include <vector>
 
 #include "gfx.h"
 #include "data.h"
@@ -66,6 +67,7 @@ static void onData(sysSnap_t snap)
 
 static void onConnect(int res)
 {
+
 	if(res == ccs_connected){
 		magCloud->points = (vec3*)DAT_MAG_CAL;
 		magCloud->style = GL_POINTS;
@@ -107,6 +109,8 @@ int main(int argc, char* argv[])
 	PointCloud estMagCloud((vec3*)DAT_MAG_EST, 1000);
 	estMagCloud.colorForPoint = pcEstColor;
 
+	Gimbal gimbal;
+
 	Client client(argv[1], 1340);
 	client.onConnect = onConnect;
 	client.onData = onData;
@@ -114,11 +118,24 @@ int main(int argc, char* argv[])
 	printf("Connecting...");
 	client.connect();
 
+	std::vector<Drawable*> drawables;
+
+	drawables.push_back(&grid);
+	drawables.push_back(magCloud);
+	drawables.push_back(&rawMagCloud);
+	drawables.push_back(&estMagCloud);
+	drawables.push_back(&accBasis);
+	drawables.push_back(&accPlot);
+	drawables.push_back(&gimbal);
+
 	float t = 0;
 	while(win.isOpen()){
+		vec3 delta = {};
+		vec3_scale(delta, DAT_SNAPS[DAT_CUR_IDX].imu.filtered.gyro.v, 0.01);
+		vec3_add(gimbal.angles.v, gimbal.angles.v, delta);
+	
 		background.draw(&win);
 
-		grid.draw(&win);
 		if(client.state == ccs_connecting){
 			mat4x4 scl = {}, ident = {};
 			mat4x4_identity(ident);
@@ -133,12 +150,10 @@ int main(int argc, char* argv[])
 			if(t > 0.99) t = 0;
 		}
 		else{
-			magCloud->draw(&win);
-			rawMagCloud.draw(&win);
-			estMagCloud.draw(&win);
-			accBasis.draw(&win);
+			for(int i = 0; i < drawables.size(); i++){
+				drawables[i]->draw(&win);
+			}
 		}
-		accPlot.draw(&win);
 
 		win.present();
 	}
