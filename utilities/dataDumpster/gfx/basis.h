@@ -4,7 +4,7 @@
 
 namespace gfx {
 
-class Basis : Drawable {
+class Basis : public Drawable {
 public:
 	void draw(Renderer* renderer);
 	mat3_t* matrix;

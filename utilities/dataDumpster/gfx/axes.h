@@ -1,11 +1,11 @@
-#pragma mark
+#pragma once 
 
 #include "renderer.h"
 #include "pointCloud.h"
 
 namespace gfx {
 
-class Axes : Drawable {
+class Axes : public Drawable {
 public:
 	Axes();
 

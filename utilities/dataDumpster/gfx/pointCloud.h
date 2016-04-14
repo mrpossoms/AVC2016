@@ -4,7 +4,7 @@
 
 namespace gfx {
 
-class PointCloud : Drawable {
+class PointCloud : public Drawable {
 public:
 	PointCloud();
 	PointCloud(int pointCount);

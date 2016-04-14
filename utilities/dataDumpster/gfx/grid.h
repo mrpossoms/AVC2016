@@ -4,7 +4,7 @@
 
 namespace gfx {
 
-class Grid : Drawable {
+class Grid : public Drawable {
 public:
 	Grid(int rows, int cols);
 	~Grid();
