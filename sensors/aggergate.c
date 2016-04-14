@@ -165,10 +165,10 @@ static void estimateHeading(float dt)
 			if(coincidence > 1) coincidence = 1;
 
 			//printf("da: %f w: %f c: %f\n", da, w, coincidence);
-			vec3Lerp(est->heading, lastHeading, mea->heading, coincidence);
+			//vec3Lerp(est->heading, lastHeading, mea->heading, coincidence);
 		}
 		//est->heading = est->gyroHeading;
-		//est->heading = mea->heading;
+		est->heading = mea->heading;
 	}
 
 	// grab the bearing that the GPS module has

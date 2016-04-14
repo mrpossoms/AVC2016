@@ -68,6 +68,7 @@ typedef struct{
 	float timeUp; // time in seconds the system has been running
 	int debugging;
 	int magCal;
+	int maxSpeed;
 } system_t;
 
 typedef struct{

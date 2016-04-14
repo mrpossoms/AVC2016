@@ -17,7 +17,7 @@ static void* action(agent_t* lastState, void* args)
 {
 	// do stuff here, choose a successor state if appropriate
 	if(SYS.route.currentWaypoint && SYS.body.hasGpsFix){
-		ctrlSet(SERVO_THROTTLE, 53);
+		ctrlSet(SERVO_THROTTLE, SYS.maxSpeed);
 	}
 	else{
 		printf("none\n");

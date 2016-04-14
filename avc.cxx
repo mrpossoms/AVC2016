@@ -26,12 +26,27 @@ void sigHandler(int sig)
 	}
 }
 
-int hasOpt(char* argv[], int argc, const char* target){
+int hasOpt(char* argv[], int argc, const char* target)
+{
 	for(int i = argc; i--;){
 		if(!strcmp(argv[i], target)) return 1;
 	}
 
 	return 0;
+}
+
+int intFromOpt(char* argv[], int argc, const char* target, int* val)
+{
+	for(int i = argc; i--;){
+		if(!strncmp(argv[i], target, strlen(target))){
+			char* num = argv[i];
+			for(int j = 0; argv[i][j++] != '='; num++);
+			*val = atoi(num + 1);
+			return 0;
+		}
+	}
+
+	return -1;
 }
 
 int main(int argc, char* argv[])
@@ -48,6 +63,13 @@ int main(int argc, char* argv[])
 		printf("Calibrating magnetometer\n");
 		SYS.magCal = 1;
 	}
+
+	if(intFromOpt(argv, argc, "--speed", &SYS.maxSpeed)){
+		SYS.maxSpeed = 53;
+		printf("No speed set\n");
+	}
+
+	printf("Max speed: %d\n", SYS.maxSpeed);
 
 	// // start servo controlling
 	if(!hasOpt(argv, argc, "--no-servo")){
@@ -115,7 +137,7 @@ int main(int argc, char* argv[])
 		
 		// record system state, if indicated
 		if(useBlackBox){
-			//diagBlkBoxLog();
+			diagBlkBoxLog();
 		}
 
 		// if there is no next goal or GPS then terminate
