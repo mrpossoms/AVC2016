@@ -10,9 +10,12 @@
 #define MAG_REG 0x08
 #define GYR_REG 0x28
 
-#define WARMUP_SAMPLES 10
+#define WARMUP_SAMPLES 100
 
-static int32_t ACCEL_MEAN[3], GYRO_MEAN[3];
+sensorStatef_t applyCalibration(sensorStatei_t* raw, sensorStatei_t* calMinMax);
+int contMagCal(sensorStatei_t* raw, sensorStatei_t* calMinMax);
+
+static double ACCEL_MEAN[3], GYRO_MEAN[3], MAG_MEAN[3];
 static int READINGS_COLLECTED;
 static sensorStatei_t READINGS[WARMUP_SAMPLES];
 
@@ -65,20 +68,34 @@ static int filterReading(imuState_t* state)
 {
 	int err = 0;
 	readingFilter_t* f = &state->filters;
+	vec3f_t* stdDevs = (vec3f_t*)&state->standardDeviations;
 
 	if(!state->filters.isSetup){
 		for(int i = 3; i--;){
 			kf_t* filter = (&f->acc) + i;
 			kfCreateFilter(filter, 3);
 
-			if(!i){
-				kfMatScl(filter->matQ, filter->matQ, 0.001);
-				kfMatScl(filter->matR, filter->matR, 10);
+			// copy collected standard deviations into the measurement
+			// covariance matrices for the filters
+			for(int j = 3; j--;){
+				for(int k = 3; k--;){
+					if(j == k){
+						filter->matR.col[j][k] = stdDevs[i].v[j];
+					}
+				}
 			}
-			else{
-				kfMatScl(filter->matQ, filter->matQ, 0.001);
-				kfMatScl(filter->matR, filter->matR, 0.1);
-			}
+
+			// set the proc-noise covariance matrix to an arbitrary value
+			kfMatScl(filter->matQ, filter->matQ, 0.001);
+
+			// if(!i){
+			// 	kfMatScl(filter->matQ, filter->matQ, 0.001);
+			// 	kfMatScl(filter->matR, filter->matR, 10);
+			// }
+			// else{
+			// 	kfMatScl(filter->matQ, filter->matQ, 0.001);
+			// 	kfMatScl(filter->matR, filter->matR, 0.1);
+			// }
 
 			if(err) return err;
 		}
@@ -101,13 +118,14 @@ static int filterReading(imuState_t* state)
 static int hasStatProps(imuState_t* state)
 {
 	static int isFinished;
+	sensorStatef_t cal = applyCalibration(&state->raw, state->calMinMax);
 
 	if(isFinished) return 1;
 	if(READINGS_COLLECTED < WARMUP_SAMPLES){
 		// vec3Add(state->means.acc, state->mean.acc, state->raw.acc);
 		for(int i = 3; i--;){
-			ACCEL_MEAN[i] += state->raw.acc.v[i];
-			GYRO_MEAN[i]  += state->raw.gyro.v[i];
+			ACCEL_MEAN[i] += cal.acc.v[i];
+			GYRO_MEAN[i]  += cal.gyro.v[i];
 		}
 		++READINGS_COLLECTED;
 		return 0;
@@ -121,18 +139,23 @@ static int hasStatProps(imuState_t* state)
 
 	// compute the variance for standard deviation
 	bzero(&state->standardDeviations, sizeof(sensorStatei_t));
-	double varLin[3] = {};
+	double varLin[3] = {}, varRot[3] = {}, varMag[3] = {};
 	for(int i = WARMUP_SAMPLES; i--;){
 		for(int j = 3; j--;){
-			double v = READINGS[i].acc.v[j] - ACCEL_MEAN[j];
-			//double w = READINGS[i].gyro.v[j] - GYRO_MEAN[j];
-			varLin[j] += (v * v) / (float)WARMUP_SAMPLES;
+			double av = READINGS[i].acc.v[j]  - ACCEL_MEAN[j];
+			double gv = READINGS[i].gyro.v[j] - GYRO_MEAN[j];
+			double mv = READINGS[i].mag.v[j]  - MAG_MEAN[j];
+			varLin[j] += (av * av) / (float)WARMUP_SAMPLES;
+			varRot[j] += (gv * gv) / (float)WARMUP_SAMPLES;
+			varMag[j] += (mv * mv) / (float)WARMUP_SAMPLES;
 		}
 	}
 
 	// set standard deviations
 	for(int i = 3; i--;){
-		state->standardDeviations.acc.v[i] = sqrt(varLin[i]);
+		state->standardDeviations.acc.v[i]  = sqrt(varLin[i]);
+		state->standardDeviations.gyro.v[i] = sqrt(varRot[i]);
+		state->standardDeviations.mag.v[i]  = sqrt(varMag[i]);
 	}
 
 	isFinished = 1;
@@ -143,7 +166,7 @@ static int hasStatProps(imuState_t* state)
 //   |  \/  |__ _(_)_ _
 //   | |\/| / _` | | ' \
 //   |_|  |_\__,_|_|_||_|
-//                          
+//
 int imuSetup(int fd, imuState_t* imu)
 {
 	do
@@ -152,83 +175,28 @@ int imuSetup(int fd, imuState_t* imu)
 		usleep(1000);
 	}
 	while(!hasStatProps(imu));
-	
+
 	return 0;
 }
-
+//------------------------------------------------------------------------------
 int imuUpdateState(int fd, imuState_t* imu, int contCal)
 {
+	sensorStatei_t* raw = &imu->raw;
 	sensorStatei_t reading = imuGetReadings(fd);
-	imu->raw = reading;
+
+	*raw = reading;
 
 	if(imu->isCalibrated){
-		vec3i16_t* accMin = &imu->calMinMax[0].acc;
-		vec3i16_t* accMax = &imu->calMinMax[1].acc;
-		vec3i16_t* magMin = &imu->calMinMax[0].mag;
-		vec3i16_t* magMax = &imu->calMinMax[1].mag;
-
 		// update the mag window
-		int updatedMagWindow = 0;
-
 		if(contCal){
-			// check each axis of the min and max windows, update them accordingly
-			for(int i = 3; i--;){
-				if(reading.mag.v[i] > magMax->v[i]){
-					magMax->v[i] = reading.mag.v[i];
-					updatedMagWindow = 1;
-				}
-
-				if(reading.mag.v[i] < magMin->v[i]){
-					magMin->v[i] = reading.mag.v[i];
-					updatedMagWindow = 1;
-				}
-
-				if(updatedMagWindow)
-				printf("%d ", reading.mag.v[i]);
-			} 
-			if(updatedMagWindow) printf("\n");
+			contMagCal(raw, imu->calMinMax);
 		}
 
-		// write new mag min and max if applicable
-		if(updatedMagWindow){
-			
-			int calFd = open("./imu.cal", O_WRONLY);
-
-			assert(calFd > 0);
-			write(calFd, &imu->calMinMax, sizeof(imu->calMinMax));
-			close(calFd);
-		}
-
-		// map the readings to the 1G [-1, 1] calibration window that was obtained
-		// from the calibration profile
-		sensorStatef_t* cal = &imu->cal;
-		sensorStatei_t* raw = &imu->raw;
-
-		// scale the accelerometer readings into the calibrated range
-		for(int i = 3; i--;){
-			cal->acc.v[i] = LIL_G * map(raw->acc.v[i], accMin->v[i], accMax->v[i]);
-		}
+		applyCalibration(raw, imu->calMinMax);
 
 		// subtract the gyro bias
 		for(int i = 3; i--;){
-			cal->gyro.v[i] = raw->gyro.v[i] - GYRO_MEAN[i];
-		}
-
-		// map the mag from [-1, 1] based on the measured range
-		{
-			vec3f_t magRad = {};
-			vec3f_t magOff = {};
-
-			// compute the radii for each axis
-			vec3Sub(magRad, *magMax, *magMin);
-			vec3Scl(magRad, magRad, 1.0f / 2.0f);
-
-			// compute the offset vector
-			vec3Sub(magOff, *magMax, magRad);
-
-			// do the rest!
-			vec3Sub(cal->mag, raw->mag, magOff);
-			vec3Div(cal->mag, cal->mag, magRad);
+			imu->cal.gyro.v[i] = raw->gyro.v[i] - GYRO_MEAN[i];
 		}
 
 		filterReading(imu);
@@ -242,6 +210,79 @@ int imuUpdateState(int fd, imuState_t* imu, int contCal)
 //   | (__/ _` | | | '_ \ '_/ _` |  _| / _ \ ' \
 //    \___\__,_|_|_|_.__/_| \__,_|\__|_\___/_||_|
 //
+int contMagCal(sensorStatei_t* raw, sensorStatei_t calMinMax[2])
+{
+	vec3i16_t* magMin = &calMinMax[0].mag;
+	vec3i16_t* magMax = &calMinMax[1].mag;
+	int updatedMagWindow = 0;
+
+	// check each axis of the min and max windows, update them accordingly
+	for(int i = 3; i--;){
+		if(raw->mag.v[i] > magMax->v[i]){
+			magMax->v[i] = raw->mag.v[i];
+			updatedMagWindow = 1;
+		}
+
+		if(raw->mag.v[i] < magMin->v[i]){
+			magMin->v[i] = raw->mag.v[i];
+			updatedMagWindow = 1;
+		}
+	}
+
+	// write new mag min and max if applicable
+	if(updatedMagWindow){
+		int calFd = open("./imu.cal", O_WRONLY);
+
+		if(calFd < 0){
+			return -1;
+		}
+
+		write(calFd, &calMinMax, sizeof(sensorStatei_t) * 2);
+		close(calFd);
+	}
+
+	return 0;
+}
+//------------------------------------------------------------------------------
+sensorStatef_t applyCalibration(sensorStatei_t* raw, sensorStatei_t calMinMax[2])
+{
+	vec3i16_t* accMin = &calMinMax[0].acc;
+	vec3i16_t* accMax = &calMinMax[1].acc;
+	vec3i16_t* magMin = &calMinMax[0].mag;
+	vec3i16_t* magMax = &calMinMax[1].mag;
+
+	sensorStatef_t cal = {};
+
+	// scale the accelerometer readings into the calibrated range
+	for(int i = 3; i--;){
+		cal.acc.v[i] = LIL_G * map(raw->acc.v[i], accMin->v[i], accMax->v[i]);
+	}
+
+	// just copy the gyro TODO: scale the rate
+	for(int i = 3; i--;){
+		cal.gyro.v[i] = raw->gyro.v[i];
+	}
+
+	// map the mag from [-1, 1] based on the measured range
+	{
+		vec3f_t magRad = {};
+		vec3f_t magOff = {};
+
+		// compute the radii for each axis
+		vec3Sub(magRad, *magMax, *magMin);
+		vec3Scl(magRad, magRad, 1.0f / 2.0f);
+
+		// compute the offset vector
+		vec3Sub(magOff, *magMax, magRad);
+
+		// do the rest!
+		vec3Sub(cal.mag, raw->mag, magOff);
+		vec3Div(cal.mag, cal.mag, magRad);
+	}
+
+	return cal;
+}
+//-----------------------------------------------------------------------------
 int16_t axisAcc(char axis, int isMax, int fd_imu)
 {
 	printf(isMax ? "(+%c) [Press any key]\n" : "(-%c) [Press any key]\n", axis);
