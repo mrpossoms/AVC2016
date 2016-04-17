@@ -1,3 +1,7 @@
+# Dependencies
+/.gitman
+/external
+
 # Object files
 *.o
 *.ko
@@ -34,6 +38,6 @@ AVC
 # Debug files
 *.dSYM/
 
+# Generic files
 *.DS_Store
 *.jpg
-.gitman
