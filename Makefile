@@ -29,17 +29,21 @@ all: dependencies externals
 	$(CMP) $(CFLAGS) $(INC) $(LIB) -c avc.cxx -o avc.o
 	$(CMP) $(CFLAGS) $(INC) $(LIB) $(OBJS) -o AVC $(LINK)
 
-.PHONY: dependencies $(DEPENDS)
+.PHONY: dependencies
 dependencies: $(DEPENDS)
 
 .PHONY: externals
-externals: $(EXTERNALS)	
+externals: $(EXTERNALS)
 
 $(EXTERNALS):
-	make -C $@	
-
-$(DEPENDS):
 	make -C $@
+
+$(DEPENDS): $(shell gitman show --log)
+	make -C $@
+	gitman list
+
+$(shell gitman show --log): $(shell gitman show --config)
+	gitman install
 
 calibrator:
 	$(CMP) -I./ system.c ./sensors/*.c calibrator.c -o calibrator.bin $(LINK)
@@ -52,9 +56,11 @@ clear-logs:
 
 clean:
 	find . -type f -name '*.o' -exec rm {} +
-	# make clean -C $(DEPENDS)
 	make clean -C $(DIAG)
 	make clean -C $(SENSORS)
 	make clean -C $(CTRLS)
 	make clean -C $(DESC)
 	rm AVC
+
+clean-all:
+	gitman uninstall
