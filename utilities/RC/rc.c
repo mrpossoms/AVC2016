@@ -14,26 +14,30 @@
 #include "controls/servos.h"
 #include "rc.h"
 
-int main(int argc, char* argv[])
+int rcComm()
 {
-	int sock = socket(AF_INET, SOCK_DGRAM, 0);
-	struct sockaddr_in addr = { };	
-	addr.sin_family      = AF_INET;
-	addr.sin_port        = htons(1338);
-	addr.sin_addr.s_addr = INADDR_ANY;
+	static int sock;
 
-	fcntl(sock, F_SETFD, fcntl(sock, F_GETFD) | FD_CLOEXEC);
-	printf("Setup using port %d\n", ntohs(addr.sin_port));
+	if(!sock){
+		struct sockaddr_in addr = { };	
+		addr.sin_family      = AF_INET;
+		addr.sin_port        = htons(1338);
+		addr.sin_addr.s_addr = INADDR_ANY;
 
-	assert(sock > 0);
+		sock = socket(AF_INET, SOCK_DGRAM, 0);
+		fcntl(sock, F_SETFD, fcntl(sock, F_GETFD) | FD_CLOEXEC);
+		printf("Setup using port %d\n", ntohs(addr.sin_port));
 
-	int res = bind(sock, (const struct sockaddr*)&addr, sizeof(addr));
-	printf("%d %d\n", res, errno);
+		assert(sock > 0);
+
+		int res = bind(sock, (const struct sockaddr*)&addr, sizeof(addr));
+		printf("%d %d\n", res, errno);
+		
+		assert(res >= 0);
+	}
 	
-	assert(res >= 0);
-	assert(!ctrlInit());
-	
-	while(1){
+	// listen for control messages
+	{
 		struct timeval timeout = { 1, 0 };
 		fd_set readFd;
 		rcMessage_t msg = { 0, 50, 50 };
@@ -45,18 +49,14 @@ int main(int argc, char* argv[])
 		if(select(sock + 1, &readFd, 0, 0, &timeout) <= 0){
 			ctrlSet(0, 50);
 			ctrlSet(1, 50);
-			continue;
+			return -1;
 		}
 
-
 		int bytes = recv(sock, &msg, sizeof(msg), 0);
-		printf("Got something\n");
 		if(bytes == sizeof(msg)){
 			ctrlSet(1, msg.throttle);
 			ctrlSet(0, msg.steering);
 		}
-
-		usleep(1000);
 	}
 
 	return 0;

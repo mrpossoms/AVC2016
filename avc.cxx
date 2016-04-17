@@ -1,5 +1,3 @@
-// @rpath/base/.so
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -16,6 +14,7 @@
 #include "sensors/aggergate.h"
 #include "decision/agents.h"
 #include "utilities/diagnostics/diagnostics.h"
+#include "utilities/RC/rc.h"
 
 void sigHandler(int sig)
 {
@@ -51,12 +50,17 @@ int intFromOpt(char* argv[], int argc, const char* target, int* val)
 
 int main(int argc, char* argv[])
 {
-	int err = 0;
+	int err = 0, isRC = 0;
 	openlog("AVC_BOT", 0, 0);
 
 	if(hasOpt(argv, argc, "--debug")){
 		printf("Showing debugging output\n");
 		SYS.debugging = 1;
+	}
+
+	if(hasOpt(argv, argc, "--RC")){
+		printf("Using radio control\n");
+		isRC = 1;
 	}
 
 	if(hasOpt(argv, argc, "--mag-cal")){
@@ -125,13 +129,18 @@ int main(int argc, char* argv[])
 	while(1){
 		senUpdate(&SYS.body);
 
-		AGENT_ROUTING.action(NULL, NULL);
-		AGENT_STEERING.action(NULL, NULL);
+		if(!isRC){
+			AGENT_ROUTING.action(NULL, NULL);
+			AGENT_STEERING.action(NULL, NULL);
 
-		if(hasOpt(argv, argc, "--use-throttle")){
-			AGENT_THROTTLE.action(NULL, NULL);
+			if(hasOpt(argv, argc, "--use-throttle")){
+				AGENT_THROTTLE.action(NULL, NULL);
+			}
+			AGENT_CRASH_DETECTOR.action(NULL, NULL);
 		}
-		AGENT_CRASH_DETECTOR.action(NULL, NULL);
+		else{
+			rcComm();
+		}
 
 		sysTimerUpdate();
 		

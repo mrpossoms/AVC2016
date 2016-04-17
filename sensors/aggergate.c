@@ -83,16 +83,13 @@ static void estimateHeading(float dt)
 	objectState_t *est= &body->estimated;
 	{
 		// update the heading according to magnetometer readings
-		mea->heading.x = body->imu.cal.mag.x;
-		mea->heading.y = body->imu.cal.mag.y;
-		mea->heading.z = body->imu.cal.mag.z;
+		mea->heading.x = body->imu.filtered.mag.x;
+		mea->heading.y = body->imu.filtered.mag.y;
+		mea->heading.z = body->imu.filtered.mag.z;
 		mea->heading = vec3fNorm(&mea->heading);
 
 		if(vec3fIsNan(&mea->heading)) return;
 
-		ONCE_START
-		*est= *mea;
-		ONCE_END
 	}
 
 	// use the accelerometer's up/down vector to
@@ -104,7 +101,7 @@ static void estimateHeading(float dt)
 	vec3f_t up      = vec3fNorm(&body->imu.filtered.acc);
 	vec3f_t forward = { 0, 1, 0 };
 	
-	if(!vec3fIsNan(&up) && vec3fMag(&up) <= LIL_G){
+	if(!vec3fIsNan(&up) && vec3fMag(&body->imu.filtered.acc) <= LIL_G * 1.05f){
 		kfVecCross(ROT_MAT.col[0], up.v, forward.v, 3);      // left
 		memcpy(ROT_MAT.col[2], &up, sizeof(up));             // up
 		kfVecCross(ROT_MAT.col[1], ROT_MAT.col[0], up.v, 3); // forward
@@ -147,6 +144,10 @@ static void estimateHeading(float dt)
 	mea->heading.z = 0; // z means nothing to us at this point
 	mea->heading = vec3fNorm(&mea->heading);
 	mea->heading.x *= -1; mea->heading.y *= -1;
+
+	ONCE_START
+	*est= *mea;
+	ONCE_END
 
 	// Use the gyro's angular velocity to help correlate the
 	// change in heading according to the magnetometer with

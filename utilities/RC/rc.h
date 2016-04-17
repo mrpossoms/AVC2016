@@ -9,4 +9,13 @@ typedef struct{
 	uint8_t  steering;
 } rcMessage_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int rcComm();
+
+#ifdef __cplusplus
+}
+#endif
 #endif

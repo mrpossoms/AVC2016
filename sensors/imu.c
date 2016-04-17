@@ -126,6 +126,7 @@ static int hasStatProps(imuState_t* state)
 		for(int i = 3; i--;){
 			ACCEL_MEAN[i] += cal.acc.v[i];
 			GYRO_MEAN[i]  += cal.gyro.v[i];
+			MAG_MEAN[i]   += cal.mag.v[i];
 		}
 		++READINGS_COLLECTED;
 		return 0;
@@ -134,7 +135,8 @@ static int hasStatProps(imuState_t* state)
 	// compute the mean when still
 	for(int i = 3; i--;){
 		ACCEL_MEAN[i] /= WARMUP_SAMPLES;
-		GYRO_MEAN[i] /= WARMUP_SAMPLES;
+		GYRO_MEAN[i]  /= WARMUP_SAMPLES;
+		MAG_MEAN[i]   /= WARMUP_SAMPLES;
 	}
 
 	// compute the variance for standard deviation
@@ -153,10 +155,14 @@ static int hasStatProps(imuState_t* state)
 
 	// set standard deviations
 	for(int i = 3; i--;){
-		state->standardDeviations.acc.v[i]  = sqrt(varLin[i]);
-		state->standardDeviations.gyro.v[i] = sqrt(varRot[i]);
-		state->standardDeviations.mag.v[i]  = sqrt(varMag[i]);
+		state->standardDeviations.acc.v[i]  = varLin[i] = sqrt(varLin[i]);
+		state->standardDeviations.gyro.v[i] = varRot[i] = sqrt(varRot[i]);
+		state->standardDeviations.mag.v[i]  = varMag[i] = sqrt(varMag[i]);
 	}
+
+	printf("acc stddev: %f, %f, %f\n", varLin[0], varLin[1], varLin[2]);
+	printf("gry stddev: %f, %f, %f\n", varRot[0], varRot[1], varRot[2]);
+	printf("mag stddev: %f, %f, %f\n", varMag[0], varMag[1], varMag[2]);
 
 	isFinished = 1;
 	return 1;
@@ -192,7 +198,7 @@ int imuUpdateState(int fd, imuState_t* imu, int contCal)
 			contMagCal(raw, imu->calMinMax);
 		}
 
-		applyCalibration(raw, imu->calMinMax);
+		imu->cal = applyCalibration(raw, imu->calMinMax);
 
 		// subtract the gyro bias
 		for(int i = 3; i--;){
