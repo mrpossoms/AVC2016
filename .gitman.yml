@@ -1,4 +1,4 @@
-location: .gdm
+location: .gitman
 sources:
 - repo: https://github.com/mrpossoms/libNEMA
   dir: libNEMA
