@@ -17,7 +17,7 @@ int contMagCal(sensorStatei_t* raw, sensorStatei_t* calMinMax);
 
 static double ACCEL_MEAN[3], GYRO_MEAN[3], MAG_MEAN[3];
 static int READINGS_COLLECTED;
-static sensorStatei_t READINGS[WARMUP_SAMPLES];
+static sensorStatef_t READINGS[WARMUP_SAMPLES];
 
 //    _  _     _
 //   | || |___| |_ __  ___ _ _ ___
@@ -86,7 +86,19 @@ static int filterReading(imuState_t* state)
 			}
 
 			// set the proc-noise covariance matrix to an arbitrary value
-			kfMatScl(filter->matQ, filter->matQ, 0.001);
+			switch(i){
+			case 0: // acc
+			kfMatIdent(filter->matR);
+			kfMatScl(filter->matR, filter->matR, 100);
+			kfMatScl(filter->matQ, filter->matQ, 0.0001);
+				break;
+			case 1: // gyro
+			kfMatScl(filter->matQ, filter->matQ, 0.01);
+				break;
+			case 2: // mag
+			kfMatScl(filter->matQ, filter->matQ, 0.01);
+				break;
+			}
 
 			// if(!i){
 			// 	kfMatScl(filter->matQ, filter->matQ, 0.001);
@@ -128,6 +140,7 @@ static int hasStatProps(imuState_t* state)
 			GYRO_MEAN[i]  += cal.gyro.v[i];
 			MAG_MEAN[i]   += cal.mag.v[i];
 		}
+		READINGS[READINGS_COLLECTED] = cal;
 		++READINGS_COLLECTED;
 		return 0;
 	}
@@ -147,19 +160,24 @@ static int hasStatProps(imuState_t* state)
 			double av = READINGS[i].acc.v[j]  - ACCEL_MEAN[j];
 			double gv = READINGS[i].gyro.v[j] - GYRO_MEAN[j];
 			double mv = READINGS[i].mag.v[j]  - MAG_MEAN[j];
-			varLin[j] += (av * av) / (float)WARMUP_SAMPLES;
-			varRot[j] += (gv * gv) / (float)WARMUP_SAMPLES;
-			varMag[j] += (mv * mv) / (float)WARMUP_SAMPLES;
+			varLin[j] += (av * av);
+			varRot[j] += (gv * gv);
+			varMag[j] += (mv * mv);
 		}
 	}
 
 	// set standard deviations
 	for(int i = 3; i--;){
+		varLin[i] /= WARMUP_SAMPLES;
+		varRot[i] /= WARMUP_SAMPLES;
+		varMag[i] /= WARMUP_SAMPLES;		
+
 		state->standardDeviations.acc.v[i]  = varLin[i] = sqrt(varLin[i]);
 		state->standardDeviations.gyro.v[i] = varRot[i] = sqrt(varRot[i]);
 		state->standardDeviations.mag.v[i]  = varMag[i] = sqrt(varMag[i]);
 	}
 
+	printf("acc u: %f, %f, %f\n", ACCEL_MEAN[0], ACCEL_MEAN[1], ACCEL_MEAN[2]);
 	printf("acc stddev: %f, %f, %f\n", varLin[0], varLin[1], varLin[2]);
 	printf("gry stddev: %f, %f, %f\n", varRot[0], varRot[1], varRot[2]);
 	printf("mag stddev: %f, %f, %f\n", varMag[0], varMag[1], varMag[2]);

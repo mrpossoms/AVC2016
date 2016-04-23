@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <signal.h>
+#include <pthread.h>
 
 #include "base/system.h"
 #include "controls/servos.h"
@@ -16,12 +17,21 @@
 #include "utilities/diagnostics/diagnostics.h"
 #include "utilities/RC/rc.h"
 
+pthread_t RC_THREAD;
+
 void sigHandler(int sig)
 {
 	if(sig == SIGINT){
 		ctrlSet(SERVO_STEERING, 50);
 		ctrlSet(SERVO_THROTTLE, 50);
 		exit(0);
+	}
+}
+
+void* RCHandler(void* arg)
+{
+	while(1){
+		rcComm();
 	}
 }
 
@@ -61,6 +71,7 @@ int main(int argc, char* argv[])
 	if(hasOpt(argv, argc, "--RC")){
 		printf("Using radio control\n");
 		isRC = 1;
+		pthread_create(&RC_THREAD, NULL, RCHandler, NULL);
 	}
 
 	if(hasOpt(argv, argc, "--mag-cal")){
@@ -89,7 +100,7 @@ int main(int argc, char* argv[])
 		return err;
 	}
 
-	// // start up IMU and GPS sensors
+	// start up IMU and GPS sensors
 	err = senInit("/dev/i2c-1", "/dev/ttyAMA0", "./imu.cal");
 	if(err){
 		SYS_ERR("Initializing sensor '%s' failed", "");
@@ -137,9 +148,6 @@ int main(int argc, char* argv[])
 				AGENT_THROTTLE.action(NULL, NULL);
 			}
 			AGENT_CRASH_DETECTOR.action(NULL, NULL);
-		}
-		else{
-			rcComm();
 		}
 
 		sysTimerUpdate();

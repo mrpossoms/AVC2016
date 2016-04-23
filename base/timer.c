@@ -2,6 +2,7 @@
 #include <sys/time.h>
 
 static struct timeval START_TIME;
+static float LAST_TIME_UP;
 
 void sysTimerUpdate()
 {
@@ -22,4 +23,7 @@ void sysTimerUpdate()
 	}
 
 	SYS.timeUp = usElapsed / 1000000.0;
+	SYS.dt = SYS.timeUp - LAST_TIME_UP;
+
+	LAST_TIME_UP = SYS.timeUp;
 }

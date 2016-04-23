@@ -97,6 +97,11 @@ static void estimateHeading(float dt)
 	// resting on the ground. This vector is used as
 	// the basis for the Z axis in the vehicle's body
 	// reference frame
+
+	// TODO weight between ROT_MAT.col[2] and up. up's strength
+	// should be inversely proportional to the it's magnitude
+	// probably at some high degree function
+
 	vec3f_t heading = mea->heading;
 	vec3f_t up      = vec3fNorm(&body->imu.filtered.acc);
 	vec3f_t forward = { 0, 1, 0 };
@@ -154,22 +159,18 @@ static void estimateHeading(float dt)
 	// the apparent rate of vehicle rotation
 	{
 		vec3f_t lastHeading = est->heading;
+		vec3f_t gyroHeading = {};
 
 		// use the gyro to estimate how confident we should be in the magnetometer's
 		// current measured heading
 		float w = body->imu.filtered.gyro.z / -32000.0f;
-		float da = vec3fAng(&mea->heading, &lastHeading);
 
-		if(fabs(da) > 0.01){// && da * w > 0){
-			float coincidence = fabs(w);//1.0f / (1.0f + (da - w) * 10);
+		vec2fRot((vec2f_t*)&gyroHeading, (vec2f_t*)&lastHeading, w * SYS.dt);
+		
+	//	float p = pow(vec3Dot(gyroHeading, mea->heading), 4);
 
-			//printf("da: %f w: %f c: %f\n", da, w, coincidence);
-			//vec3Lerp(est->heading, lastHeading, mea->heading, coincidence);
-			//printf("da: %f w: %f c: %f\n", da, w, coincidence);
-			vec3Lerp(est->heading, lastHeading, mea->heading, coincidence);
-		}
 
-		//est->heading = mea->heading;
+		est->heading = mea->heading;
 	}
 
 	// grab the bearing that the GPS module has

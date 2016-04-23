@@ -66,6 +66,7 @@ typedef struct{
 	} route;
 
 	float timeUp; // time in seconds the system has been running
+	float dt;     // time since last update
 	int debugging;
 	int magCal;
 	int maxSpeed;
