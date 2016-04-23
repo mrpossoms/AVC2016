@@ -50,6 +50,9 @@ static vec3_t pcEstColor(vec3 point, vec3 min, vec3 max, float s)
 
 static void onData(sysSnap_t snap)
 {
+	DAT_CUR_IDX++;
+	DAT_CUR_IDX %= SAMPLES;
+
 	DAT_SNAPS[DAT_CUR_IDX] = snap;
 
 	vec3 rawMag = { snap.imu.raw.mag.x, snap.imu.raw.mag.y, snap.imu.raw.mag.z };
@@ -61,8 +64,6 @@ static void onData(sysSnap_t snap)
 
 	memcpy(&ACC_BASIS_MAT, snap.estimated.accFrame, sizeof(snap.estimated.accFrame));
 
-	DAT_CUR_IDX++;
-	DAT_CUR_IDX %= SAMPLES;
 }
 
 static void onConnect(int res)
@@ -130,8 +131,8 @@ int main(int argc, char* argv[])
 
 	float t = 0;
 	while(win.isOpen()){
-		vec3 delta = {};
-		vec3_scale(delta, DAT_SNAPS[DAT_CUR_IDX].imu.filtered.gyro.v, 0.01);
+		vec3 delta = { 0.01, 0.01, 0.01 };
+		vec3_scale(delta, DAT_SNAPS[DAT_CUR_IDX].imu.filtered.gyro.v, 0.00001);
 		vec3_add(gimbal.angles.v, gimbal.angles.v, delta);
 	
 		background.draw(&win);

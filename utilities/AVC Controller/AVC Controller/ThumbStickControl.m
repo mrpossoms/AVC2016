@@ -60,6 +60,12 @@
     self.stickPos = point;
 }
 
+- (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
+{
+    self.currentTouch = nil;
+    self.stickPos = [self viewCenter];
+}
+
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
     self.currentTouch = nil;

@@ -30,28 +30,33 @@ typedef struct{
     uint8_t  steering;
 } rcMessage_t;
 
-struct sockaddr_in* HOST_ADDRESS;
+struct sockaddr_in* HOST_ADDRESS = NULL;
 rcMessage_t STATE = { 0, 50, 50 };
 
 @implementation ViewController
 
 void transmit(){
     static int sock;
-    
+
     // only try sending data if we have an endpoint
     if(!HOST_ADDRESS) return;
     if(!sock){
         sock = socket(AF_INET, SOCK_DGRAM, 0);
     }
-    
-    sendto(
+
+    struct sockaddr_in peer = *HOST_ADDRESS;
+    ssize_t bytes = sendto(
         sock,
         &STATE,
         sizeof(rcMessage_t),
         0,
-        (const struct sockaddr*)&HOST_ADDRESS,
-        sizeof(HOST_ADDRESS)
+        (const struct sockaddr*)&peer,
+        sizeof(peer)
     );
+
+    if(bytes != sizeof(rcMessage_t)){
+        NSLog(@"Bad transmit");
+    }
 }
 
 - (void)setIpAddress:(NSString *)ipAddress
@@ -100,8 +105,8 @@ void transmit(){
 {
     [self.throttleStick reset];
 
-    [self.throttleStick setRangeForAxis:1 withMin:75 andMax:25];
-    [self.throttleStick setRangeForAxis:0 withMin:25 andMax:75];
+    [self.throttleStick setRangeForAxis:0 withMin:25 andMax:75]; // steering
+    [self.throttleStick setRangeForAxis:1 withMin:56 andMax:44]; // throttle
     
     self.throttleStick.delegate = self;
 

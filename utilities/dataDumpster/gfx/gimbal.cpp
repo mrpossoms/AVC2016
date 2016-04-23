@@ -8,8 +8,8 @@ Gimbal::Gimbal()
 	float dt = M_PI / 50.0;
 
 	for(int i = 100; i--;){
-		circle[i].x = cosf(dt * i);
-		circle[i].y = sinf(dt * i);
+		circle[i].x = cosf(dt * i) * .75;
+		circle[i].y = sinf(dt * i) * .75;
 		circle[i].z = 0;
 	}
 
@@ -25,13 +25,13 @@ void Gimbal::draw(Renderer* renderer)
 
 	mat4x4_identity(I);
 
-	mat4x4_rotate_Y(T, I, M_PI / 2.0f);
-	mat4x4_rotate_X(rots[0], T, angles.x);
+	mat4x4_rotate_X(T, I, angles.x);
+	mat4x4_rotate_Y(rots[0], T, M_PI / 2.0f);
+	
+	mat4x4_rotate_Z(rots[1], I, angles.y);
 
-	mat4x4_rotate_Y(rots[1], T, angles.z);
-
-	mat4x4_rotate_X(T, I, M_PI / 2.0f);
-	mat4x4_rotate_Z(rots[2], T, angles.y);
+	mat4x4_rotate_Y(T, I, angles.z);
+	mat4x4_rotate_X(rots[2], T, M_PI / 2.0f);
 
 	for(int i = 3; i--;){
 		glPushMatrix();
