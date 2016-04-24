@@ -19,11 +19,32 @@
 
 pthread_t RC_THREAD;
 
+static void mark_process()
+{
+	int fd;
+	pid_t id = getpid();
+	char path[32] = {};
+
+	sprintf(path, "%d.pid", id);
+	fd = open(path, O_CREAT | O_TRUNC, O_WRONLY);
+	close(fd);
+}
+
+static void unmark_process()
+{
+	pid_t id = getpid();
+	char path[32] = {};
+
+	sprintf(path, "%d.pid", id);
+	unlink(path);
+}
+
 void sigHandler(int sig)
 {
-	if(sig == SIGINT){
+	if(sig == SIGINT || sig == SIGKILL || sig == SIGTERM){
 		ctrlSet(SERVO_STEERING, 50);
 		ctrlSet(SERVO_THROTTLE, 50);
+		unmark_process();
 		exit(0);
 	}
 }
@@ -62,6 +83,7 @@ int main(int argc, char* argv[])
 {
 	int err = 0, isRC = 0;
 	openlog("AVC_BOT", 0, 0);
+	mark_process();
 
 	if(hasOpt(argv, argc, "--debug")){
 		printf("Showing debugging output\n");

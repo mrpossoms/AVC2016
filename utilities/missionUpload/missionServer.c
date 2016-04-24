@@ -12,6 +12,7 @@
 #include <strings.h>
 #include <syslog.h>
 #include <dirent.h>
+#include <signal.h>
 
 #include "base/system.h"
 
@@ -137,6 +138,36 @@ void downloadMission(int connfd, const char* filepath)
 	close(missionfd);
 }
 //-----------------------------------------------------------------------------
+void killMissions()
+{
+        struct dirent *ep = NULL;
+
+        // tell the client how many filenames to expect
+        DIR* dir = opendir(AVC_PATH);
+
+        // if we couldn't open the dir, tell them to expect nothing
+        if(!dir){
+                syslog(0, "Failed to open dir '%s'\n", AVC_PATH);
+       		return;
+	}
+
+        // iterate over the whole list of files
+        for(ep = readdir(dir); ep; ep = readdir(dir)){
+
+                // skip hidden files
+                if(ep->d_name[0] == '.') continue;
+
+		int len = strlen(ep->d_name);
+		if(memcmp(ep->d_name + (len - 4), ".pid", 4) == 0){
+			ep->d_name[len - 4] = '\0';
+			pid_t id = (pid_t)atoi(ep->d_name);
+			kill(id, SIGKILL);
+		}
+        }
+
+	closedir(dir);
+}
+//-----------------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
 	int listenfd = 0;
@@ -223,6 +254,10 @@ int main(int argc, char *argv[])
 			case MISS_SRV_BLKBOX_DOWNLOAD:
 				syslog(0, "Downloading blackbox log");
 				downloadBlackBoxLog(connfd);
+				break;
+			case MISS_SRV_KILL:
+				syslog(0, "Terminating running missions");
+				killMissions();
 				break;
 		}
 
