@@ -194,6 +194,7 @@
 				TargetAttributes = {
 					0628E0EC1C32F4CE00640110 = {
 						CreatedOnToolsVersion = 7.1;
+						DevelopmentTeam = 8C2E6QPTC9;
 					};
 				};
 			};
@@ -359,6 +360,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
 				HEADER_SEARCH_PATHS = ./../../;
 				INFOPLIST_FILE = "AVC Controller/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
@@ -372,6 +374,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
 				HEADER_SEARCH_PATHS = ./../../;
 				INFOPLIST_FILE = "AVC Controller/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
