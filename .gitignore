@@ -40,3 +40,5 @@ AVC
 *.DS_Store
 *.jpg
 .gitman
+
+./utilities/AVC\ Controller/AVC\ Controller.xcodeproj/project.xcworkspace/xcuserdata
