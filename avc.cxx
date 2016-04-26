@@ -41,12 +41,10 @@ static void unmark_process()
 
 void sigHandler(int sig)
 {
-	if(sig == SIGINT || sig == SIGKILL || sig == SIGTERM){
-		ctrlSet(SERVO_STEERING, 50);
-		ctrlSet(SERVO_THROTTLE, 50);
-		unmark_process();
-		exit(0);
-	}
+	ctrlSet(SERVO_STEERING, 50);
+	ctrlSet(SERVO_THROTTLE, 50);
+	unmark_process();
+	exit(0);
 }
 
 void* RCHandler(void* arg)
@@ -117,9 +115,18 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	if(signal(SIGINT, sigHandler) == SIG_ERR){
-		SYS_ERR("Registering signal SIGINT failed %d", errno);
-		return err;
+	int signals[] = { SIGINT, SIGTERM, SIGHUP };
+	struct sigaction sa = {};
+	sa.sa_handler = &sigHandler;
+	sa.sa_flags = SA_RESTART;
+	// Block every signal during the handler
+	sigfillset(&sa.sa_mask);
+
+	for(int i = sizeof(signals) / sizeof(int); i--;){
+		if(sigaction(signals[i], &sa, NULL) == -1){
+			SYS_ERR("Registering signal %d failed %d", signals[i], errno);
+			return err;
+		}
 	}
 
 	// start up IMU and GPS sensors
@@ -183,8 +190,6 @@ int main(int argc, char* argv[])
 		if(!SYS.route.currentWaypoint){
 			break;
 		}
-
-		//usleep(1000);
 	}
 
 	sigHandler(SIGINT);
