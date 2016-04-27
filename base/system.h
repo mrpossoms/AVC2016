@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "types.h"
 #include "constants.h"
@@ -55,6 +56,11 @@ typedef struct{
 }fusedObjState_t;
 
 typedef struct{
+	gpsWaypoint_t followLocation;
+	time_t updatedTime;
+} sysSHM_t;
+
+typedef struct{
 	// tracking
 	depthWindow_t   window;
 
@@ -65,11 +71,14 @@ typedef struct{
 		gpsWaypointCont_t *start, *currentWaypoint;
 	} route;
 
+	sysSHM_t* shm; // shared memory region	
+
 	float timeUp; // time in seconds the system has been running
 	float dt;     // time since last update
 	int debugging;
 	int magCal;
 	int maxSpeed;
+	int following;
 } system_t;
 
 typedef struct{
@@ -84,7 +93,6 @@ typedef struct{
 	gpsWaypoint_t nextWaypoint;
 	uint8_t hasGpsFix;
 } sysSnap_t;
-
 //     ___ _     _          _
 //    / __| |___| |__  __ _| |___
 //   | (_ | / _ \ '_ \/ _` | (_-<
@@ -93,6 +101,7 @@ typedef struct{
 extern system_t SYS;
 
 void sysTimerUpdate();
+sysSHM_t* sysAttachSHM();
 sysSnap_t sysSnapshot(system_t* sys);
 
 #ifdef __cplusplus

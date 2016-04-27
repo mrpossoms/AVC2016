@@ -8,6 +8,7 @@
 
 #import "ViewController.h"
 #import "clientAddress.h"
+#import <base/system.h>
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -126,20 +127,56 @@ void transmit(){
 
             if(connect(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
             {
-                UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Error"
-                                                                               message:@"Failed to connect to host. Service or device might be down."
-                                                                        preferredStyle:UIAlertControllerStyleAlert];
-                [alert addAction:[UIAlertAction actionWithTitle:@"OK"
-                                                          style:UIAlertActionStyleCancel
-                                                        handler:^(UIAlertAction * _Nonnull action) { }]];
-                [self presentViewController:alert animated:YES completion:^{ }];
                 close(sockfd);
 
-                dispatch_async(dispatch_get_main_queue(), ^{ [self.resolvingIndicator stopAnimating]; });
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Error"
+                                                                                   message:@"Failed to connect to host. Service or device might be down."
+                                                                            preferredStyle:UIAlertControllerStyleAlert];
+                    [alert addAction:[UIAlertAction actionWithTitle:@"OK"
+                                                              style:UIAlertActionStyleCancel
+                                                            handler:^(UIAlertAction * _Nonnull action) { }]];
+                    [self presentViewController:alert animated:YES completion:^{ }];
+                    [self.resolvingIndicator stopAnimating];
+                });
                 return;
             }
 
-            uint32_t action = 4; // tell the daemon to start up the main AVC program
+            uint32_t action = MISS_SRV_KILL; // tell the daemon to start up the main AVC program
+
+            write(sockfd, &action, sizeof(action));
+            close(sockfd);
+
+            dispatch_async(dispatch_get_main_queue(), ^{ [self.resolvingIndicator stopAnimating]; });
+        }
+    });
+}
+- (IBAction)didTapFollow:(id)sender {
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        int sockfd;
+        if((sockfd = socket(AF_INET, SOCK_STREAM, 0)))
+        {
+            struct sockaddr_in addr = *HOST_ADDRESS;
+            addr.sin_port = htons(1339);
+
+            if(connect(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+            {
+                close(sockfd);
+
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Error"
+                                                                                   message:@"Failed to connect to host. Service or device might be down."
+                                                                            preferredStyle:UIAlertControllerStyleAlert];
+                    [alert addAction:[UIAlertAction actionWithTitle:@"OK"
+                                                              style:UIAlertActionStyleCancel
+                                                            handler:^(UIAlertAction * _Nonnull action) { }]];
+                    [self presentViewController:alert animated:YES completion:^{ }];
+                    [self.resolvingIndicator stopAnimating];
+                });
+                return;
+            }
+
+            uint32_t action = MISS_SRV_FOLLOW; // tell the daemon to start up the main AVC program
 
             write(sockfd, &action, sizeof(action));
             close(sockfd);
@@ -161,20 +198,22 @@ void transmit(){
 
             if(connect(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
             {
-                UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Error"
-                                                                               message:@"Failed to connect to host. Service or device might be down."
-                                                                        preferredStyle:UIAlertControllerStyleAlert];
-                [alert addAction:[UIAlertAction actionWithTitle:@"OK"
-                                                          style:UIAlertActionStyleCancel
-                                                        handler:^(UIAlertAction * _Nonnull action) { }]];
-                [self presentViewController:alert animated:YES completion:^{ }];
                 close(sockfd);
 
-                dispatch_async(dispatch_get_main_queue(), ^{ [self.resolvingIndicator stopAnimating]; });
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Error"
+                                                                                   message:@"Failed to connect to host. Service or device might be down."
+                                                                            preferredStyle:UIAlertControllerStyleAlert];
+                    [alert addAction:[UIAlertAction actionWithTitle:@"OK"
+                                                              style:UIAlertActionStyleCancel
+                                                            handler:^(UIAlertAction * _Nonnull action) { }]];
+                    [self presentViewController:alert animated:YES completion:^{ }];
+                    [self.resolvingIndicator stopAnimating];
+                });
                 return;
             }
 
-            uint32_t action = 1; // tell the daemon to start up the main AVC program
+            uint32_t action = MISS_SRV_RUN; // tell the daemon to start up the main AVC program
 
             write(sockfd, &action, sizeof(action));
             close(sockfd);

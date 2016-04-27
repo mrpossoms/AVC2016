@@ -1,2 +1,5 @@
+CMP = gcc
+ROOT = ../..
+
 all:
-	gcc -std=c99 -I./../../ ./*.c -o missionUpload
+	$(CMP) -std=c99 -I./../../ $(ROOT)/base/system.c ./*.c -o missionUpload 

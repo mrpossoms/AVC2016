@@ -18,6 +18,8 @@
 #include "utilities/RC/rc.h"
 
 pthread_t RC_THREAD;
+static char** ARGV;
+static int    ARGC;
 
 static void mark_process()
 {
@@ -29,7 +31,7 @@ static void mark_process()
 	fd = open(path, O_CREAT | O_TRUNC, O_WRONLY);
 	close(fd);
 }
-
+//------------------------------------------------------------------------------
 static void unmark_process()
 {
 	pid_t id = getpid();
@@ -38,7 +40,7 @@ static void unmark_process()
 	sprintf(path, "%d.pid", id);
 	unlink(path);
 }
-
+//------------------------------------------------------------------------------
 void sigHandler(int sig)
 {
 	if(sig == SIGINT || sig == SIGKILL || sig == SIGTERM){
@@ -48,24 +50,24 @@ void sigHandler(int sig)
 		exit(0);
 	}
 }
-
+//------------------------------------------------------------------------------
 void* RCHandler(void* arg)
 {
 	while(1){
 		rcComm();
 	}
 }
-
-int hasOpt(char* argv[], int argc, const char* target)
+//------------------------------------------------------------------------------
+int hasOpt(const char* target)
 {
-	for(int i = argc; i--;){
-		if(!strcmp(argv[i], target)) return 1;
+	for(int i = ARGC; i--;){
+		if(!strcmp(ARGV[i], target)) return 1;
 	}
 
 	return 0;
 }
-
-int intFromOpt(char* argv[], int argc, const char* target, int* val)
+//------------------------------------------------------------------------------
+int intFromOpt(const char* target, int* val)
 {
 	for(int i = argc; i--;){
 		if(!strncmp(argv[i], target, strlen(target))){
@@ -78,38 +80,39 @@ int intFromOpt(char* argv[], int argc, const char* target, int* val)
 
 	return -1;
 }
-
+//------------------------------------------------------------------------------
 int main(int argc, char* argv[])
 {
 	int err = 0, isRC = 0;
+
+	ARGC = argc; ARGV = argv;
 	openlog("AVC_BOT", 0, 0);
 	mark_process();
 
-	if(hasOpt(argv, argc, "--debug")){
-		printf("Showing debugging output\n");
-		SYS.debugging = 1;
-	}
-
-	if(hasOpt(argv, argc, "--RC")){
+	if(hasOpt("--RC")){
 		printf("Using radio control\n");
 		isRC = 1;
 		pthread_create(&RC_THREAD, NULL, RCHandler, NULL);
 	}
 
-	if(hasOpt(argv, argc, "--mag-cal")){
-		printf("Calibrating magnetometer\n");
-		SYS.magCal = 1;
+
+	SYS.debugging = hasOpt("--debug");
+	SYS.magCal = hasOpt("--mag-cal");
+	SYS.following = hasOpt("--follow");
+
+	if(SYS.following){
+		SYS.shm = sysAttachSHM(); 
 	}
 
-	if(intFromOpt(argv, argc, "--speed", &SYS.maxSpeed)){
+	if(intFromOpt("--speed", &SYS.maxSpeed)){
 		SYS.maxSpeed = 53;
 		printf("No speed set\n");
 	}
 
 	printf("Max speed: %d\n", SYS.maxSpeed);
 
-	// // start servo controlling
-	if(!hasOpt(argv, argc, "--no-servo")){
+	// start servo controlling
+	if(!hasOpt("--no-servo")){
 		err = ctrlInit();
 		if(err){
 			SYS_ERR("Starting servo driver failed %d", err);
@@ -129,7 +132,7 @@ int main(int argc, char* argv[])
 		return err;
 	}
 
-	if(hasOpt(argv, argc, "--mag-reset")){
+	if(hasOpt("--mag-reset")){
 		printf("Reseting magnetometer calibration readings\n");
 		bzero(SYS.body.imu.calMinMax[0].mag.v, sizeof(vec3i16_t));
 		bzero(SYS.body.imu.calMinMax[1].mag.v, sizeof(vec3i16_t));
@@ -157,7 +160,7 @@ int main(int argc, char* argv[])
 	// setup all the decision agents
 	agentInitAgents();
 
-	int useBlackBox = !hasOpt(argv, argc, "--no-black-box");
+	int useBlackBox = !hasOpt("--no-black-box");
 	printf("Starting main loop\n");
 	while(1){
 		senUpdate(&SYS.body);
@@ -166,7 +169,7 @@ int main(int argc, char* argv[])
 			AGENT_ROUTING.action(NULL, NULL);
 			AGENT_STEERING.action(NULL, NULL);
 
-			if(hasOpt(argv, argc, "--use-throttle")){
+			if(hasOpt("--use-throttle")){
 				AGENT_THROTTLE.action(NULL, NULL);
 			}
 			AGENT_CRASH_DETECTOR.action(NULL, NULL);

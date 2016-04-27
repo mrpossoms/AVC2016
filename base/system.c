@@ -1,3 +1,4 @@
+#include <sys/shm.h>
 #include "system.h"
 
 //     ___ _     _          _
@@ -27,4 +28,22 @@ sysSnap_t sysSnapshot(system_t* sys)
 	}
 
 	return snap;
+}
+//---------------------------------------------------------------------------
+sysSHM_t* sysAttachSHM()
+{
+	int shmid = 0;
+	key_t key = 0xBEEFCAFE;
+
+	if ((shmid = shmget(key, sizeof(sysSHM_t), IPC_CREAT | 0666)) < 0) {
+		perror("shmget");
+		return NULL;
+	}
+
+	sysSHM_t* mem = shmat(shmid, NULL, 0);
+	if(mem == (void*)-1){
+		return NULL;
+	}
+
+	return mem;
 }

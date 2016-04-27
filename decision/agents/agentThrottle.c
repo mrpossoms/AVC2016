@@ -15,12 +15,14 @@ static float utility(agent_t* current, void* args)
 
 static void* action(agent_t* lastState, void* args)
 {
+	gpsWaypointCont_t* waypoint = SYS.route.currentWaypoint;
+	vec3f_t delta = vec3fSub(&SYS.body.measured.position, &waypoint->self.location);
+
 	// do stuff here, choose a successor state if appropriate
-	if(SYS.route.currentWaypoint && SYS.body.hasGpsFix){
+	if(SYS.route.currentWaypoint && SYS.body.hasGpsFix && vec3fMag(&delta) > 8){
 		ctrlSet(SERVO_THROTTLE, SYS.maxSpeed);
 	}
 	else{
-		printf("none\n");
 		ctrlSet(SERVO_THROTTLE, 50);
 	}
 	return NULL;

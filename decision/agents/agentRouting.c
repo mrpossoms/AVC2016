@@ -4,7 +4,7 @@ static void routeInit(void)
 {
 	// Add any adj states here, do other setup
 }
-
+//------------------------------------------------------------------------------
 static float utility(agent_t* current, void* args)
 {
 	// if no route is loaded, there's no where to go
@@ -18,29 +18,37 @@ static float utility(agent_t* current, void* args)
 
 	return 10 / vec3fMag(&delta);
 }
-
+//------------------------------------------------------------------------------
 static void* action(agent_t* lastState, void* args)
 {
 	if(!SYS.route.start || !SYS.route.currentWaypoint){
 		return NULL;
 	}
 
-	gpsWaypointCont_t* waypoint = SYS.route.currentWaypoint;
-	vec3f_t delta = vec3fSub(&SYS.body.measured.position, &waypoint->self.location);
-	delta.z = 0; // we don't give a shit about altitude
+	if(!SYS.following){
+		gpsWaypointCont_t* waypoint = SYS.route.currentWaypoint;
+		vec3f_t delta = vec3fSub(&SYS.body.measured.position, &waypoint->self.location);
+		delta.z = 0; // we don't give a shit about altitude
 
-	SYS.body.estimated.goalHeading = vec3fNorm(&delta);
+		SYS.body.estimated.goalHeading = vec3fNorm(&delta);
 
-	// less than 6 meters away, lets move on to the next one
-	if(vec3fMag(&delta) < 8){
-		waypoint->self.flags++;
-		SYS.route.currentWaypoint = waypoint->next;
+		// less than 6 meters away, lets move on to the next one
+		if(vec3fMag(&delta) < 8){
+			waypoint->self.flags++;
+			SYS.route.currentWaypoint = waypoint->next;
+		}
 	}
+	else{
+		if(SYS.shm->updatedTime < time(NULL) - 5){
+			SYS.route.currentWaypoint = (gpsWaypointCont_t*)(&SYS.shm->followLocation);
+		}
+	}
+	
 
 	// do stuff here, choose a successor state if appropriate
 	return NULL;
 }
-
+//------------------------------------------------------------------------------
 static void stimulate(float weight, agent_t* stimulator)
 {
 	// when other agents call this function, they increase

@@ -13,6 +13,7 @@
 #include <syslog.h>
 #include <dirent.h>
 #include <signal.h>
+#include <time.h>
 
 #include "base/system.h"
 
@@ -168,6 +169,20 @@ void killMissions()
 	closedir(dir);
 }
 //-----------------------------------------------------------------------------
+int follow(int connFd)
+{
+	static sysSHM_t* mem;
+
+	if(!mem){
+		mem = sysAttachSHM();
+	}
+
+	read(connFd, &mem->followLocation, sizeof(gpsWaypoint_t));
+	mem->updatedTime = time(NULL);
+
+	return 0;
+}
+//-----------------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
 	int listenfd = 0;
@@ -258,6 +273,9 @@ int main(int argc, char *argv[])
 			case MISS_SRV_KILL:
 				syslog(0, "Terminating running missions");
 				killMissions();
+				break;
+			case MISS_SRV_FOLLOW:
+				follow(connfd);
 				break;
 		}
 
