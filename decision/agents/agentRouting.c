@@ -25,7 +25,13 @@ static void* action(agent_t* lastState, void* args)
 		return NULL;
 	}
 
-	if(!SYS.following){
+	if(SYS.following){
+		if(SYS.shm->updatedTime > time(NULL) - 5)
+		{
+			SYS.route.currentWaypoint = (gpsWaypointCont_t*)(&SYS.shm->followLocation);
+		}
+	}
+	else{
 		gpsWaypointCont_t* waypoint = SYS.route.currentWaypoint;
 		vec3f_t delta = vec3fSub(&SYS.body.measured.position, &waypoint->self.location);
 		delta.z = 0; // we don't give a shit about altitude
@@ -36,11 +42,6 @@ static void* action(agent_t* lastState, void* args)
 		if(vec3fMag(&delta) < 8){
 			waypoint->self.flags++;
 			SYS.route.currentWaypoint = waypoint->next;
-		}
-	}
-	else{
-		if(SYS.shm->updatedTime < time(NULL) - 5){
-			SYS.route.currentWaypoint = (gpsWaypointCont_t*)(&SYS.shm->followLocation);
 		}
 	}
 	

@@ -9,7 +9,7 @@ SENSOR_DIR=./../sensors
 INC=-I./ -I./../ -I$(SENSOR_DIR) -I/usr/local/include
 LIB=-L/usr/lib -L/usr/local/lib
 LINK=-lm
-FLAGS=-std=c99 -Wall -Werror -Wno-format-extra-args -Wno-missing-braces -fpic
+FLAGS=-std=c99 -Wall -Werror -Wno-format-extra-args -Wno-missing-braces -fpic -D_XOPEN_SOURCE
 SRCS = $(wildcard ./*.c)
 OBJS = $(SRCS:.c=.o)
 

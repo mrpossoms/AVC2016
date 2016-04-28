@@ -1,4 +1,5 @@
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -7,7 +8,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <sys/types.h>
 #include <assert.h>
 #include <strings.h>
 #include <syslog.h>
@@ -162,7 +162,7 @@ void killMissions()
 		if(memcmp(ep->d_name + (len - 4), ".pid", 4) == 0){
 			ep->d_name[len - 4] = '\0';
 			pid_t id = (pid_t)atoi(ep->d_name);
-			kill(id, SIGKILL);
+			kill(id, SIGTERM);
 		}
         }
 
@@ -179,6 +179,13 @@ int follow(int connFd)
 
 	read(connFd, &mem->followLocation, sizeof(gpsWaypoint_t));
 	mem->updatedTime = time(NULL);
+
+	const float dia = 6371000 * 2;
+	float latRad = mem->followLocation.location.y * (M_PI / 180.0f);
+	float lonRad = mem->followLocation.location.x * (M_PI / 180.0f);
+
+	mem->followLocation.location.x = dia * lonRad;
+	mem->followLocation.location.y = dia * latRad;
 
 	return 0;
 }

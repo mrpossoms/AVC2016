@@ -24,6 +24,8 @@ int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints);
 int gpsRouteUnload(gpsWaypointCont_t** waypoints);
 int gpsRouteAdvance(vec3f_t* position, gpsWaypointCont_t** current, uint8_t lapFlag);
 
+void latLon2meters(vec3f_t* coord);
+
 #ifdef __cplusplus
 }
 #endif

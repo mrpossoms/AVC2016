@@ -43,12 +43,10 @@ static void unmark_process()
 //------------------------------------------------------------------------------
 void sigHandler(int sig)
 {
-	if(sig == SIGINT || sig == SIGKILL || sig == SIGTERM){
-		ctrlSet(SERVO_STEERING, 50);
-		ctrlSet(SERVO_THROTTLE, 50);
-		unmark_process();
-		exit(0);
-	}
+	ctrlSet(SERVO_STEERING, 50);
+	ctrlSet(SERVO_THROTTLE, 50);
+	unmark_process();
+	exit(0);
 }
 //------------------------------------------------------------------------------
 void* RCHandler(void* arg)
@@ -69,10 +67,10 @@ int hasOpt(const char* target)
 //------------------------------------------------------------------------------
 int intFromOpt(const char* target, int* val)
 {
-	for(int i = argc; i--;){
-		if(!strncmp(argv[i], target, strlen(target))){
-			char* num = argv[i];
-			for(int j = 0; argv[i][j++] != '='; num++);
+	for(int i = ARGC; i--;){
+		if(!strncmp(ARGV[i], target, strlen(target))){
+			char* num = ARGV[i];
+			for(int j = 0; ARGV[i][j++] != '='; num++);
 			*val = atoi(num + 1);
 			return 0;
 		}
@@ -100,9 +98,6 @@ int main(int argc, char* argv[])
 	SYS.magCal = hasOpt("--mag-cal");
 	SYS.following = hasOpt("--follow");
 
-	if(SYS.following){
-		SYS.shm = sysAttachSHM(); 
-	}
 
 	if(intFromOpt("--speed", &SYS.maxSpeed)){
 		SYS.maxSpeed = 53;
@@ -120,9 +115,18 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	if(signal(SIGINT, sigHandler) == SIG_ERR){
-		SYS_ERR("Registering signal SIGINT failed %d", errno);
-		return err;
+	int signals[] = { SIGINT, SIGTERM, SIGHUP };
+	struct sigaction sa = {};
+	sa.sa_handler = &sigHandler;
+	sa.sa_flags = SA_RESTART;
+	// Block every signal during the handler
+	sigfillset(&sa.sa_mask);
+
+	for(int i = sizeof(signals) / sizeof(int); i--;){
+		if(sigaction(signals[i], &sa, NULL) == -1){
+			SYS_ERR("Registering signal %d failed %d", signals[i], errno);
+			return err;
+		}
 	}
 
 	// start up IMU and GPS sensors
@@ -157,6 +161,18 @@ int main(int argc, char* argv[])
 		printf("No route loaded\n");
 	}
 
+	if(SYS.following){
+		SYS.shm = sysAttachSHM();
+
+		if(!SYS.shm){
+			SYS_ERR("Attaching to shared memory failed %s\n", "");
+			return -1;
+		}
+ 
+		SYS.route.currentWaypoint = (gpsWaypointCont_t*)(&SYS.shm->followLocation);	
+		printf("%f %f", SYS.route.currentWaypoint->self.location.x, SYS.route.currentWaypoint->self.location.y);
+	}
+
 	// setup all the decision agents
 	agentInitAgents();
 
@@ -186,8 +202,6 @@ int main(int argc, char* argv[])
 		if(!SYS.route.currentWaypoint){
 			break;
 		}
-
-		//usleep(1000);
 	}
 
 	sigHandler(SIGINT);

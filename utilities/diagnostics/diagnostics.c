@@ -88,7 +88,7 @@ static void* handler(void* params)
 
 	return NULL;
 }
-
+//------------------------------------------------------------------------------
 int diagHost(short port)
 {
 	static int listenfd;
@@ -108,7 +108,7 @@ int diagHost(short port)
 
 	return 0;
 }
-
+//------------------------------------------------------------------------------
 int diagBlkBoxLog()
 {
 	static float lastTime;

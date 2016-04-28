@@ -82,7 +82,7 @@ int gpsHasNewReadings()
 	return LAST_CHK_SUM != GPS_STATE.checksum || !LAST_CHK_SUM;
 }
 //-----------------------------------------------------------------------------
-static void latLon2meters(vec3f_t* coord)
+void latLon2meters(vec3f_t* coord)
 {
 	const float dia = 6371000 * 2;
 	float latRad = coord->y * (M_PI / 180.0f);
