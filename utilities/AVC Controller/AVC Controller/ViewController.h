@@ -9,8 +9,9 @@
 #import <UIKit/UIKit.h>
 #import "ThumbStickControl.h"
 
-@interface ViewController : UIViewController <ThumbStickDelegate>
+extern BOOL SHOULD_FOLLOW;
 
+@interface ViewController : UIViewController <ThumbStickDelegate>
 
 @end
 

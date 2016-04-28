@@ -14,7 +14,6 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-
 #define STORED_IP_ADDR @"LAST-IP-ADDRESS"
 
 @interface ViewController ()
@@ -33,6 +32,7 @@ typedef struct{
 } rcMessage_t;
 
 struct sockaddr_in* HOST_ADDRESS = NULL;
+BOOL SHOULD_FOLLOW;
 rcMessage_t STATE = { 0, 50, 50 };
 
 @implementation ViewController
@@ -152,38 +152,16 @@ void transmit(){
     });
 }
 - (IBAction)didTapFollow:(id)sender {
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        int sockfd;
-        if((sockfd = socket(AF_INET, SOCK_STREAM, 0)))
-        {
-            struct sockaddr_in addr = *HOST_ADDRESS;
-            addr.sin_port = htons(1339);
+    UIButton* btn = sender;
 
-            if(connect(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-            {
-                close(sockfd);
-
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Error"
-                                                                                   message:@"Failed to connect to host. Service or device might be down."
-                                                                            preferredStyle:UIAlertControllerStyleAlert];
-                    [alert addAction:[UIAlertAction actionWithTitle:@"OK"
-                                                              style:UIAlertActionStyleCancel
-                                                            handler:^(UIAlertAction * _Nonnull action) { }]];
-                    [self presentViewController:alert animated:YES completion:^{ }];
-                    [self.resolvingIndicator stopAnimating];
-                });
-                return;
-            }
-
-            uint32_t action = MISS_SRV_FOLLOW; // tell the daemon to start up the main AVC program
-
-            write(sockfd, &action, sizeof(action));
-            close(sockfd);
-
-            dispatch_async(dispatch_get_main_queue(), ^{ [self.resolvingIndicator stopAnimating]; });
-        }
-    });
+    if(btn.titleLabel.textColor != [UIColor greenColor]){
+        [btn setTitleColor:[UIColor greenColor] forState:UIControlStateNormal];
+        SHOULD_FOLLOW = YES;
+    }
+    else{
+        [btn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+        SHOULD_FOLLOW = NO;
+    }
 }
 
 - (IBAction)didTapRun:(id)sender {

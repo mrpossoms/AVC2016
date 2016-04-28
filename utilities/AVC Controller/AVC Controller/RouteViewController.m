@@ -17,6 +17,7 @@
 #import "clientAddress.h"
 #import "RouteViewController.h"
 #import "Waypoint.h"
+#import "ViewController.h"
 
 static Waypoint* WAYPOINT_START;
 
@@ -314,6 +315,44 @@ typedef enum{
 
 - (void)focusOnLocation:(CLLocation*)location
 {
+    if(SHOULD_FOLLOW){
+        int sockfd;
+        if((sockfd = socket(AF_INET, SOCK_STREAM, 0)))
+        {
+            struct sockaddr_in addr = *HOST_ADDRESS;
+            addr.sin_port = htons(1339);
+
+            if(connect(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+            {
+                close(sockfd);
+
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Error"
+                                                                                   message:@"Failed to connect to host. Service or device might be down."
+                                                                            preferredStyle:UIAlertControllerStyleAlert];
+                    [alert addAction:[UIAlertAction actionWithTitle:@"OK"
+                                                              style:UIAlertActionStyleCancel
+                                                            handler:^(UIAlertAction * _Nonnull action) { }]];
+                    [self presentViewController:alert animated:YES completion:^{ }];
+                });
+                return;
+            }
+
+            uint32_t action = MISS_SRV_FOLLOW; // tell the daemon to start up the main AVC program
+            gpsWaypoint_t waypoint = {};
+            Waypoint* way = [[Waypoint alloc] initWithPosition:self.lastLocation.coordinate];
+
+            waypoint.location.x = way.coordinate.longitude;
+            waypoint.location.y = way.coordinate.latitude;
+            waypoint.tolerance = 4;
+            waypoint.nextWaypoint = 0;
+
+            write(sockfd, &action, sizeof(action));
+            write(sockfd, &waypoint, sizeof(waypoint));
+            close(sockfd);
+        }
+    }
+
     if(self.recordingMode == MODE_MANUAL) return;
     
     [self.map setRegion:MKCoordinateRegionMakeWithDistance(location.coordinate, 10, 10) animated:YES];
@@ -346,6 +385,8 @@ typedef enum{
 
 - (void)mapView:(MKMapView *)mapView didUpdateUserLocation:(MKUserLocation *)userLocation
 {
+    self.lastLocation = userLocation.location;
+
     [self focusOnLocation:userLocation.location];
 }
 
