@@ -161,7 +161,7 @@ void killMissions()
 		if(memcmp(ep->d_name + (len - 4), ".pid", 4) == 0){
 			ep->d_name[len - 4] = '\0';
 			pid_t id = (pid_t)atoi(ep->d_name);
-			kill(id, SIGKILL);
+			kill(id, SIGTERM);
 		}
         }
 
