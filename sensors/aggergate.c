@@ -6,6 +6,8 @@
 #include <fcntl.h>
 #include <libNEMA.h>
 
+#include "filtering.h"
+
 static int FD_IMU;
 static kfMat_t ROT_MAT, TEMP_MAT[2];
 
@@ -51,8 +53,8 @@ int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile
 	}
 	printf("OK!\n");
 
-	if(imuSetup(FD_IMU, &SYS.body.imu)){
-		printf("IMU stat collection failed.\n");
+	if(sen_filters_init(FD_IMU, &SYS.body)){
+		printf("Sensor filter init failed.\n");
 		return -4;
 	}
 
@@ -81,14 +83,16 @@ static void estimateHeading(float dt)
 	fusedObjState_t* body = &SYS.body;
 	objectState_t *mea= &body->measured;
 	objectState_t *est= &body->estimated;
+	sensorStatef_t* filtered_sensors = &body->filtered.sensors;
+
 	{
 		// update the heading according to magnetometer readings
-		mea->heading.x = body->imu.filtered.mag.x;
-		mea->heading.y = body->imu.filtered.mag.y;
-		mea->heading.z = body->imu.filtered.mag.z;
-		mea->heading = vec3fNorm(&mea->heading);
+		mea->heading.v.x = filtered_sensors->mag.x;
+		mea->heading.v.y = filtered_sensors->mag.y;
+		mea->heading.v.z = filtered_sensors->mag.z;
+		mea->heading.v = vec3fNorm(&mea->heading.v);
 
-		if(vec3fIsNan(&mea->heading)) return;
+		if(vec3fIsNan(&mea->heading.v)) return;
 
 	}
 
@@ -102,11 +106,11 @@ static void estimateHeading(float dt)
 	// should be inversely proportional to the it's magnitude
 	// probably at some high degree function
 
-	vec3f_t heading = mea->heading;
-	vec3f_t up      = vec3fNorm(&body->imu.filtered.acc);
+	vec3f_t heading = mea->heading.v;
+	vec3f_t up      = vec3fNorm(&filtered_sensors->acc);
 	vec3f_t forward = { 0, 1, 0 };
-	
-	if(!vec3fIsNan(&up) && vec3fMag(&body->imu.filtered.acc) <= LIL_G * 1.05f){
+
+	if(!vec3fIsNan(&up) && vec3fMag(&filtered_sensors->acc) <= LIL_G * 1.05f){
 		kfVecCross(ROT_MAT.col[0], up.v, forward.v, 3);      // left
 		memcpy(ROT_MAT.col[2], &up, sizeof(up));             // up
 		kfVecCross(ROT_MAT.col[1], ROT_MAT.col[0], up.v, 3); // forward
@@ -118,13 +122,13 @@ static void estimateHeading(float dt)
 				ROT_MAT.col[j][1],
 				ROT_MAT.col[j][2]
 			};
-			float p  = 2.f * v[2]; 
+			float p  = 2.f * v[2];
 			for(int i=3; i--;){
 				ROT_MAT.col[j][i] = v[i] - (i == 2 ? p : 0);
 			}
 		}
 
-		// normalize all column vectors 
+		// normalize all column vectors
 		//kfMatNormalize(ROT_MAT, ROT_MAT);
 
 		// rotate the mag vector back into the world frame
@@ -140,15 +144,15 @@ static void estimateHeading(float dt)
 	// apply the transform, use the old matrix if it hasn't been
 	// updated this cycle
 	kfMatMulVec(
-		mea->heading.v,
+		mea->heading.v.v,
 		ROT_MAT,
 		heading.v,
 		3
 	);
 
-	mea->heading.z = 0; // z means nothing to us at this point
-	mea->heading = vec3fNorm(&mea->heading);
-	mea->heading.x *= -1; mea->heading.y *= -1;
+	mea->heading.v.z = 0; // z means nothing to us at this point
+	mea->heading.v = vec3fNorm(&mea->heading.v);
+	mea->heading.v.x *= -1; mea->heading.v.y *= -1;
 
 	ONCE_START
 	*est= *mea;
@@ -158,15 +162,15 @@ static void estimateHeading(float dt)
 	// change in heading according to the magnetometer with
 	// the apparent rate of vehicle rotation
 	{
-		vec3f_t lastHeading = est->heading;
+		vec3f_t lastHeading = est->heading.v;
 		vec3f_t gyroHeading = {};
 
 		// use the gyro to estimate how confident we should be in the magnetometer's
 		// current measured heading
-		float w = body->imu.filtered.gyro.z / -32000.0f;
+		float w = filtered_sensors->gyro.z / -32000.0f;
 
 		vec2fRot((vec2f_t*)&gyroHeading, (vec2f_t*)&lastHeading, w * SYS.dt);
-		
+
 	//	float p = pow(vec3Dot(gyroHeading, mea->heading), 4);
 
 
@@ -198,36 +202,28 @@ int senUpdate(fusedObjState_t* body)
 		printf("imuUpdateState() failed\n");
 		return -1;
 	}
-	
-	estimateHeading(dt);
 
 	if(gpsHasNewReadings()){
-		vec3f_t lastPos = measured->position;
+		vec3f_t lastPos = measured->sensors.gps;
 
 		// assign new ements
 		vec3f_t* velLin = &measured->velocity.linear;
-		body->hasGpsFix = gpsGetReadings(&measured->position, velLin);
-		vec3Sub(*velLin, measured->position, lastPos);
+		body->hasGpsFix = gpsGetReadings(&measured->sensors.gps, velLin);
+		vec3Sub(*velLin, measured->sensors.gps, lastPos);
 		vec3Scl(*velLin, *velLin, dt);
 
-		estimated->position = measured->position;
+		estimated->sensors.gps = measured->sensors.gps;
 
 		body->lastMeasureTime = SYS.timeUp;
-		body->lastEstTime     = SYS.timeUp;
+
 	}
-	else
-	{
-		estimated->position = measured->position;
 
-		// integrate position using velocity
-		vec3f_t* estVelLin = &estimated->velocity.linear;
+	// do filtering
+	sen_filter(body);
 
-		// integrate IMU acceleration into velocity
-		for(int i = 3; i--;){
-			estVelLin->v[i] += body->imu.filtered.acc.v[i] * dt;
-		}
+	// estimation
+	estimateHeading(dt);
+	body->lastEstTime = SYS.timeUp;
 
-		body->lastEstTime = SYS.timeUp;
-	}
 	return 0;
 }
