@@ -34,6 +34,12 @@
 	(r).v[2] = (v1).v[2] * s;\
 }\
 
+#define vec3Had(r, v1, v2){\
+	(r).v[0] = (v1).v[0] * (v2).v[0];\
+	(r).v[1] = (v1).v[1] * (v2).v[1];\
+	(r).v[2] = (v1).v[2] * (v2).v[2];\
+}\
+
 #define vec3Div(r, a, b){\
 	(r).v[0] = (a).v[0] / (b).v[0];\
 	(r).v[1] = (a).v[1] / (b).v[1];\
@@ -90,22 +96,21 @@ typedef struct{
 	vec3f_t acc;
 	vec3f_t gyro;
 	vec3f_t mag;
+	vec3f_t gps;
 } sensorStatef_t;
 
 typedef struct{
-	kf_t acc, gyro, mag;
+	kf_t acc, gyro, mag, gps;
+	sensorStatef_t  means;
+	sensorStatef_t  stdDevs;
+	float   samples;
 	uint8_t isSetup;
 } readingFilter_t;
 
 typedef struct{
 	sensorStatei_t  raw;
 	sensorStatef_t  cal;
-	sensorStatef_t  filtered;
-	readingFilter_t filters;
 	sensorStatei_t  calMinMax[2];
-	sensorStatef_t  means;
-	sensorStatef_t  standardDeviations;
-	float           samples;
 	int             isCalibrated;
 }imuState_t;
 
@@ -119,8 +124,8 @@ typedef enum{
 } missSrvAct_t;
 
 typedef struct{
-   uint8_t name[64];
-   uint32_t bytes;
+	uint8_t name[64];
+	uint32_t bytes;
 } blkboxLog_t;
 
 typedef struct{

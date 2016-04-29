@@ -34,16 +34,18 @@ typedef struct{
 } depthWindow_t;
 
 typedef struct{
-	vec3f_t position;
+	sensorStatef_t sensors;
 	struct{
 		vec3f_t linear;
 		vec3f_t rotational;
 	} velocity;
-	vec3f_t gyroHeading;
-	vec3f_t heading;
+	struct{
+		vec3f_t gyro;
+		vec3f_t goal;
+		vec3f_t v;
+		float angle;
+	} heading;
 	vec3f_t accFrame[3];
-	vec3f_t goalHeading;
-	float   headingAngle;
 }objectState_t;
 
 typedef struct{
@@ -51,7 +53,9 @@ typedef struct{
 	float         lastMeasureTime;
 	float         lastEstTime;
 	objectState_t measured;
+	objectState_t filtered;
 	objectState_t estimated;
+	readingFilter_t filters;
 	uint8_t hasGpsFix;
 }fusedObjState_t;
 
@@ -71,7 +75,7 @@ typedef struct{
 		gpsWaypointCont_t *start, *currentWaypoint;
 	} route;
 
-	sysSHM_t* shm; // shared memory region	
+	sysSHM_t* shm; // shared memory region
 
 	float timeUp; // time in seconds the system has been running
 	float dt;     // time since last update

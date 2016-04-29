@@ -14,7 +14,7 @@ static float utility(agent_t* current, void* args)
 	}
 
 	gpsWaypointCont_t* waypoint = SYS.route.currentWaypoint;
-	vec3f_t delta = vec3fSub(&SYS.body.measured.position, &waypoint->self.location);
+	vec3f_t delta = vec3fSub(&SYS.body.measured.sensors.gps, &waypoint->self.location);
 
 	return 10 / vec3fMag(&delta);
 }
@@ -33,10 +33,10 @@ static void* action(agent_t* lastState, void* args)
 	}
 	else{
 		gpsWaypointCont_t* waypoint = SYS.route.currentWaypoint;
-		vec3f_t delta = vec3fSub(&SYS.body.measured.position, &waypoint->self.location);
+		vec3f_t delta = vec3fSub(&SYS.body.measured.sensors.gps, &waypoint->self.location);
 		delta.z = 0; // we don't give a shit about altitude
 
-		SYS.body.estimated.goalHeading = vec3fNorm(&delta);
+		SYS.body.estimated.heading.goal = vec3fNorm(&delta);
 
 		// less than 6 meters away, lets move on to the next one
 		if(vec3fMag(&delta) < 8){
@@ -44,7 +44,7 @@ static void* action(agent_t* lastState, void* args)
 			SYS.route.currentWaypoint = waypoint->next;
 		}
 	}
-	
+
 
 	// do stuff here, choose a successor state if appropriate
 	return NULL;

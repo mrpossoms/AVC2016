@@ -98,7 +98,7 @@ void downloadBlackBoxLog(int connfd)
 	size_t bytes = 0;
 	sysSnap_t snap = {};
 	while((bytes = read(logFd, &snap, sizeof(snap)))){
-		if(snap.estimated.position.x == 0 && snap.estimated.position.y == 0){
+		if(snap.estimated.sensors.gps.x == 0 && snap.estimated.sensors.gps.y == 0){
 			if(hadGps){
 					syslog(0, "Log integrity uncertain");
 			}
@@ -141,22 +141,22 @@ void downloadMission(int connfd, const char* filepath)
 //-----------------------------------------------------------------------------
 void killMissions()
 {
-        struct dirent *ep = NULL;
+		  struct dirent *ep = NULL;
 
-        // tell the client how many filenames to expect
-        DIR* dir = opendir(AVC_PATH);
+		  // tell the client how many filenames to expect
+		  DIR* dir = opendir(AVC_PATH);
 
-        // if we couldn't open the dir, tell them to expect nothing
-        if(!dir){
-                syslog(0, "Failed to open dir '%s'\n", AVC_PATH);
-       		return;
+		  // if we couldn't open the dir, tell them to expect nothing
+		  if(!dir){
+					 syslog(0, "Failed to open dir '%s'\n", AVC_PATH);
+				 return;
 	}
 
-        // iterate over the whole list of files
-        for(ep = readdir(dir); ep; ep = readdir(dir)){
+		  // iterate over the whole list of files
+		  for(ep = readdir(dir); ep; ep = readdir(dir)){
 
-                // skip hidden files
-                if(ep->d_name[0] == '.') continue;
+					 // skip hidden files
+					 if(ep->d_name[0] == '.') continue;
 
 		int len = strlen(ep->d_name);
 		if(memcmp(ep->d_name + (len - 4), ".pid", 4) == 0){
@@ -164,7 +164,7 @@ void killMissions()
 			pid_t id = (pid_t)atoi(ep->d_name);
 			kill(id, SIGTERM);
 		}
-        }
+		  }
 
 	closedir(dir);
 }
