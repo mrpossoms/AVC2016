@@ -117,7 +117,7 @@ int gpsGetReadings(vec3f_t* position, vec3f_t* heading)
 		vec3f_t newHeading = {};
 		float d;
 
-		vec3Scl(newHeading, delta, 1 / deltaMag);
+		vec3Scl(newHeading, delta, GPS_STATE.speed / deltaMag);
 
 		if((d = vec3Dot(newHeading, *heading)) <= 0){
 			// the direction reverse, just take the new heading
