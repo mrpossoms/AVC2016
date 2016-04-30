@@ -93,9 +93,7 @@
     
     float x = axisMinMax[0][0] * (1 - px) + px * axisMinMax[0][1];
     float y = axisMinMax[1][0] * (1 - py) + py * axisMinMax[1][1];
-    
-    NSLog(@"(%f, %f)", x, y);
-    
+
     [self.delegate didThumbMoveWithValues:CGPointMake(x, y) asSender:self];
 }
 

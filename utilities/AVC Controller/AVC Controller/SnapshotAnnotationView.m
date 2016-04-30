@@ -22,7 +22,7 @@
 - (void)setSnapshot:(sysSnap_t)snapshot
 {
     _snapshot = snapshot;
-    _snapshot.estimated.headingAngle = atan2f(snapshot.estimated.heading.y, snapshot.estimated.heading.x) + M_PI_2;
+    _snapshot.estimated.heading.angle = atan2f(snapshot.estimated.heading.v.y, snapshot.estimated.heading.v.x) + M_PI_2;
 
     [self.magPlot addPoint:CGPointMake(snapshot.imu.cal.mag.x, snapshot.imu.cal.mag.y)];
     self.magPlot.frame = self.bounds;
@@ -119,11 +119,11 @@
     };
 
     CGPoint heading[] = {
-        { 0, 0 }, { _snapshot.estimated.heading.x, _snapshot.estimated.heading.y }
+        { 0, 0 }, { _snapshot.estimated.heading.v.x, _snapshot.estimated.heading.v.y }
     };
 
     CGPoint goal[] = {
-        { 0, 0 }, { -_snapshot.estimated.goalHeading.x, _snapshot.estimated.goalHeading.y }
+        { 0, 0 }, { -_snapshot.estimated.heading.goal.x, _snapshot.estimated.heading.goal.y }
     };
 
     static CGFloat black[] = { 0, 0, 0, 1 };
@@ -146,8 +146,8 @@
     [self scalePoints:heading withCount:2 andFactor:0.9];
     [self scalePoints:goal withCount:2 andFactor:0.9];
 
-    [self rotatePoints:body withCount:POINTS(body) toAngle:_snapshot.estimated.headingAngle];
-    [self rotatePoints:wheels withCount:POINTS(wheels) toAngle:_snapshot.estimated.headingAngle];
+    [self rotatePoints:body withCount:POINTS(body) toAngle:_snapshot.estimated.heading.angle];
+    [self rotatePoints:wheels withCount:POINTS(wheels) toAngle:_snapshot.estimated.heading.angle];
 
     [self transformPoints:body withCount:POINTS(body) to:rect];
     [self transformPoints:wheels withCount:POINTS(wheels) to:rect];
