@@ -15,12 +15,43 @@ static float utility(agent_t* current, void* args)
 
 static void* action(agent_t* lastState, void* args)
 {
-	gpsWaypointCont_t* waypoint = SYS.route.currentWaypoint;
-	vec3f_t delta = vec3fSub(&SYS.body.measured.position, &waypoint->self.location);
+	gpsWaypointCont_t* waypoints[2] = {};
+	int waypointCount = 0;
+	float speed = SYS.maxSpeed;
+	vec3f_t d1 = vec3fSub(&SYS.body.measured.position, &waypoints[0]->self.location);
+
+	for(gpsWaypointCont_t* point = SYS.route.currentWaypoint; point && waypointCount < 2; waypointCount++){
+		waypoints[waypointCount] = point;
+		point = point->next;
+	}
+
+	// if more than one non null waypoints are accounted for
+	if(waypointCount > 1){
+		// compute deltas from position to W0 and from W0 to W1
+		vec3f_t delta[2] = {
+			d1,
+			vec3fSub(&waypoints[0]->self.location, &waypoints[1]->self.location)
+		};
+		
+		// normalize both delta vectors
+		delta[0] = vec3fNorm(delta + 0);
+		delta[1] = vec3fNorm(delta + 1);
+
+		// now the dot between both deltas will lie in the range [-1,1]
+		// add one to bring it to [0, 2]
+		float AoT = vec3fDot(delta + 0, delta + 1) + 1;
+		AoT = (AoT / 2)	+ (1.0f / 3.0f); // bring AoT to [0, 1] bias with 1/3
+
+		// scale the difference between maxSpeed and stopped (50) by AoT
+		// if the result is less than 52, then set it to 52 explicitly 
+		speed = 50 + ((SYS.maxSpeed - 50) * AoT);
+		speed = speed < 52 ? 52 : speed;	
+	}
+	
 
 	// do stuff here, choose a successor state if appropriate
-	if(SYS.route.currentWaypoint && SYS.body.hasGpsFix && vec3fMag(&delta) > 8){
-		ctrlSet(SERVO_THROTTLE, SYS.maxSpeed);
+	if(SYS.route.currentWaypoint && SYS.body.hasGpsFix && vec3fMag(&d1) > 8){
+		ctrlSet(SERVO_THROTTLE, speed);
 	}
 	else{
 		ctrlSet(SERVO_THROTTLE, 50);
