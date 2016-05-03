@@ -51,7 +51,7 @@ static void* action(agent_t* lastState, void* args)
 		float p = dist / 10;
 		
 		p = p > 1 ? 1 : p;
-		throttle = throttle * p + adjThrottle * (1 - p);
+		throttle = SYS.maxSpeed * p + adjThrottle * (1 - p);
 	}
 
 	// do stuff here, choose a successor state if appropriate
