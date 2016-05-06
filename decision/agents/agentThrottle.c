@@ -55,12 +55,15 @@ static void* action(agent_t* lastState, void* args)
 	}
 
 	// do stuff here, choose a successor state if appropriate
-	if(SYS.route.currentWaypoint && SYS.body.hasGpsFix && vec3fMag(&d1) > 8){
+	float dist = vec3fMag(&d1);
+	if(SYS.route.currentWaypoint && SYS.body.hasGpsFix && dist > 8){
 		ctrlSet(SERVO_THROTTLE, throttle);
 	}
 	else{
 		ctrlSet(SERVO_THROTTLE, 50);
 	}
+	printf("dtg: %f\n", dist);
+
 	return NULL;
 }
 
