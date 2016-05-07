@@ -201,6 +201,11 @@ int main(int argc, char* argv[])
 				AGENT_THROTTLE.action(NULL, NULL);
 			}
 			AGENT_CRASH_DETECTOR.action(NULL, NULL);
+	
+			// if there is no next goal or GPS then terminate
+			if(!SYS.route.currentWaypoint){
+				break;
+			}
 		}
 		else{
 			static vec3f_t last_pos;
@@ -222,10 +227,6 @@ int main(int argc, char* argv[])
 			diagBlkBoxLog();
 		}
 
-		// if there is no next goal or GPS then terminate
-		if(!SYS.route.currentWaypoint){
-			break;
-		}
 	}
 
 	sigHandler(SIGINT);
