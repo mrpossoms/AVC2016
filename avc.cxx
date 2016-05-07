@@ -164,6 +164,7 @@ int main(int argc, char* argv[])
 		printf("No route loaded\n");
 
 		if(rec_route){
+			static vec3f_t last_pos;
 			MISSION_FD = open("mission.gps", O_WRONLY | O_TRUNC | O_CREAT, 0666);
 			if(MISSION_FD < 0){
 				SYS_ERR("Failed to open '%s'\n", "mission.gps");
@@ -202,11 +203,16 @@ int main(int argc, char* argv[])
 			AGENT_CRASH_DETECTOR.action(NULL, NULL);
 		}
 		else{
+			static vec3f_t last_pos;
 			gpsWaypoint_t wp = {
 				.location = SYS.body.measured.position,
 			};
-
-			write(MISSION_FD, &wp, sizeof(gpsWaypoint_t));	
+			vec3f_t delta = vec3fSub(&wp.location, &last_pos);
+			
+			if(vec3fMag(&delta) > 10){
+				write(MISSION_FD, &wp, sizeof(gpsWaypoint_t));	
+				last_pos = wp.location;
+			}
 		}
 
 		sysTimerUpdate();
