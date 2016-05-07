@@ -18,6 +18,7 @@
 #include "utilities/RC/rc.h"
 
 pthread_t RC_THREAD;
+int MISSION_FD = 0;
 static char** ARGV;
 static int    ARGC;
 
@@ -46,6 +47,7 @@ void sigHandler(int sig)
 	ctrlSet(SERVO_STEERING, 50);
 	ctrlSet(SERVO_THROTTLE, 50);
 	unmark_process();
+	close(MISSION_FD);
 	exit(0);
 }
 //------------------------------------------------------------------------------
@@ -81,7 +83,8 @@ int intFromOpt(const char* target, int* val)
 //------------------------------------------------------------------------------
 int main(int argc, char* argv[])
 {
-	int err = 0, isRC = 0;
+	int err = 0, isRC = 0, rec_route = 0;
+	int MISSION_FD = 0;
 
 	ARGC = argc; ARGV = argv;
 	openlog("AVC_BOT", 0, 0);
@@ -97,7 +100,7 @@ int main(int argc, char* argv[])
 	SYS.debugging = hasOpt("--debug");
 	SYS.magCal = hasOpt("--mag-cal");
 	SYS.following = hasOpt("--follow");
-
+	rec_route = isRC && hasOpt("--record");
 
 	if(intFromOpt("--speed", &SYS.maxSpeed)){
 		SYS.maxSpeed = 53;
@@ -146,7 +149,7 @@ int main(int argc, char* argv[])
 	diagHost(1340);
 
 	// load a route
-	if(argc >= 2){
+	if(argc >= 2 && !rec_route){
 		printf("Loading route...");
 		err = gpsRouteLoad(argv[1], &SYS.route.start);
 		if(err){
@@ -159,6 +162,14 @@ int main(int argc, char* argv[])
 	}
 	else{
 		printf("No route loaded\n");
+
+		if(rec_route){
+			MISSION_FD = open("mission.gps", O_WRONLY | O_TRUNC | O_CREAT, 0666);
+			if(MISSION_FD < 0){
+				SYS_ERR("Failed to open '%s'\n", "mission.gps");
+				return -1;
+			}
+		}
 	}
 
 	if(SYS.following){
@@ -189,6 +200,13 @@ int main(int argc, char* argv[])
 				AGENT_THROTTLE.action(NULL, NULL);
 			}
 			AGENT_CRASH_DETECTOR.action(NULL, NULL);
+		}
+		else{
+			gpsWaypoint_t wp = {
+				.location = SYS.body.measured.position,
+			};
+
+			write(MISSION_FD, &wp, sizeof(gpsWaypoint_t));	
 		}
 
 		sysTimerUpdate();
