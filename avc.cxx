@@ -18,6 +18,8 @@
 #include "utilities/RC/rc.h"
 
 pthread_t RC_THREAD;
+int MISSION_FD = 0;
+uint32_t MISSION_WAYPOINTS = 0;
 static char** ARGV;
 static int    ARGC;
 
@@ -46,6 +48,14 @@ void sigHandler(int sig)
 	ctrlSet(SERVO_STEERING, 50);
 	ctrlSet(SERVO_THROTTLE, 50);
 	unmark_process();
+	if(MISSION_FD > 0){
+		gpsRouteHeader_t hdr = { MISSION_WAYPOINTS };
+		printf("%d waypoints\n", MISSION_WAYPOINTS);
+		lseek(MISSION_FD, 0, SEEK_SET);
+		write(MISSION_FD, &hdr, sizeof(hdr));
+		close(MISSION_FD);
+		fflush(stdout);
+	}
 	exit(0);
 }
 //------------------------------------------------------------------------------
@@ -81,7 +91,7 @@ int intFromOpt(const char* target, int* val)
 //------------------------------------------------------------------------------
 int main(int argc, char* argv[])
 {
-	int err = 0, isRC = 0;
+	int err = 0, isRC = 0, rec_route = 0;
 
 	ARGC = argc; ARGV = argv;
 	openlog("AVC_BOT", 0, 0);
@@ -97,7 +107,7 @@ int main(int argc, char* argv[])
 	SYS.debugging = hasOpt("--debug");
 	SYS.magCal = hasOpt("--mag-cal");
 	SYS.following = hasOpt("--follow");
-
+	rec_route = isRC && hasOpt("--record");
 
 	if(intFromOpt("--speed", &SYS.maxSpeed)){
 		SYS.maxSpeed = 53;
@@ -146,7 +156,7 @@ int main(int argc, char* argv[])
 	diagHost(1340);
 
 	// load a route
-	if(argc >= 2){
+	if(argc >= 2 && !rec_route){
 		printf("Loading route...");
 		err = gpsRouteLoad(argv[1], &SYS.route.start);
 		if(err){
@@ -159,6 +169,18 @@ int main(int argc, char* argv[])
 	}
 	else{
 		printf("No route loaded\n");
+
+		if(rec_route){
+			static vec3f_t last_pos;
+			gpsRouteHeader_t hdr;
+			MISSION_FD = open("mission.gps", O_WRONLY | O_TRUNC | O_CREAT, 0666);
+			if(MISSION_FD < 0){
+				SYS_ERR("Failed to open '%s'\n", "mission.gps");
+				return -1;
+			}
+
+			write(MISSION_FD, &hdr, sizeof(gpsRouteHeader_t));
+		}
 	}
 
 	if(SYS.following){
@@ -189,6 +211,26 @@ int main(int argc, char* argv[])
 				AGENT_THROTTLE.action(NULL, NULL);
 			}
 			AGENT_CRASH_DETECTOR.action(NULL, NULL);
+	
+			// if there is no next goal or GPS then terminate
+			if(!SYS.route.currentWaypoint){
+				printf("\nReached end of route\n");
+				break;
+			}
+		}
+		else if(rec_route){
+			static vec3f_t last_pos;
+			gpsWaypoint_t wp = {
+				.location = SYS.body.measured.position,
+			};
+			vec3f_t delta = vec3fSub(&wp.location, &last_pos);
+			
+			if(vec3fMag(&delta) > 10){
+				printf("Saving pos %f, %f\n", wp.location.x, wp.location.y);
+				write(MISSION_FD, &wp, sizeof(gpsWaypoint_t));	
+				last_pos = wp.location;
+				MISSION_WAYPOINTS++;
+			}
 		}
 
 		sysTimerUpdate();
@@ -198,10 +240,6 @@ int main(int argc, char* argv[])
 			diagBlkBoxLog();
 		}
 
-		// if there is no next goal or GPS then terminate
-		if(!SYS.route.currentWaypoint){
-			break;
-		}
 	}
 
 	sigHandler(SIGINT);
