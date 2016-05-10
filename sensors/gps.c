@@ -186,10 +186,14 @@ int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints)
 			return -4;
 		}
 
-		printf("\t(%f lon, %f lat) -> ", (*waypoints)[i].self.location.x, (*waypoints)[i].self.location.y);
-		latLon2meters(&(*waypoints)[i].self.location);
+		vec3f_t loc = (*waypoints)[i].self.location;
+		if(abs(loc.x) <= 90 || abs(loc.y) <= 90){
+			printf("\t(%f lon, %f lat) -> ", loc.x, loc.y);
+			latLon2meters(&(*waypoints)[i].self.location);
 
-		printf("(%fm, %fm)\n", (*waypoints)[i].self.location.x, (*waypoints)[i].self.location.y);
+			printf("(%fm, %fm)\n", (*waypoints)[i].self.location.x, (*waypoints)[i].self.location.y);
+		}
+
 		(*waypoints)[i].next = NULL;
 
 		if(last){
