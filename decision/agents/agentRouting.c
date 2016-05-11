@@ -21,6 +21,8 @@ static float utility(agent_t* current, void* args)
 //------------------------------------------------------------------------------
 static void* action(agent_t* lastState, void* args)
 {
+	static float last_dist;
+
 	if(!SYS.route.start || !SYS.route.currentWaypoint){
 		return NULL;
 	}
@@ -36,10 +38,13 @@ static void* action(agent_t* lastState, void* args)
 		vec3f_t delta = vec3fSub(&SYS.body.measured.position, &waypoint->self.location);
 		delta.z = 0; // we don't give a shit about altitude
 
+		float dist = vec3fMag(&delta);
+		float d_dist = last_dist - dist; // distance delta
+
 		SYS.body.estimated.goalHeading = vec3fNorm(&delta);
 
 		// less than 6 meters away, lets move on to the next one
-		if(vec3fMag(&delta) < 8){
+		if(d_dist < 0 && dist < 8){
 			waypoint->self.flags++;
 			SYS.route.currentWaypoint = waypoint->next;
 		}
