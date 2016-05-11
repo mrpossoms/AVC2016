@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <assert.h>
 
 gpsState_t GPS_STATE;
 static unsigned char LAST_CHK_SUM;
@@ -172,7 +173,7 @@ int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints)
 		return -2;
 	}
 
-	if(!(*waypoints = (gpsWaypointCont_t*)malloc(sizeof(gpsWaypointCont_t) * header.waypoints))){
+	if(!(*waypoints = (gpsWaypointCont_t*)calloc(header.waypoints, sizeof(gpsWaypointCont_t)))){
 		return -3;
 	}
 
@@ -186,10 +187,14 @@ int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints)
 			return -4;
 		}
 
-		printf("\t(%f lon, %f lat) -> ", (*waypoints)[i].self.location.x, (*waypoints)[i].self.location.y);
-		latLon2meters(&(*waypoints)[i].self.location);
+		vec3f_t loc = (*waypoints)[i].self.location;
+		if(abs(loc.x) <= 90 || abs(loc.y) <= 90){
+			printf("\t(%f lon, %f lat) -> ", loc.x, loc.y);
+			latLon2meters(&(*waypoints)[i].self.location);
 
-		printf("(%fm, %fm)\n", (*waypoints)[i].self.location.x, (*waypoints)[i].self.location.y);
+			printf("(%fm, %fm)\n", (*waypoints)[i].self.location.x, (*waypoints)[i].self.location.y);
+		}
+
 		(*waypoints)[i].next = NULL;
 
 		if(last){
@@ -198,7 +203,8 @@ int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints)
 
 		last = (*waypoints) + i;
 	}
-
+	
+	assert(last->next == NULL);
 	close(fd);
 
 	return 0;
