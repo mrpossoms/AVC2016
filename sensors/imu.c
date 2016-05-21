@@ -274,6 +274,8 @@ sensorStatef_t applyCalibration(sensorStatei_t* raw, sensorStatei_t calMinMax[2]
 	vec3i16_t* accMax = &calMinMax[1].acc;
 	vec3i16_t* magMin = &calMinMax[0].mag;
 	vec3i16_t* magMax = &calMinMax[1].mag;
+	vec3i16_t* gyrMin = &calMinMax[0].gyro;
+	vec3i16_t* gyrMax = &calMinMax[1].gyro;
 
 	sensorStatef_t cal = {};
 
@@ -284,7 +286,7 @@ sensorStatef_t applyCalibration(sensorStatei_t* raw, sensorStatei_t calMinMax[2]
 
 	// just copy the gyro TODO: scale the rate
 	for(int i = 3; i--;){
-		cal.gyro.v[i] = raw->gyro.v[i];
+		cal.gyro.v[i] = map(raw->gyro.v[i], gyrMin->v[i], gyrMax->v[i]);
 	}
 
 	// map the mag from [-1, 1] based on the measured range
@@ -324,12 +326,15 @@ int16_t axisAcc(char axis, int isMax, int fd_imu)
 		case 'Z':
 		case 'z':
 			return readings.acc.z;
+		case 'w':
+		case 'W':
+			return readings.gyro.z;
 	}
 
 	return 0;
 }
 //-----------------------------------------------------------------------------
-int imuPerformCalibration(int fd_storage, int fd_imu, imuState_t* state)
+int imuPerformCalibration(int fd_imu, imuState_t* state)
 {
 	printf("Point each axis toward the center of the earth when prompted.\n");
 	printf("[Press any key to begin]\n");
@@ -343,8 +348,19 @@ int imuPerformCalibration(int fd_storage, int fd_imu, imuState_t* state)
 	state->calMinMax[0].acc.z = axisAcc('z', 0, fd_imu);
 	state->calMinMax[1].acc.z = axisAcc('z', 1, fd_imu);
 
-	// store the results
-	write(fd_storage, &state->calMinMax, sizeof(state->calMinMax));
+	return 0;
+}
+//-----------------------------------------------------------------------------
+int imuPerformGyroCalibration(int fd_imu, imuState_t* state, float rot_ps)
+{
+	printf("Spin at a constant known speed in one direction, then the other\n");
+	printf("[Press any key to begin]\n");
+	getchar();
+
+	float rad_sec = 2 * M_PI / rot_ps;
+
+	state->calMinMax[0].gyro.z = axisAcc('w', 0, fd_imu) / rad_sec;	
+	state->calMinMax[1].gyro.z = axisAcc('w', 1, fd_imu) / rad_sec;
 
 	return 0;
 }

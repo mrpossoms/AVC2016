@@ -92,6 +92,7 @@ int intFromOpt(const char* target, int* val)
 int main(int argc, char* argv[])
 {
 	int err = 0, isRC = 0, rec_route = 0;
+	int useBlackBox;
 
 	ARGC = argc; ARGV = argv;
 	openlog("AVC_BOT", 0, 0);
@@ -104,13 +105,14 @@ int main(int argc, char* argv[])
 	}
 
 
+	useBlackBox = !hasOpt("--no-black-box");
 	SYS.debugging = hasOpt("--debug");
 	SYS.magCal = hasOpt("--mag-cal");
 	SYS.following = hasOpt("--follow");
 	rec_route = isRC && hasOpt("--record");
 
 	if(intFromOpt("--speed", &SYS.maxSpeed)){
-		SYS.maxSpeed = 53;
+		SYS.maxSpeed = 50;
 		printf("No speed set\n");
 	}
 
@@ -198,7 +200,6 @@ int main(int argc, char* argv[])
 	// setup all the decision agents
 	agentInitAgents();
 
-	int useBlackBox = !hasOpt("--no-black-box");
 	printf("Starting main loop\n");
 	while(1){
 		senUpdate(&SYS.body);
@@ -206,10 +207,7 @@ int main(int argc, char* argv[])
 		if(!isRC){
 			AGENT_ROUTING.action(NULL, NULL);
 			AGENT_STEERING.action(NULL, NULL);
-
-			if(hasOpt("--use-throttle")){
-				AGENT_THROTTLE.action(NULL, NULL);
-			}
+			AGENT_THROTTLE.action(NULL, NULL);
 			AGENT_CRASH_DETECTOR.action(NULL, NULL);
 	
 			// if there is no next goal or GPS then terminate
@@ -231,24 +229,8 @@ int main(int argc, char* argv[])
 				last_pos = wp.location;
 				MISSION_WAYPOINTS++;
 			}
-				break;
-			}
 		}
-		else if(rec_route){
-			static vec3f_t last_pos;
-			gpsWaypoint_t wp = {
-				.location = SYS.body.measured.position,
-			};
-			vec3f_t delta = vec3fSub(&wp.location, &last_pos);
-			
-			if(vec3fMag(&delta) > 10){
-				printf("Saving pos %f, %f\n", wp.location.x, wp.location.y);
-				write(MISSION_FD, &wp, sizeof(gpsWaypoint_t));	
-				last_pos = wp.location;
-				MISSION_WAYPOINTS++;
-			}
-		}
-
+		
 		sysTimerUpdate();
 		
 		// record system state, if indicated
