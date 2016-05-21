@@ -218,11 +218,6 @@ int imuUpdateState(int fd, imuState_t* imu, int contCal)
 
 		imu->cal = applyCalibration(raw, imu->calMinMax);
 
-		// subtract the gyro bias
-		for(int i = 3; i--;){
-			imu->cal.gyro.v[i] = raw->gyro.v[i] - GYRO_MEAN[i];
-		}
-
 		filterReading(imu);
 	}
 
@@ -316,6 +311,8 @@ int16_t axisAcc(char axis, int isMax, int fd_imu)
 	getchar();
 	sensorStatei_t readings = imuGetReadings(fd_imu);
 
+	printf("w: %d\n", readings.gyro.z);
+
 	switch(axis){
 		case 'X':
 		case 'x':
@@ -370,6 +367,13 @@ int imuLoadCalibrationProfile(int fd_storage, imuState_t* state)
 	int isOk = read(fd_storage, &state->calMinMax, sizeof(state->calMinMax)) == sizeof(state->calMinMax);
 	if(isOk){
 		state->isCalibrated = 1;
+		vec3i16_t acc[2] = { state->calMinMax[0].acc, state->calMinMax[1].acc };
+		vec3i16_t mag[2] = { state->calMinMax[0].mag, state->calMinMax[1].mag };
+		vec3i16_t gyro[2] = { state->calMinMax[0].gyro, state->calMinMax[1].gyro };
+
+		printf("\nAcc: (%d %d %d) - (%d %d %d)\n", acc[0].x, acc[0].y, acc[0].z, acc[1].x, acc[1].y, acc[1].z);
+		printf("Mag: (%d %d %d) - (%d %d %d)\n", mag[0].x, mag[0].y, mag[0].z, mag[1].x, mag[1].y, mag[1].z);
+		printf("Gyro: [%d - %d]\n", gyro[0].z, gyro[1].z);
 	}
 
 	return 0;

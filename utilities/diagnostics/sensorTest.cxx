@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
 		int topLeft[2] = { 5, 2 };
 		int bottomRight[2] = { IC_TERM_WIDTH - 5, IC_TERM_HEIGHT - 2};
 
-		readings[0][i] = SYS.body.imu.cal.gyro.z / 1000.0f;
+		readings[0][i] = SYS.body.imu.cal.gyro.z * 10;
 		readings[1][i] = SYS.body.imu.cal.acc.y;
 		readings[2][i] = SYS.body.imu.cal.acc.z;
 

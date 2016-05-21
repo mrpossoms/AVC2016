@@ -163,7 +163,7 @@ static void estimateHeading(float dt)
 
 		// use the gyro to estimate how confident we should be in the magnetometer's
 		// current measured heading
-		float w = body->imu.filtered.gyro.z / -32000.0f;
+		float w = body->imu.filtered.gyro.z;
 
 		vec2fRot((vec2f_t*)&gyroHeading, (vec2f_t*)&lastHeading, w * SYS.dt);
 		
