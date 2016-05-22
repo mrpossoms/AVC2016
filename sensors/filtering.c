@@ -53,8 +53,9 @@ int sen_filters_init(int imu_fd, fusedObjState_t* body)
 	vec3f_t heading;
 
 	// wait to get a gps fix
-	while(gpsGetReadings(&samples[0].gps, &heading) != GPS_FIX){
+	while(0 && gpsGetReadings(&samples[0].gps, &heading) != GPS_FIX){
 		sleep(1);
+		write(1, "-", 1);
 	}
 
 	// accumulate IMU samples
@@ -73,6 +74,7 @@ int sen_filters_init(int imu_fd, fusedObjState_t* body)
 
 		// 5hz
 		usleep(1000 * 200);
+		if(i % 10) write(1, ".", 1);
 	}
 
 	// compute means

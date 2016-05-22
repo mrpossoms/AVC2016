@@ -53,10 +53,12 @@ int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile
 	}
 	printf("OK!\n");
 
+	printf("Initalizing filters"); fflush(stdout);
 	if(sen_filters_init(FD_IMU, &SYS.body)){
 		printf("Sensor filter init failed.\n");
 		return -4;
 	}
+	printf("OK!\n");
 
 	printf("IMU stats collected.\n");
 
