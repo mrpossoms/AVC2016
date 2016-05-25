@@ -118,7 +118,7 @@ int gpsGetReadings(vec3f_t* position, vec3f_t* heading)
 		vec3f_t newHeading = {};
 		float d;
 
-		vec3Scl(newHeading, delta, 1 / deltaMag);
+		vec3Scl(newHeading, delta, GPS_STATE.Speed / deltaMag);
 
 		if((d = vec3Dot(newHeading, *heading)) <= 0){
 			// the direction reverse, just take the new heading
@@ -188,7 +188,7 @@ int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints)
 		}
 
 		vec3f_t loc = (*waypoints)[i].self.location;
-		if(abs(loc.x) <= 90 || abs(loc.y) <= 90){
+		if(fabs(loc.x) <= 90 || fabs(loc.y) <= 90){
 			printf("\t(%f lon, %f lat) -> ", loc.x, loc.y);
 			latLon2meters(&(*waypoints)[i].self.location);
 
@@ -203,7 +203,7 @@ int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints)
 
 		last = (*waypoints) + i;
 	}
-	
+
 	assert(last->next == NULL);
 	close(fd);
 

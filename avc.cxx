@@ -142,7 +142,14 @@ int main(int argc, char* argv[])
 	}
 
 	// start up IMU and GPS sensors
-	err = senInit("/dev/i2c-1", "/dev/ttyAMA0", "./imu.cal");
+
+	if(hasOpt("--no-sensors")){
+		err = senInit("/dev/null", "/dev/null", "./imu.cal");
+	}
+	else{
+		err = senInit("/dev/i2c-1", "/dev/ttyAMA0", "./imu.cal");
+	}
+
 	if(err){
 		SYS_ERR("Initializing sensor '%s' failed", "");
 		return err;

@@ -10,7 +10,7 @@ extern "C" {
 #endif
 
 int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile);
-int senUpdate(fusedObjState_t* body);
+int senUpdate(sensors_t* sensors);
 int senShutdown();
 
 #ifdef __cplusplus

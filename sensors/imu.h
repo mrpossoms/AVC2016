@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <strings.h>
 
-#include "base/types.h"
+#include "types.h"
 #include "base/constants.h"
 #include "i2c.h"
 
@@ -38,13 +38,13 @@ static inline void print_v3f(vec3f_t* v)
 int imuPerformCalibration(int fd_imu, imuState_t* state);
 int imuPerformGyroCalibration(int fd_imu, imuState_t* state, float rot_speed);
 int imuLoadCalibrationProfile(int fd_storage, imuState_t* state);
+sensorStatef_t imuApplyCalibration(sensorStatei_t* raw, sensorStatei_t calMinMax[2]);
 
 //    ___       _          ___     _ _ _
 //   |   \ __ _| |_ __ _  | _ \___| | (_)_ _  __ _
 //   | |) / _` |  _/ _` | |  _/ _ \ | | | ' \/ _` |
 //   |___/\__,_|\__\__,_| |_| \___/_|_|_|_||_\__, |
 //                                           |___/
-int imuSetup(int fd, imuState_t* state);
 int imuUpdateState(int fd, imuState_t* state, int contCal);
 sensorStatei_t imuGetReadings(int fd);
 

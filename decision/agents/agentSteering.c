@@ -13,10 +13,10 @@ static void steeringInit(void)
 static float angleToNextWayPoint(objectState_t* o, gpsWaypointCont_t* waypoint)
 {
 	const vec3f_t zero = {};
-	if(!memcmp(&o->position, &zero, sizeof(vec3f_t))) return 0;
+	if(!memcmp(&o->sensors.gps, &zero, sizeof(vec3f_t))) return 0;
 
-	vec3f_t toWaypoint = vec3fSub(&o->position, &waypoint->self.location);
-	vec3f_t tempHeading = o->heading;
+	vec3f_t toWaypoint = vec3fSub(&o->sensors.gps, &waypoint->self.location);
+	vec3f_t tempHeading = o->heading.v;
 	toWaypoint.x *= -1;
 
 	toWaypoint.z = tempHeading.z= 0;
@@ -41,14 +41,14 @@ static float angleToNextWayPoint(objectState_t* o, gpsWaypointCont_t* waypoint)
 	}
 
 	if(SYS.debugging){
-		printf("toWay . heading = %f\n", vec3fDot(&toWaypoint, &o->heading));
+		printf("toWay . heading = %f\n", vec3fDot(&toWaypoint, &o->heading.v));
 		printf(
 			"(%f, %f) -> (%f, %f)\n",
-			o->position.x, o->position.y,
+			o->sensors.gps.x, o->sensors.gps.y,
 			waypoint->self.location.x, waypoint->self.location.y
 		);
 
-		printf("heading %f, %f\n", o->heading.x, o->heading.y);
+		printf("heading %f, %f\n", o->heading.v.x, o->heading.v.y);
 		printf("delta %f, %f\n", toWaypoint.x, toWaypoint.y);
 		printf("d1 = %f, d2 = %f\n", d1, d2);
 		usleep(1000 * 250);

@@ -82,7 +82,7 @@ typedef enum{
         self.locationManager.activityType = CLActivityTypeOther;
         self.locationManager.delegate = self;
         
-        [self.locationManager requestWhenInUseAuthorization];
+        [self.locationManager requestAlwaysAuthorization];
     }
     
     if(!self.mapTap){
@@ -288,7 +288,7 @@ typedef enum{
 
 - (void)locationManager:(CLLocationManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status
 {
-    if(status == kCLAuthorizationStatusAuthorizedWhenInUse){
+    if(status == kCLAuthorizationStatusAuthorizedAlways){
         [self.map setUserTrackingMode:MKUserTrackingModeFollow animated:YES];
     }
     else{

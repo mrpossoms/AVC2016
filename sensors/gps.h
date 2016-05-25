@@ -5,6 +5,8 @@
 
 #include "base/types.h"
 
+#define GPS_FIX 1
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -14,7 +16,7 @@ extern gpsState_t GPS_STATE;
 int gpsInit(const char* device);
 int gpsShutdown();
 int gpsHasNewReadings();
-int gpsGetReadings(vec3f_t* position, vec3f_t* veclocity);
+int gpsGetReadings(vec3f_t* position, vec3f_t* heading);
 
 float gpsDistToWaypoint(vec3f_t* position, gpsWaypointCont_t* waypoint);
 float gpsDistToWaypoint3D(vec3f_t* position, gpsWaypointCont_t* waypoint);

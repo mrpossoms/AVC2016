@@ -10,6 +10,7 @@
 #include <time.h>
 
 #include "types.h"
+#include "sensors/types.h"
 #include "constants.h"
 
 #define SYS_ERR(fmt, ...){\
@@ -28,50 +29,45 @@ extern "C"{
 //     | || || | '_ \/ -_|_-<
 //     |_| \_, | .__/\___/__/
 //         |__/|_|
-typedef struct{
+typedef struct {
 	vec3i16_t depth[MAX_FEATURES];
 	uint16_t  detectedFeatures;
 } depthWindow_t;
 
-typedef struct{
-	vec3f_t position;
-	struct{
-		vec3f_t linear;
-		vec3f_t rotational;
-	} velocity;
-	vec3f_t gyroHeading;
+typedef struct {
+	vec3f_t pos;
 	vec3f_t heading;
 	vec3f_t accFrame[3];
-	vec3f_t goalHeading;
-	float   headingAngle;
-}objectState_t;
+} pose_t;
 
-typedef struct{
+typedef struct {
 	imuState_t    imu;
 	float         lastMeasureTime;
 	float         lastEstTime;
-	objectState_t measured;
-	objectState_t estimated;
+	sensorStatef_t measured;
+	sensorStatef_t filtered;
+	readingFilter_t filters;
 	uint8_t hasGpsFix;
-}fusedObjState_t;
+} sensors_t;
 
-typedef struct{
+typedef struct {
 	gpsWaypoint_t followLocation;
 	time_t updatedTime;
 } sysSHM_t;
 
-typedef struct{
+typedef struct {
 	// tracking
 	depthWindow_t   window;
 
 	// sensor measurements and estimates
-	fusedObjState_t body;
+	sensors_t sensors;
+	pose_t pose;
 
-	struct{
+	struct {
 		gpsWaypointCont_t *start, *currentWaypoint;
 	} route;
 
-	sysSHM_t* shm; // shared memory region	
+	sysSHM_t* shm; // shared memory region
 
 	float timeUp; // time in seconds the system has been running
 	float dt;     // time since last update
@@ -81,13 +77,12 @@ typedef struct{
 	int following;
 } system_t;
 
-typedef struct{
-	struct{
+typedef struct {
+	struct {
 		sensorStatei_t raw;
 		sensorStatef_t cal;
 		sensorStatef_t filtered;
 	} imu;
-	objectState_t estimated;
 
 	gpsWaypoint_t currentWaypoint;
 	gpsWaypoint_t nextWaypoint;
