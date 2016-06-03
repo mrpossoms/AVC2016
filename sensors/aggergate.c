@@ -8,7 +8,7 @@
 
 #include "filtering.h"
 
-static int FD_IMU;
+static int FD_I2C;
 static kfMat_t ROT_MAT, TEMP_MAT[2];
 
 #define ONCE_START {\
@@ -34,8 +34,8 @@ int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile
 	}
 	printf("OK!\n");
 
-	printf("Initializing IMU...");
-	if(!openSensor(imuDevice, &FD_IMU, O_RDWR)){
+	printf("Initializing I2C bus...");
+	if(!openSensor(imuDevice, &FD_I2C, O_RDWR)){
 		printf("Failed!\n");
 		return -2;
 	}
@@ -61,7 +61,7 @@ int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile
 	printf("OK!\n");
 
 	printf("Initalizing filters"); fflush(stdout);
-	if(sen_filters_init(FD_IMU, &SYS.sensors)){
+	if(sen_filters_init(FD_I2C, &SYS.sensors)){
 		printf("Sensor filter init failed.\n");
 		return -4;
 	}
@@ -75,7 +75,7 @@ int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile
 int senShutdown()
 {
 	if(gpsShutdown()) return -1;
-	if(close(FD_IMU)) return -2;
+	if(close(FD_I2C)) return -2;
 
 	return 0;
 }
@@ -209,10 +209,13 @@ static void estimate_pose(sensors_t* sens, pose_t* pose)
 //-----------------------------------------------------------------------------
 int senUpdate(sensors_t* sen)
 {
-	if(imuUpdateState(FD_IMU, &sen->imu, SYS.magCal)){
+	if(imuUpdateState(FD_I2C, &sen->imu, SYS.magCal)){
 		printf("imuUpdateState() failed\n");
 		return -1;
 	}
+
+	// read the wheel rotations from the rotary encoder
+	i2cReqBytes(FD_I2C, 0x08, 0, &sen->imu.raw.enc_ticks, 1);
 
 	// if(gpsHasNewReadings()){
 	// 	vec3f_t lastPos = measured->sensors.gps;

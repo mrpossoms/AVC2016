@@ -29,11 +29,15 @@ int i2cReqBytes(int fd, uint8_t devAddr, uint8_t srcReg, void* dstBuf, size_t by
 	return 1;
 #else
 
-	uint8_t commByte;
 	ioctl(fd, I2C_SLAVE, devAddr);
-	commByte = 0x80 | srcReg;
-	write(fd, &commByte, 1);
 
+	// if no device register is specified then assume
+	// that we are just reading directly from the device
+	if(!srcReg){
+		uint8_t commByte = 0x80 | srcReg;
+		write(fd, &commByte, 1);
+	}
+	
 	if(read(fd, dstBuf, bytes) != bytes){
 		return -1;
 	}
