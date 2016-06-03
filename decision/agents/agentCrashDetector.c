@@ -14,7 +14,7 @@ static float utility(agent_t* current, void* args)
 
 static void* action(agent_t* lastState, void* args)
 {
-	vec3f_t acc = SYS.body.imu.cal.acc;
+	vec3f_t acc = SYS.sensors.measured.acc;
 	acc.x = 0;
 
 	// do stuff here, choose a successor state if appropriate
