@@ -62,17 +62,16 @@ int imuUpdateState(int fd, imuState_t* imu, int contCal)
 {
 	sensorStatei_t* raw = &imu->raw;
 	sensorStatei_t reading = imuGetReadings(fd);
-
 	*raw = reading;
 
-	if(imu->isCalibrated){
-		// update the mag window
-		if(contCal){
-			contMagCal(raw, imu->calMinMax);
-		}
+	assert(imu->isCalibrated);
 
-		imu->cal = imuApplyCalibration(raw, imu->calMinMax);
+	// update the mag window
+	if(contCal){
+		contMagCal(raw, imu->calMinMax);
 	}
+
+	imu->cal = imuApplyCalibration(raw, imu->calMinMax);
 
 	return 0;
 }
@@ -136,6 +135,7 @@ sensorStatef_t imuApplyCalibration(sensorStatei_t* raw, sensorStatei_t calMinMax
 	for(int i = 3; i--;){
 		cal.gyro.v[i] = map(raw->gyro.v[i], gyrMin->v[i], gyrMax->v[i]);
 	}
+	cal.gyro.x = cal.gyro.y = 0;
 
 	// map the mag from [-1, 1] based on the measured range
 	{
@@ -215,10 +215,14 @@ int imuPerformGyroCalibration(int fd_imu, imuState_t* state, float rot_ps)
 //-----------------------------------------------------------------------------
 int imuLoadCalibrationProfile(int fd_storage, imuState_t* state)
 {
-	int isOk = read(fd_storage, &state->calMinMax, sizeof(state->calMinMax)) == sizeof(state->calMinMax);
+	int isOk = read(fd_storage, state->calMinMax, sizeof(state->calMinMax)) == sizeof(state->calMinMax);
 	if(isOk){
+		printf("\nmin: "); log_senI(state->calMinMax + 0); printf("\n");
+		printf("max: "); log_senI(state->calMinMax + 1); printf("\n");
+
 		state->isCalibrated = 1;
+		return 0;
 	}
 
-	return 0;
+	return -1;
 }

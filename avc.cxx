@@ -157,8 +157,8 @@ int main(int argc, char* argv[])
 
 	if(hasOpt("--mag-reset")){
 		printf("Reseting magnetometer calibration readings\n");
-		bzero(SYS.body.imu.calMinMax[0].mag.v, sizeof(vec3i16_t));
-		bzero(SYS.body.imu.calMinMax[1].mag.v, sizeof(vec3i16_t));
+		bzero(SYS.sensors.imu.calMinMax[0].mag.v, sizeof(vec3i16_t));
+		bzero(SYS.sensors.imu.calMinMax[1].mag.v, sizeof(vec3i16_t));
 	}
 
 	// sensors are started, start diagnostic endpoint
@@ -209,7 +209,7 @@ int main(int argc, char* argv[])
 
 	printf("Starting main loop\n");
 	while(1){
-		senUpdate(&SYS.body);
+		senUpdate(&SYS.sensors);
 
 		if(!isRC){
 			AGENT_ROUTING.action(NULL, NULL);
@@ -226,7 +226,7 @@ int main(int argc, char* argv[])
 		else if(rec_route){
 			static vec3f_t last_pos;
 			gpsWaypoint_t wp = {
-				.location = SYS.body.measured.position,
+				.location = SYS.pose.pos,
 			};
 			vec3f_t delta = vec3fSub(&wp.location, &last_pos);
 			

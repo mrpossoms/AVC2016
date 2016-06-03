@@ -72,6 +72,15 @@ int sen_filters_init(int imu_fd, sensors_t* sen)
 		vec3Add(filters->means.mag, filters->means.mag, cal.mag);
 		vec3Add(filters->means.gps, filters->means.gps, samples[i].gps);
 
+/*
+		for(int i = 3; i--;){
+			kf_t* f = &filters->acc;
+			vec3f_t* sen = &cal.acc;
+			memcpy(f[i].epoch[0].state, sen + i, sizeof(vec3f_t));
+			memcpy(f[i].epoch[1].state, sen + i, sizeof(vec3f_t));
+		}
+*/
+
 		// 5hz
 		usleep(1000 * 200);
 		if(i % 10) write(1, ".", 1);
@@ -111,7 +120,7 @@ int sen_filters_init(int imu_fd, sensors_t* sen)
 //-------------------------------------------------------------------
 int sen_filter(sensors_t* sen)
 {
-	vec3f_t* cal      = &(sen->measured.acc);
+	vec3f_t* cal      = &(sen->imu.cal.acc);
 	vec3f_t* filtered = &(sen->filtered.acc);
 	kf_t*    filters  = &(sen->filters.acc);
 
@@ -121,4 +130,24 @@ int sen_filter(sensors_t* sen)
 	}
 
 	return 0;
+}
+//-------------------------------------------------------------------
+void log_senI(sensorStatei_t* s)
+{
+	char* names[3] = { "acc", "gyro", "mag" };
+
+	for(int i = 0; i < 3; ++i){
+		vec3i16_t* v = ((vec3i16_t*)&s->acc);
+		printf("%s: %d %d %d ", names[i], v[i].x, v[i].y, v[i].z);
+	} printf("\n");
+}
+
+void log_senF(sensorStatef_t* s)
+{
+	char* names[3] = { "acc", "gyro", "mag" };
+
+	for(int i = 0; i < 3; ++i){
+		vec3f_t* v = ((vec3f_t*)&s->acc);
+		printf("%s: %0.3f %0.3f %0.3f ", names[i], v[i].x, v[i].y, v[i].z);
+	} printf("\n");
 }

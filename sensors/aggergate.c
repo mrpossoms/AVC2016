@@ -65,6 +65,7 @@ int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile
 		printf("Sensor filter init failed.\n");
 		return -4;
 	}
+	
 	printf("OK!\n");
 
 	printf("IMU stats collected.\n");
@@ -205,6 +206,8 @@ static void estimate_pose(sensors_t* sens, pose_t* pose)
 
 	// update the reference frame and rotation matrix
 	new_reference_frame(sens, pose);
+
+	//printf("heading %f %f %f\n", pose->heading.x, pose->heading.y, pose->heading.z);
 }
 //-----------------------------------------------------------------------------
 int senUpdate(sensors_t* sen)
@@ -215,28 +218,30 @@ int senUpdate(sensors_t* sen)
 	}
 
 	// read the wheel rotations from the rotary encoder
-	i2cReqBytes(FD_I2C, 0x08, 0, &sen->imu.raw.enc_ticks, 1);
-
-	// if(gpsHasNewReadings()){
-	// 	vec3f_t lastPos = measured->sensors.gps;
-	//
-	// 	// assign new ements
-	// 	vec3f_t* velLin = &measured->velocity.linear;
-	// 	sen->hasGpsFix = gpsGetReadings(&measured->sensors.gps, velLin);
-	// 	vec3Sub(*velLin, measured->sensors.gps, lastPos);
-	// 	vec3Scl(*velLin, *velLin, dt);
-	//
-	// 	estimated->sensors.gps = measured->sensors.gps;
-	//
-	// 	sen->lastMeasureTime = SYS.timeUp;
-	//
-	// }
+	uint8_t ticks;
+	i2cReqBytes(FD_I2C, 0x08, 0, &ticks, 1);
+	if(ticks == 255){
+		ticks = 0;
+	}
+	if(ticks){
+		printf("ticks: %d\n", ticks);
+	}
 
 	// do filtering
 	sen_filter(sen);
 
+	sen->measured = sen->imu.cal;
+	if(gpsHasNewReadings()){
+	 	// assign new ements
+		vec3f_t velLin = {};
+		vec3f_t pos = {};
+		sen->hasGpsFix = gpsGetReadings(&pos, &velLin);
+
+		//printf("Coord %f, %f\n", pos.x, pos.y);
+		sen->measured.gps = pos;
+	}
 	// update the pose estimation
-	estimate_pose(&SYS.sensors, &SYS.pose);
+	estimate_pose(sen, &SYS.pose);
 
 	sen->lastEstTime = SYS.timeUp;
 	return 0;

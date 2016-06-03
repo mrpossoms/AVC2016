@@ -8,7 +8,7 @@ typedef struct{
 	vec3i16_t acc;
 	vec3i16_t gyro;
 	vec3i16_t mag;
-	uint8_t   enc_ticks;
+	//uint8_t   enc_ticks;
 } sensorStatei_t;
 
 typedef struct{
@@ -33,5 +33,8 @@ typedef struct{
 	sensorStatei_t  calMinMax[2];
 	int             isCalibrated;
 }imuState_t;
+
+void log_senI(sensorStatei_t* s);
+void log_senF(sensorStatef_t* s);
 
 #endif
