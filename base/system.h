@@ -78,11 +78,8 @@ typedef struct {
 } system_t;
 
 typedef struct {
-	struct {
-		sensorStatei_t raw;
-		sensorStatef_t cal;
-		sensorStatef_t filtered;
-	} imu;
+	sensors_t sensors;
+	pose_t pose;
 
 	gpsWaypoint_t currentWaypoint;
 	gpsWaypoint_t nextWaypoint;
