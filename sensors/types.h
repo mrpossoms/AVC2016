@@ -8,7 +8,6 @@ typedef struct{
 	vec3i16_t acc;
 	vec3i16_t gyro;
 	vec3i16_t mag;
-	//uint8_t   enc_ticks;
 } sensorStatei_t;
 
 typedef struct{

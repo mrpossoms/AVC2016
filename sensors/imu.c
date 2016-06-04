@@ -71,7 +71,9 @@ int imuUpdateState(int fd, imuState_t* imu, int contCal)
 		contMagCal(raw, imu->calMinMax);
 	}
 
-	imu->cal = imuApplyCalibration(raw, imu->calMinMax);
+	sensorStatef_t cal = imuApplyCalibration(raw, imu->calMinMax);
+	cal.enc_dist = imu->cal.enc_dist;
+	imu->cal = cal;
 
 	return 0;
 }

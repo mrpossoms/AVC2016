@@ -69,6 +69,7 @@ int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile
 	printf("OK!\n");
 
 	printf("IMU stats collected.\n");
+	bzero(&SYS.sensors.measured, sizeof(sensorStatef_t));
 
 	return 0;
 }
@@ -224,7 +225,9 @@ int senUpdate(sensors_t* sen)
 		ticks = 0;
 	}
 	if(ticks){
-		printf("ticks: %d\n", ticks);
+		const float diameter = 0.1; // meters
+		sen->imu.cal.enc_dist += ticks * diameter * M_PI / 2;
+		printf("dist: %fM\n", sen->imu.cal.enc_dist);
 	}
 
 	// do filtering
