@@ -196,6 +196,8 @@ static void new_reference_frame(sensors_t* sensors, pose_t* pose)
 //-----------------------------------------------------------------------------
 static void estimate_pose(sensors_t* sens, pose_t* pose, int new_gps)
 {
+	static int updates;
+
 	// figure out which direction are we pointing
 	estimateHeading(SYS.dt, sens, pose);
 
@@ -203,19 +205,34 @@ static void estimate_pose(sensors_t* sens, pose_t* pose, int new_gps)
 	vec3f_t delta = vec3fScl(&pose->heading, sens->measured.enc_dist_delta);
 	vec3Add(pose->pos, pose->pos, delta);
 
-	vec3f_t pos = sens->measured.gps;
-	float w[2] = {
-		gauss(pose->pos.x, 0.1, sens->measured.gps.x), 
-		gauss(pose->pos.y, 0.1, sens->measured.gps.y),
-	}; 
-	
-	lerp(pose->pos.x, pose->pos.x, pos.x, w[0]);
-	lerp(pose->pos.y, pose->pos.y, pos.y, w[1]);
+	if(new_gps){
+		vec3f_t pos = sens->measured.gps;
+		
+		if(isnan(pose->pos.x) || isnan(pose->pos.y)){
+			pose->pos = pos;
+		}
+
+		float w[2] = {
+			gauss(pose->pos.x, 0.1, sens->measured.gps.x), 
+			gauss(pose->pos.y, 0.1, sens->measured.gps.y),
+		}; 
+		
+		pose->pos.x = pose->pos.x * (1 - w[0]) + pos.x * w[0];
+		pose->pos.y = pose->pos.y * (1 - w[1]) + pos.y * w[1];
+
+		//pose->pos = pos;
+
+		printf("Updates: %d\n", updates);
+		updates = 0;
+		printf("heading: %0.3f %0.3f %0.3f ", pose->heading.x, pose->heading.y, pose->heading.z);
+		printf("Coord: %f %f\n", pose->pos.x, pose->pos.y);
+	}
+
+	++updates;
 
 	// update the reference frame and rotation matrix
 	new_reference_frame(sens, pose);
 
-	//printf("heading %f %f %f\n", pose->heading.x, pose->heading.y, pose->heading.z);
 }
 //-----------------------------------------------------------------------------
 int senUpdate(sensors_t* sen)
