@@ -13,7 +13,7 @@ sysSnap_t sysSnapshot(system_t* sys)
 	sysSnap_t snap = {};
 
 	snap.pose    = sys->pose;
-	snap.sensors = sys->sensors;
+	snap.sensors.filtered = sys->sensors.filtered;
 
 	gpsWaypointCont_t* waypoint = sys->route.currentWaypoint;
 	if(waypoint){

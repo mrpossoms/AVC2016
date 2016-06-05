@@ -78,16 +78,15 @@ typedef struct {
 } system_t;
 
 typedef struct {
-    struct {
-//        sensorStatef_t cal;
-        sensorStatef_t filtered;
-    } sensors;
+	struct {
+		sensorStatef_t filtered;
+	} sensors;
 	pose_t pose;
 
 	gpsWaypoint_t currentWaypoint;
 	gpsWaypoint_t nextWaypoint;
 	uint8_t hasGpsFix;
-} sysSnap_t;
+} __attribute__((packed)) sysSnap_t;
 //     ___ _     _          _
 //    / __| |___| |__  __ _| |___
 //   | (_ | / _ \ '_ \/ _` | (_-<
