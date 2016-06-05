@@ -22,32 +22,18 @@
 
 - (NSString*)mesPosition
 {
-    return [self stringForVecF:self.data.estimated.sensors.gps];
+    return [self stringForVecF:self.data.pose.pos];
 }
 
-- (NSString*)mesVelocity
-{
-    return [self stringForVecF:self.data.estimated.velocity.linear];
-}
-
-- (NSString*)mesHeading
-{
-    return [self stringForVecF:self.data.estimated.heading.v];
-}
 
 - (NSString*)estPosition
 {
-    return [self stringForVecF:self.data.estimated.sensors.gps];
-}
-
-- (NSString*)estVelocity
-{
-    return [self stringForVecF:self.data.estimated.velocity.linear];
+    return [self stringForVecF:self.data.pose.pos];
 }
 
 - (NSString*)estHeading
 {
-    return [self stringForVecF:self.data.estimated.heading.v];
+    return [self stringForVecF:self.data.pose.heading];
 }
 
 - (NSString*)hasGpsFix

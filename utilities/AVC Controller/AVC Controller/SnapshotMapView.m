@@ -26,16 +26,16 @@
 {
     vec3f_t h;
 
-    if(vec3Dist(_lastPosition, _snapshot.estimated.sensors.gps) >= 9){
-        vec3Lerp(_lastPosition, _lastPosition, _snapshot.estimated.sensors.gps, 0.25);
+    if(vec3Dist(_lastPosition, _snapshot.pose.pos) >= 9){
+        vec3Lerp(_lastPosition, _lastPosition, _snapshot.pose.pos, 0.25);
     }
 
     _snapshot = snapshot;
 
     const float dia = 6371000 * 2; // diameter of the earth (meters)
     [self setCoordinate:CLLocationCoordinate2DMake(
-                                                   (_snapshot.estimated.sensors.gps.y / dia) / (M_PI / 180.0f),
-                                                   (_snapshot.estimated.sensors.gps.x / dia) / (M_PI / 180.0f)
+                                                   (_snapshot.pose.pos.y / dia) / (M_PI / 180.0f),
+                                                   (_snapshot.pose.pos.x / dia) / (M_PI / 180.0f)
                                                    )];
 
     if(memcpy(&lastWaypoint, &_snapshot.currentWaypoint.location, sizeof(vec3f_t))){
@@ -52,7 +52,7 @@
     }
 
 
-    vec3Sub(h, snapshot.estimated.sensors.gps, _lastPosition);
+    vec3Sub(h, snapshot.pose.pos, _lastPosition);
 //    dispatch_async(dispatch_get_main_queue(), ^{
         [self focusOnLocation:[[CLLocation alloc] initWithLatitude:self.coordinate.latitude longitude:self.coordinate.longitude]];
         self.carAnnotationView.snapshot = snapshot;

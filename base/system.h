@@ -78,7 +78,10 @@ typedef struct {
 } system_t;
 
 typedef struct {
-	sensors_t sensors;
+    struct {
+//        sensorStatef_t cal;
+        sensorStatef_t filtered;
+    } sensors;
 	pose_t pose;
 
 	gpsWaypoint_t currentWaypoint;

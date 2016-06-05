@@ -15,6 +15,7 @@
 @interface SnapshotAnnotationView()
 @property (nonatomic) NSObject<MKAnnotation>* myAnno;
 @property PointPlotControl* magPlot;
+@property float angle;
 @end
 
 @implementation SnapshotAnnotationView
@@ -22,9 +23,9 @@
 - (void)setSnapshot:(sysSnap_t)snapshot
 {
     _snapshot = snapshot;
-    _snapshot.estimated.heading.angle = atan2f(snapshot.estimated.heading.v.y, snapshot.estimated.heading.v.x) + M_PI_2;
+    float angle = atan2f(snapshot.pose.heading.y, snapshot.pose.heading.x) + M_PI_2;
 
-    [self.magPlot addPoint:CGPointMake(snapshot.imu.cal.mag.x, snapshot.imu.cal.mag.y)];
+    [self.magPlot addPoint:CGPointMake(snapshot.sensors.filtered.mag.x, snapshot.sensors.filtered.mag.y)];
     self.magPlot.frame = self.bounds;
     [self.magPlot setNeedsDisplay];
 }
@@ -111,19 +112,19 @@
     };
 
     CGPoint rawMag[] = {
-        { 0, 0 }, { _snapshot.imu.raw.mag.x, _snapshot.imu.raw.mag.y }
+        { 0, 0 }, { _snapshot.sensors.filtered.mag.x, _snapshot.sensors.filtered.mag.y }
     };
 
     CGPoint filteredMag[] = {
-        { 0, 0 }, { -_snapshot.imu.cal.mag.x, -_snapshot.imu.cal.mag.y }
+        { 0, 0 }, { -_snapshot.sensors.filtered.mag.x, -_snapshot.sensors.filtered.mag.y }
     };
 
     CGPoint heading[] = {
-        { 0, 0 }, { _snapshot.estimated.heading.v.x, _snapshot.estimated.heading.v.y }
+        { 0, 0 }, { _snapshot.pose.heading.x, _snapshot.pose.heading.y }
     };
 
     CGPoint goal[] = {
-        { 0, 0 }, { -_snapshot.estimated.heading.goal.x, _snapshot.estimated.heading.goal.y }
+        { 0, 0 }, { 0, 0 }//{ -_snapshot.pose.heading.goal.x, _snapshot.pose.heading.goal.y }
     };
 
     static CGFloat black[] = { 0, 0, 0, 1 };
@@ -146,8 +147,8 @@
     [self scalePoints:heading withCount:2 andFactor:0.9];
     [self scalePoints:goal withCount:2 andFactor:0.9];
 
-    [self rotatePoints:body withCount:POINTS(body) toAngle:_snapshot.estimated.heading.angle];
-    [self rotatePoints:wheels withCount:POINTS(wheels) toAngle:_snapshot.estimated.heading.angle];
+    [self rotatePoints:body withCount:POINTS(body) toAngle:_angle];
+    [self rotatePoints:wheels withCount:POINTS(wheels) toAngle:_angle];
 
     [self transformPoints:body withCount:POINTS(body) to:rect];
     [self transformPoints:wheels withCount:POINTS(wheels) to:rect];
@@ -165,7 +166,7 @@
     for(int i = 3; i--;){
         CGPoint line[] = {
             { 5 + i * 5, 15 },
-            { 5 + i * 5, 15 + _snapshot.imu.cal.acc.v[i] * 2 }
+            { 5 + i * 5, 15 + _snapshot.sensors.filtered.acc.v[i] * 2 }
         };
 
         CGContextSetStrokeColor(ctx, axisColors[i]);
