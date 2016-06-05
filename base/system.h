@@ -35,7 +35,7 @@ typedef struct {
 } depthWindow_t;
 
 typedef struct {
-	vec3f_t pos;
+	vec3d_t pos;
 	vec3f_t heading;
 	vec3f_t accFrame[3];
 } pose_t;
@@ -94,6 +94,7 @@ typedef struct {
 //
 extern system_t SYS;
 
+void sysPrintSnap(sysSnap_t* snap);
 void sysTimerUpdate();
 sysSHM_t* sysAttachSHM();
 sysSnap_t sysSnapshot(system_t* sys);

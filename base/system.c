@@ -27,6 +27,15 @@ sysSnap_t sysSnapshot(system_t* sys)
 	return snap;
 }
 //---------------------------------------------------------------------------
+void sysPrintSnap(sysSnap_t* snap)
+{
+	printf(
+		"\tpose -> HDING(%f, %f) LOC(%f, %f)\n",
+		snap->pose.heading.x, snap->pose.heading.y,
+		snap->pose.pos.x, snap->pose.pos.y
+	);
+}
+//---------------------------------------------------------------------------
 sysSHM_t* sysAttachSHM()
 {
 	int shmid = 0;

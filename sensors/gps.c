@@ -83,11 +83,11 @@ int gpsHasNewReadings()
 	return LAST_CHK_SUM != GPS_STATE.checksum || !LAST_CHK_SUM;
 }
 //-----------------------------------------------------------------------------
-void latLon2meters(vec3f_t* coord)
+void latLon2meters(vec3d_t* coord)
 {
-	const float dia = 6371000 * 2;
-	float latRad = coord->y * (M_PI / 180.0f);
-	float lonRad = coord->x * (M_PI / 180.0f);
+	const double dia = 6371000 * 2;
+	double latRad = coord->y * (M_PI / 180.0f);
+	double lonRad = coord->x * (M_PI / 180.0f);
 
 	// circumferance = d * pi
 
@@ -95,10 +95,8 @@ void latLon2meters(vec3f_t* coord)
 	coord->y = dia * latRad;
 }
 //-----------------------------------------------------------------------------
-int gpsGetReadings(vec3f_t* position, vec3f_t* heading)
+int gpsGetReadings(vec3d_t* position, vec3f_t* heading)
 {
-	vec3f_t lastPos = *position;
-
 	position->x = GPS_STATE.Lon;
 	position->y = GPS_STATE.Lat;
 	position->z = GPS_STATE.Altitude;
@@ -110,45 +108,26 @@ int gpsGetReadings(vec3f_t* position, vec3f_t* heading)
 
 	latLon2meters(position);
 
-	vec3f_t delta  = { position->x - lastPos.x, position->y - lastPos.y, position->z - lastPos.z };
-	float deltaMag = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
-
-	// use GPS to try to determine the heading
-	if(deltaMag > 0){
-		vec3f_t newHeading = {};
-		float d;
-
-		vec3Scl(newHeading, delta, GPS_STATE.Speed / deltaMag);
-
-		if((d = vec3Dot(newHeading, *heading)) <= 0){
-			// the direction reverse, just take the new heading
-			*heading = newHeading;
-		}
-		else{ // otherwise prefer new velocities that are near the current
-			vec3Lerp(*heading, *heading, newHeading, d / deltaMag);
-		}
-	}
-
 	LAST_CHK_SUM = GPS_STATE.checksum;
 
 	return GPS_STATE.Fix;
 }
 //-----------------------------------------------------------------------------
-float gpsDistToWaypoint(vec3f_t* position, gpsWaypointCont_t* waypoint)
+float gpsDistToWaypoint(vec3d_t* position, gpsWaypointCont_t* waypoint)
 {
 	float dx = position->x - waypoint->self.location.x;
 	float dy = position->y - waypoint->self.location.y;
 	return sqrt(dx * dx + dy * dy);
 }
 //-----------------------------------------------------------------------------
-float gpsDistToWaypoint3D(vec3f_t* position, gpsWaypointCont_t* waypoint)
+float gpsDistToWaypoint3D(vec3d_t* position, gpsWaypointCont_t* waypoint)
 {
 	vec3f_t h = gpsHeadingToWaypoint(position, waypoint);
 
 	return sqrt(h.x * h.x + h.y * h.y + h.z * h.z);
 }
 //-----------------------------------------------------------------------------
-vec3f_t gpsHeadingToWaypoint(vec3f_t* position, gpsWaypointCont_t* waypoint)
+vec3f_t gpsHeadingToWaypoint(vec3d_t* position, gpsWaypointCont_t* waypoint)
 {
 	vec3f_t heading = {
 		position->x - waypoint->self.location.x,
@@ -187,7 +166,7 @@ int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints)
 			return -4;
 		}
 
-		vec3f_t loc = (*waypoints)[i].self.location;
+		vec3d_t loc = (*waypoints)[i].self.location;
 		if(fabs(loc.x) <= 90 || fabs(loc.y) <= 90){
 			printf("\t(%f lon, %f lat) -> ", loc.x, loc.y);
 			latLon2meters(&(*waypoints)[i].self.location);
@@ -210,7 +189,7 @@ int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints)
 	return 0;
 }
 //-----------------------------------------------------------------------------
-int gpsRouteAdvance(vec3f_t* position, gpsWaypointCont_t** current, uint8_t lapFlag)
+int gpsRouteAdvance(vec3d_t* position, gpsWaypointCont_t** current, uint8_t lapFlag)
 {
 	if(!position) return -1;
 	if(!current) return -2;

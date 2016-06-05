@@ -12,10 +12,15 @@ static void steeringInit(void)
 
 static float angleToNextWayPoint(pose_t* o, gpsWaypointCont_t* waypoint)
 {
-	const vec3f_t zero = {};
-	if(!memcmp(&o->pos, &zero, sizeof(vec3f_t))) return 0;
+	const vec3d_t zero = {};
+	if(!memcmp(&o->pos, &zero, sizeof(vec3d_t))) return 0;
 
-	vec3f_t toWaypoint = vec3fSub(&o->pos, &waypoint->self.location);
+	vec3f_t toWaypoint = {};
+
+	toWaypoint.x = o->pos.x - waypoint->self.location.x;
+	toWaypoint.y = o->pos.y - waypoint->self.location.y;
+	toWaypoint.z = o->pos.z - waypoint->self.location.z;
+	
 	vec3f_t tempHeading = o->heading;
 	toWaypoint.x *= -1;
 

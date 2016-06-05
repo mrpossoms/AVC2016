@@ -202,30 +202,52 @@ static void estimate_pose(sensors_t* sens, pose_t* pose, int new_gps)
 	estimateHeading(SYS.dt, sens, pose);
 
 	// add dead reckoning component to the system location
-	vec3f_t delta = vec3fScl(&pose->heading, sens->measured.enc_dist_delta);
-	vec3Add(pose->pos, pose->pos, delta);
+
+	float dd = sens->measured.enc_dist_delta;
+	vec3d_t delta = {
+		(double)(pose->heading.x * dd),
+		(double)(pose->heading.y * dd),
+		0.
+	};
+
+	//vec3Add(pose->pos, pose->pos, delta);
+	//pose->pos.x += delta.x;
+	//pose->pos.y += delta.y;
+
+	if(dd){
+		printf("enc_dist_delta %f\n", dd);
+		printf("delta %f, %f\n", delta.x, delta.y);
+		printf("Coord: %f %f\n", pose->pos.x + delta.x, pose->pos.y + delta.y);
+	}
 
 	if(new_gps){
-		vec3f_t pos = sens->measured.gps;
+		vec3d_t pos = sens->measured.gps;
 		
 		if(isnan(pose->pos.x) || isnan(pose->pos.y)){
-			pose->pos = pos;
+			printf("reset\n"), sleep(1);
+			pose->pos.x = pos.x;
+			pose->pos.y = pos.y;
+			pose->pos.z = pos.z;
 		}
+/*
+		
 
 		float w[2] = {
-			gauss(pose->pos.x, 0.1, sens->measured.gps.x), 
-			gauss(pose->pos.y, 0.1, sens->measured.gps.y),
+			0,//gauss(pose->pos.x, 0.2, sens->measured.gps.x), 
+			0,//gauss(pose->pos.y, 0.2, sens->measured.gps.y),
 		}; 
+
+		//printf("weights: %f %f\n", w[0], w[1]);
 		
 		pose->pos.x = pose->pos.x * (1 - w[0]) + pos.x * w[0];
 		pose->pos.y = pose->pos.y * (1 - w[1]) + pos.y * w[1];
 
 		//pose->pos = pos;
 
-		printf("Updates: %d\n", updates);
+		//printf("Updates: %d\n", updates);
 		updates = 0;
-		printf("heading: %0.3f %0.3f %0.3f ", pose->heading.x, pose->heading.y, pose->heading.z);
-		printf("Coord: %f %f\n", pose->pos.x, pose->pos.y);
+		//printf("heading: %0.3f %0.3f %0.3f ", pose->heading.x, pose->heading.y, pose->heading.z);
+*/
 	}
 
 	++updates;
@@ -254,7 +276,7 @@ int senUpdate(sensors_t* sen)
 	sen->imu.cal.enc_dist += sen->imu.cal.enc_dist_delta;
 
 	if(ticks){
-		printf("dist: %fM\n", sen->imu.cal.enc_dist);
+//		printf("dist: %fM\n", sen->imu.cal.enc_dist);
 	}
 
 	// do filtering
@@ -265,7 +287,7 @@ int senUpdate(sensors_t* sen)
 	if(gpsHasNewReadings()){
 	 	// assign new ements
 		vec3f_t velLin = {};
-		vec3f_t pos = {};
+		vec3d_t pos = {};
 		sen->hasGpsFix = gpsGetReadings(&pos, &velLin);
 
 		//printf("Coord %f, %f\n", pos.x, pos.y);

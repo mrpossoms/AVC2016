@@ -14,7 +14,7 @@ typedef struct{
 	vec3f_t acc;
 	vec3f_t gyro;
 	vec3f_t mag;
-	vec3f_t gps;
+	vec3d_t gps;
 	float   enc_dist;
 	float   enc_dist_delta;
 } sensorStatef_t;

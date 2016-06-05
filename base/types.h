@@ -90,6 +90,13 @@ typedef union{
 	};
 } vec3f_t;
 
+typedef union{
+	double v[3];
+	struct{
+		float x, y, z;
+	};
+} vec3d_t;
+
 typedef enum{
 	MISS_SRV_UPLOAD = 0,
 	MISS_SRV_RUN,
@@ -109,7 +116,7 @@ typedef struct{
 } gpsRouteHeader_t;
 
 typedef struct{
-	vec3f_t location;
+	vec3d_t location;
 	float   tolerance;
 	uint8_t nextWaypoint;
 	uint8_t flags;

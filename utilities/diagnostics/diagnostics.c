@@ -79,6 +79,7 @@ static void* handler(void* params)
 				}
 				else{
 					sysSnap_t snap = sysSnapshot(&SYS);
+					//sysPrintSnap(&snap);
 					read(fd, &byte, 1);
 					write(fd, &snap, sizeof(sysSnap_t));
 				}

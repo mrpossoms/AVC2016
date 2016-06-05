@@ -224,13 +224,12 @@ int main(int argc, char* argv[])
 			}
 		}
 		else if(rec_route){
-			static vec3f_t last_pos;
+			static vec3d_t last_pos;
 			gpsWaypoint_t wp = {
 				.location = SYS.pose.pos,
 			};
-			vec3f_t delta = vec3fSub(&wp.location, &last_pos);
 			
-			if(vec3fMag(&delta) > 10){
+			if(vec3Dist(wp.location, last_pos) > 10){
 				printf("Saving pos %f, %f\n", wp.location.x, wp.location.y);
 				write(MISSION_FD, &wp, sizeof(gpsWaypoint_t));	
 				last_pos = wp.location;

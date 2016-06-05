@@ -14,9 +14,8 @@ static float utility(agent_t* current, void* args)
 	}
 
 	gpsWaypointCont_t* waypoint = SYS.route.currentWaypoint;
-	vec3f_t delta = vec3fSub(&SYS.pose.pos, &waypoint->self.location);
 
-	return 10 / vec3fMag(&delta);
+	return 10 / vec3Dist(SYS.pose.pos, waypoint->self.location);
 }
 //------------------------------------------------------------------------------
 static void* action(agent_t* lastState, void* args)
@@ -36,7 +35,9 @@ static void* action(agent_t* lastState, void* args)
 	}
 	else{
 		gpsWaypointCont_t* waypoint = SYS.route.currentWaypoint;
-		vec3f_t delta = vec3fSub(&SYS.pose.pos, &waypoint->self.location);
+		vec3f_t delta = {};
+		delta.x = SYS.pose.pos.x - waypoint->self.location.x;
+		delta.y = SYS.pose.pos.y - waypoint->self.location.y;
 		delta.z = 0; // we don't give a shit about altitude
 
 		// SYS.body.estimated.heading.goal = vec3fNorm(&delta);
