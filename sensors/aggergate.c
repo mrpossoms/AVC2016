@@ -98,7 +98,6 @@ static void estimateHeading(float dt, sensors_t* sensors, pose_t* pose)
 		heading = pose->heading = vec3fNorm(&pose->heading);
 
 		if(vec3fIsNan(&pose->heading)) return;
-
 	}
 
 	// apply the transform, use the old matrix if it hasn't been
@@ -195,15 +194,23 @@ static void new_reference_frame(sensors_t* sensors, pose_t* pose)
 
 }
 //-----------------------------------------------------------------------------
-static void estimate_pose(sensors_t* sens, pose_t* pose)
+static void estimate_pose(sensors_t* sens, pose_t* pose, int new_gps)
 {
 	// figure out which direction are we pointing
 	estimateHeading(SYS.dt, sens, pose);
 
 	// add dead reckoning component to the system location
+	vec3f_t delta = vec3fScl(&pose->heading, sens->measured.enc_dist_delta);
+	vec3Add(pose->pos, pose->pos, delta);
+
 	vec3f_t pos = sens->measured.gps;
-	vec3f_t delta = vec3fScl(&pose->heading, sens->measured.enc_dist);
-	vec3Add(pose->pos, pos, delta);
+	float w[2] = {
+		gauss(pose->pos.x, 0.1, sens->measured.gps.x), 
+		gauss(pose->pos.y, 0.1, sens->measured.gps.y),
+	}; 
+	
+	lerp(pose->pos.x, pose->pos.x, pos.x, w[0]);
+	lerp(pose->pos.y, pose->pos.y, pos.y, w[1]);
 
 	// update the reference frame and rotation matrix
 	new_reference_frame(sens, pose);
@@ -224,15 +231,19 @@ int senUpdate(sensors_t* sen)
 	if(ticks == 255){
 		ticks = 0;
 	}
+	
+	const float diameter = 0.1; // meters
+	sen->imu.cal.enc_dist_delta = ticks * diameter * M_PI / 2;
+	sen->imu.cal.enc_dist += sen->imu.cal.enc_dist_delta;
+
 	if(ticks){
-		const float diameter = 0.1; // meters
-		sen->imu.cal.enc_dist += ticks * diameter * M_PI / 2;
 		printf("dist: %fM\n", sen->imu.cal.enc_dist);
 	}
 
 	// do filtering
 	sen_filter(sen);
 
+	int new_gps = 0;
 	sen->measured = sen->imu.cal;
 	if(gpsHasNewReadings()){
 	 	// assign new ements
@@ -242,9 +253,10 @@ int senUpdate(sensors_t* sen)
 
 		//printf("Coord %f, %f\n", pos.x, pos.y);
 		sen->measured.gps = pos;
+		new_gps = 1;
 	}
 	// update the pose estimation
-	estimate_pose(sen, &SYS.pose);
+	estimate_pose(sen, &SYS.pose, new_gps);
 
 	sen->lastEstTime = SYS.timeUp;
 	return 0;

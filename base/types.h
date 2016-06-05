@@ -54,6 +54,10 @@
 	(r).v[2] = (a).v[2] * (1.0f - p) + (b).v[2] * p;\
 }\
 
+#define lerp(r, a, b, p){\
+	(r) = (a) * (1.0f - p) + (b) * p;\
+}\
+
 #define vec3Dist(a, b) sqrt(pow((a).x - (b).x, 2) + pow((a).y - (b).y, 2) + pow((a).z - (b).z, 2))
 
 #ifdef __cplusplus
@@ -127,6 +131,8 @@ float   vec3fMag(vec3f_t* v);
 vec3f_t vec3fNorm(vec3f_t* v);
 void    vec2fRot(vec2f_t* r, vec2f_t* v, float theta);
 float   vec3fAng(vec3f_t* a, vec3f_t* b);
+
+float gauss(float mu, float sigma, float x);
 
 #ifdef __cplusplus
 }
