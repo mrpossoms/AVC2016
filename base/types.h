@@ -93,7 +93,7 @@ typedef union{
 typedef union{
 	double v[3];
 	struct{
-		float x, y, z;
+		double x, y, z;
 	};
 } vec3d_t;
 
@@ -139,7 +139,7 @@ vec3f_t vec3fNorm(vec3f_t* v);
 void    vec2fRot(vec2f_t* r, vec2f_t* v, float theta);
 float   vec3fAng(vec3f_t* a, vec3f_t* b);
 
-float gauss(float mu, float sigma, float x);
+double gauss(double mu, double sigma, double x);
 
 #ifdef __cplusplus
 }

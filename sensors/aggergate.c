@@ -210,14 +210,12 @@ static void estimate_pose(sensors_t* sens, pose_t* pose, int new_gps)
 		0.
 	};
 
-	//vec3Add(pose->pos, pose->pos, delta);
-	//pose->pos.x += delta.x;
-	//pose->pos.y += delta.y;
+	vec3Add(pose->pos, pose->pos, delta);
 
 	if(dd){
 		printf("enc_dist_delta %f\n", dd);
 		printf("delta %f, %f\n", delta.x, delta.y);
-		printf("Coord: %f %f\n", pose->pos.x + delta.x, pose->pos.y + delta.y);
+		printf("Coord: %f %f\n", pose->pos.x, pose->pos.y);
 	}
 
 	if(new_gps){
@@ -229,15 +227,13 @@ static void estimate_pose(sensors_t* sens, pose_t* pose, int new_gps)
 			pose->pos.y = pos.y;
 			pose->pos.z = pos.z;
 		}
-/*
-		
 
 		float w[2] = {
-			0,//gauss(pose->pos.x, 0.2, sens->measured.gps.x), 
-			0,//gauss(pose->pos.y, 0.2, sens->measured.gps.y),
+			gauss(pose->pos.x, 1, sens->measured.gps.x), 
+			gauss(pose->pos.y, 1, sens->measured.gps.y),
 		}; 
 
-		//printf("weights: %f %f\n", w[0], w[1]);
+		printf("weights: %f %f\n", w[0], w[1]);
 		
 		pose->pos.x = pose->pos.x * (1 - w[0]) + pos.x * w[0];
 		pose->pos.y = pose->pos.y * (1 - w[1]) + pos.y * w[1];
@@ -247,7 +243,6 @@ static void estimate_pose(sensors_t* sens, pose_t* pose, int new_gps)
 		//printf("Updates: %d\n", updates);
 		updates = 0;
 		//printf("heading: %0.3f %0.3f %0.3f ", pose->heading.x, pose->heading.y, pose->heading.z);
-*/
 	}
 
 	++updates;

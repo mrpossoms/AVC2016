@@ -79,8 +79,8 @@ float vec3fAng(vec3f_t* a, vec3f_t* b)
 	return acosf(vec3fDot(&an, &bn));
 }
 
-float gauss(float mu, float sigma, float x)
+double gauss(double mu, double sigma, double x)
 {
-	float var2 = (sigma * sigma) * 2;
-	return (1.f / sqrtf(var2 * M_PI)) * powf(M_E, -powf(x - mu, 2.f) / var2);
+	double var2 = (sigma * sigma) * 2;
+	return (1.f / sqrt(var2 * M_PI)) * pow(M_E, -pow(x - mu, 2.f) / var2);
 }
