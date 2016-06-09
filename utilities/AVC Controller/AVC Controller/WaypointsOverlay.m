@@ -39,7 +39,7 @@
                                       );
 }
 
-+ (instancetype)overlayAt:(vec3f_t)location
++ (instancetype)overlayAt:(vec3d_t)location
 {
     WaypointsOverlay* o = [[WaypointsOverlay alloc] init];
 

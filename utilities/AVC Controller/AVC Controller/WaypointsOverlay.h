@@ -11,8 +11,8 @@
 
 @interface WaypointsOverlay : NSObject <MKAnnotation>
 
-@property vec3f_t location;
+@property vec3d_t location;
 
-+ (instancetype)overlayAt:(vec3f_t)location;
++ (instancetype)overlayAt:(vec3d_t)location;
 
 @end
