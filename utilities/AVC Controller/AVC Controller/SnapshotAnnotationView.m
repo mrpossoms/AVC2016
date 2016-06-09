@@ -23,7 +23,7 @@
 - (void)setSnapshot:(sysSnap_t)snapshot
 {
     _snapshot = snapshot;
-    float angle = atan2f(snapshot.pose.heading.y, snapshot.pose.heading.x) + M_PI_2;
+    _angle = atan2f(snapshot.pose.heading.y, snapshot.pose.heading.x) + M_PI_2;
 
     [self.magPlot addPoint:CGPointMake(snapshot.sensors.filtered.mag.x, snapshot.sensors.filtered.mag.y)];
     self.magPlot.frame = self.bounds;

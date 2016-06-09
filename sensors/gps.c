@@ -8,9 +8,13 @@
 #include <stdio.h>
 #include <assert.h>
 
+#define GPS_HZ 5
+
 gpsState_t GPS_STATE;
 static unsigned char LAST_CHK_SUM;
 static pthread_t GPS_THREAD;
+static int UPDATES;
+static vec3d_t SAMPLES[GPS_HZ];
 
 static void* gpsWorker(void* args)
 {
@@ -80,7 +84,17 @@ int gpsShutdown()
 //-----------------------------------------------------------------------------
 int gpsHasNewReadings()
 {
-	return LAST_CHK_SUM != GPS_STATE.checksum || !LAST_CHK_SUM;
+	if(LAST_CHK_SUM != GPS_STATE.checksum || !LAST_CHK_SUM){
+		int* i = &UPDATES;
+		SAMPLES[*i].x = GPS_STATE.Lon / 5.0;
+		SAMPLES[*i].y = GPS_STATE.Lat / 5.0;
+		SAMPLES[*i].z = GPS_STATE.Altitude / 5.0;
+		++(*i);
+	
+		LAST_CHK_SUM = GPS_STATE.checksum;
+	}
+
+	return (UPDATES % GPS_HZ) == 0;
 }
 //-----------------------------------------------------------------------------
 void latLon2meters(vec3d_t* coord)
@@ -97,9 +111,13 @@ void latLon2meters(vec3d_t* coord)
 //-----------------------------------------------------------------------------
 int gpsGetReadings(vec3d_t* position, vec3f_t* heading)
 {
-	position->x = GPS_STATE.Lon;
-	position->y = GPS_STATE.Lat;
-	position->z = GPS_STATE.Altitude;
+	position->x = position->y = position->z = 0;
+
+	for(int i = GPS_HZ; i--;){
+		position->x += SAMPLES[i].x;
+		position->y += SAMPLES[i].y;
+		position->z += SAMPLES[i].z;
+	}
 
 	if(!position->x && !position->y){
 		position->x = -85.651659;
@@ -107,8 +125,6 @@ int gpsGetReadings(vec3d_t* position, vec3f_t* heading)
 	}
 
 	latLon2meters(position);
-
-	LAST_CHK_SUM = GPS_STATE.checksum;
 
 	return GPS_STATE.Fix;
 }
