@@ -10,6 +10,7 @@ extern "C" {
 
 int ctrlInit();
 int ctrlSet(int servo, int percent);
+int ctrlGet(int servo);
 
 #ifdef __cplusplus
 }

@@ -229,7 +229,7 @@ int main(int argc, char* argv[])
 				.location = SYS.pose.pos,
 			};
 			
-			if(vec3Dist(wp.location, last_pos) > 10){
+			if(vec3Dist(wp.location, last_pos) > 5){
 				printf("Saving pos %f, %f\n", wp.location.x, wp.location.y);
 				write(MISSION_FD, &wp, sizeof(gpsWaypoint_t));	
 				last_pos = wp.location;
