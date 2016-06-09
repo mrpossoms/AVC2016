@@ -7,6 +7,7 @@ CMP = gcc
 
 SYS  = ./../base
 DIAG = ./../utilities/diagnostics
+CTRL = ./../controls
 
 INC=-I./../ -I./../utilities -I/usr/local/include
 LIB=-L/usr/lib -L/usr/local/lib
@@ -15,6 +16,7 @@ FLAGS= -g -std=c99 -Wall -Werror -Wno-comment -Wno-unused-function -Wno-missing-
 
 INC += -I$(SYS)
 INC += -I$(DIAG)
+INC += -I$(CTRL)
 
 SRCS = $(wildcard ./*.c)
 OBJS = $(SRCS:.c=.o)

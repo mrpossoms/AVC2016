@@ -7,6 +7,7 @@
 #include <string.h>
 
 int SERVO_FD;
+int SERVOS[2];
 
 int ctrlInit()
 {
@@ -37,6 +38,12 @@ int ctrlSet(int servo, int percent)
 	char str[12] = {};
 	sprintf(str, "%d=%d%%\n", servo, percent);
 	write(SERVO_FD, str, strlen(str));
+	SERVOS[servo] = percent;
+
 	return 0;
 }
 
+int ctrlGet(int servo)
+{
+	return SERVOS[servo];
+}

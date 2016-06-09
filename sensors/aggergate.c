@@ -7,6 +7,7 @@
 #include <libNEMA.h>
 
 #include "filtering.h"
+#include "servos.h"
 
 static int FD_I2C;
 static kfMat_t ROT_MAT, TEMP_MAT[2];
@@ -206,37 +207,38 @@ static void estimate_pose(sensors_t* sens, pose_t* pose, int new_gps)
 	float dd = sens->measured.enc_dist_delta;
 	vec3d_t delta = {
 		(double)(pose->heading.x * dd),
-		(double)(pose->heading.y * dd),
+		(double)(-pose->heading.y * dd),
 		0.
 	};
 
 	vec3Add(pose->pos, pose->pos, delta);
 
-	if(dd){
-		printf("enc_dist_delta %f\n", dd);
-		printf("delta %f, %f\n", delta.x, delta.y);
-		printf("Coord: %f %f\n", pose->pos.x, pose->pos.y);
-	}
-
 	if(new_gps){
-		vec3d_t pos = sens->measured.gps;
+		const double max = 1;//gauss(0, 6, 0);
+		const double bias = 0.005;
+
+		vec3d_t gps = sens->measured.gps;
+		double w[2] = {
+			bias + gauss(pose->pos.x, 3, gps.x) / max, 
+			bias + gauss(pose->pos.y, 3, gps.y) / max,
+		}; 
 		
-		if(isnan(pose->pos.x) || isnan(pose->pos.y)){
+		if(isnan(pose->pos.x * pose->pos.y) ||
+		   w[0] == 0 || w[1] == 0
+		){
 			printf("reset\n"), sleep(1);
-			pose->pos.x = pos.x;
-			pose->pos.y = pos.y;
-			pose->pos.z = pos.z;
+			pose->pos.x = gps.x;
+			pose->pos.y = gps.y;
+			pose->pos.z = gps.z;
+			w[0] = w[1] = 1;
 		}
 
-		float w[2] = {
-			gauss(pose->pos.x, 1, sens->measured.gps.x), 
-			gauss(pose->pos.y, 1, sens->measured.gps.y),
-		}; 
-
-		printf("weights: %f %f\n", w[0], w[1]);
+		//printf("pose.x=%f, gps.x=%f\n", pose->pos.x, gps.x);
+		//printf("pose.y=%f, gps.y=%f\n", pose->pos.y, gps.y);
+		//printf("weights: %f %f\n", w[0], w[1]);
 		
-		pose->pos.x = pose->pos.x * (1 - w[0]) + pos.x * w[0];
-		pose->pos.y = pose->pos.y * (1 - w[1]) + pos.y * w[1];
+		pose->pos.x = pose->pos.x * (1 - w[0]) + gps.x * w[0];
+		pose->pos.y = pose->pos.y * (1 - w[1]) + gps.y * w[1];
 
 		//pose->pos = pos;
 
@@ -267,8 +269,9 @@ int senUpdate(sensors_t* sen)
 	}
 	
 	const float diameter = 0.1; // meters
-	sen->imu.cal.enc_dist_delta = ticks * diameter * M_PI / 2;
-	sen->imu.cal.enc_dist += sen->imu.cal.enc_dist_delta;
+	float sign = ctrlGet(SERVO_THROTTLE) > 50 ? 1 : -1;
+	sen->imu.cal.enc_dist_delta = ticks * diameter * M_PI;
+	sen->imu.cal.enc_dist += sen->imu.cal.enc_dist_delta * sign;
 
 	if(ticks){
 //		printf("dist: %fM\n", sen->imu.cal.enc_dist);
