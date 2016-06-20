@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <signal.h>
 #include <pthread.h>
+#include <dirent.h>
 
 #include "base/system.h"
 #include "controls/servos.h"
@@ -36,11 +37,18 @@ static void mark_process()
 //------------------------------------------------------------------------------
 static void unmark_process()
 {
-	pid_t id = getpid();
 	char path[32] = {};
 
-	sprintf(path, "%d.pid", id);
-	unlink(path);
+	DIR* dir = opendir("./");
+
+	if(dir){
+		struct dirent* ep = NULL;
+		while((ep = readdir(dir))){
+			if(strstr(ep->d_name, ".pid")){
+				unlink(ep->d_name);
+			}
+		}
+	}
 }
 //------------------------------------------------------------------------------
 void sigHandler(int sig)

@@ -198,6 +198,7 @@ static void new_reference_frame(sensors_t* sensors, pose_t* pose)
 static void estimate_pose(sensors_t* sens, pose_t* pose, int new_gps)
 {
 	static int updates;
+	static float elapsed;
 
 	// figure out which direction are we pointing
 	estimateHeading(SYS.dt, sens, pose);
@@ -215,7 +216,7 @@ static void estimate_pose(sensors_t* sens, pose_t* pose, int new_gps)
 
 	if(new_gps){
 		const double max = 1;//gauss(0, 6, 0);
-		const double bias = 0.005;
+		const double bias = 0.0001;
 
 		vec3d_t gps = sens->measured.gps;
 		double w[2] = {
@@ -235,7 +236,7 @@ static void estimate_pose(sensors_t* sens, pose_t* pose, int new_gps)
 
 		//printf("pose.x=%f, gps.x=%f\n", pose->pos.x, gps.x);
 		//printf("pose.y=%f, gps.y=%f\n", pose->pos.y, gps.y);
-		//printf("weights: %f %f\n", w[0], w[1]);
+		printf("weights: %f %f elapsed %f sec\n", w[0], w[1], elapsed);
 		
 		pose->pos.x = pose->pos.x * (1 - w[0]) + gps.x * w[0];
 		pose->pos.y = pose->pos.y * (1 - w[1]) + gps.y * w[1];
@@ -243,9 +244,11 @@ static void estimate_pose(sensors_t* sens, pose_t* pose, int new_gps)
 		//pose->pos = pos;
 
 		//printf("Updates: %d\n", updates);
-		updates = 0;
+		updates = elapsed = 0;
 		//printf("heading: %0.3f %0.3f %0.3f ", pose->heading.x, pose->heading.y, pose->heading.z);
 	}
+
+	elapsed += SYS.dt;
 
 	++updates;
 
@@ -256,6 +259,8 @@ static void estimate_pose(sensors_t* sens, pose_t* pose, int new_gps)
 //-----------------------------------------------------------------------------
 int senUpdate(sensors_t* sen)
 {
+	static int run_once;
+
 	if(imuUpdateState(FD_I2C, &sen->imu, SYS.magCal)){
 		printf("imuUpdateState() failed\n");
 		return -1;
@@ -269,9 +274,9 @@ int senUpdate(sensors_t* sen)
 	}
 	
 	const float diameter = 0.1; // meters
-	float sign = ctrlGet(SERVO_THROTTLE) > 50 ? 1 : -1;
-	sen->imu.cal.enc_dist_delta = ticks * diameter * M_PI;
-	sen->imu.cal.enc_dist += sen->imu.cal.enc_dist_delta * sign;
+	float sign = ctrlGet(SERVO_THROTTLE) > 50 ? 1.f : -1.f;
+	sen->imu.cal.enc_dist_delta = ticks * diameter * M_PI * sign;
+	sen->imu.cal.enc_dist += sen->imu.cal.enc_dist_delta;
 
 	if(ticks){
 //		printf("dist: %fM\n", sen->imu.cal.enc_dist);
@@ -282,7 +287,7 @@ int senUpdate(sensors_t* sen)
 
 	int new_gps = 0;
 	sen->measured = sen->imu.cal;
-	if(gpsHasNewReadings()){
+	if(gpsHasNewReadings() || !run_once){
 	 	// assign new ements
 		vec3f_t velLin = {};
 		vec3d_t pos = {};
@@ -290,7 +295,7 @@ int senUpdate(sensors_t* sen)
 
 		//printf("Coord %f, %f\n", pos.x, pos.y);
 		sen->measured.gps = pos;
-		new_gps = 1;
+		run_once = new_gps = 1;
 	}
 	// update the pose estimation
 	estimate_pose(sen, &SYS.pose, new_gps);

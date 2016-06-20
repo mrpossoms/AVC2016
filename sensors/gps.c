@@ -84,15 +84,24 @@ int gpsShutdown()
 //-----------------------------------------------------------------------------
 int gpsHasNewReadings()
 {
-	if(LAST_CHK_SUM != GPS_STATE.checksum || !LAST_CHK_SUM){
-		int* i = &UPDATES;
-		SAMPLES[*i].x = GPS_STATE.Lon / 5.0;
-		SAMPLES[*i].y = GPS_STATE.Lat / 5.0;
-		SAMPLES[*i].z = GPS_STATE.Altitude / 5.0;
-		++(*i);
-	
-		LAST_CHK_SUM = GPS_STATE.checksum;
-	}
+	//if(LAST_CHK_SUM != GPS_STATE.checksum || !LAST_CHK_SUM){
+		int i = UPDATES % GPS_HZ;
+		
+		if(SAMPLES[i].x != GPS_STATE.Lon ||
+		   SAMPLES[i].y != GPS_STATE.Lat)
+		{
+			++UPDATES;
+			i = UPDATES % GPS_HZ;
+			SAMPLES[i].x = GPS_STATE.Lon;
+			SAMPLES[i].y = GPS_STATE.Lat;
+			SAMPLES[i].z = GPS_STATE.Altitude;
+
+			//printf("%f %f\n", GPS_STATE.Lon, GPS_STATE.Lat);
+		
+			LAST_CHK_SUM = GPS_STATE.checksum;
+		}
+
+	//}
 
 	return (UPDATES % GPS_HZ) == 0;
 }
@@ -114,9 +123,9 @@ int gpsGetReadings(vec3d_t* position, vec3f_t* heading)
 	position->x = position->y = position->z = 0;
 
 	for(int i = GPS_HZ; i--;){
-		position->x += SAMPLES[i].x;
-		position->y += SAMPLES[i].y;
-		position->z += SAMPLES[i].z;
+		position->x += SAMPLES[i].x / 5.;
+		position->y += SAMPLES[i].y / 5.;
+		position->z += SAMPLES[i].z / 5.;
 	}
 
 	if(!position->x && !position->y){
@@ -125,6 +134,7 @@ int gpsGetReadings(vec3d_t* position, vec3f_t* heading)
 	}
 
 	latLon2meters(position);
+	UPDATES += 1;
 
 	return GPS_STATE.Fix;
 }

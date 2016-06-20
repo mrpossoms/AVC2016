@@ -27,11 +27,11 @@ int fileCount(const char* path)
 	struct dirent *ep = NULL;
 
 	if(dir){
-			while((ep = readdir(dir))){
-					if(ep->d_name[0] == '.') continue;
-					++count;
-			}
-			closedir(dir);
+		while((ep = readdir(dir))){
+				if(ep->d_name[0] == '.') continue;
+				++count;
+		}
+		closedir(dir);
 	}
 
 	return count;
