@@ -22,7 +22,20 @@ static void* gpsWorker(void* args)
 
 	while(1){
 		lnReadMsg(buf, sizeof(buf));
-		lnParseMsg(&GPS_STATE, buf);
+		if(lnParseMsg(&GPS_STATE, buf) == LN_GPGLL){
+			// fresh coordinates
+			int i = UPDATES % GPS_HZ;
+		
+			++UPDATES;
+			i = UPDATES % GPS_HZ;
+			SAMPLES[i].x = GPS_STATE.Lon;
+			SAMPLES[i].y = GPS_STATE.Lat;
+			SAMPLES[i].z = GPS_STATE.Altitude;
+
+			printf("%f %f\n", GPS_STATE.Lon, GPS_STATE.Lat);
+		
+			LAST_CHK_SUM = GPS_STATE.checksum;
+		}
 		usleep(10000);
 	}
 
@@ -85,21 +98,7 @@ int gpsShutdown()
 int gpsHasNewReadings()
 {
 	//if(LAST_CHK_SUM != GPS_STATE.checksum || !LAST_CHK_SUM){
-		int i = UPDATES % GPS_HZ;
-		
-		if(SAMPLES[i].x != GPS_STATE.Lon ||
-		   SAMPLES[i].y != GPS_STATE.Lat)
-		{
-			++UPDATES;
-			i = UPDATES % GPS_HZ;
-			SAMPLES[i].x = GPS_STATE.Lon;
-			SAMPLES[i].y = GPS_STATE.Lat;
-			SAMPLES[i].z = GPS_STATE.Altitude;
 
-			//printf("%f %f\n", GPS_STATE.Lon, GPS_STATE.Lat);
-		
-			LAST_CHK_SUM = GPS_STATE.checksum;
-		}
 
 	//}
 
@@ -123,11 +122,12 @@ int gpsGetReadings(vec3d_t* position, vec3f_t* heading)
 	position->x = position->y = position->z = 0;
 
 	for(int i = GPS_HZ; i--;){
-		position->x += SAMPLES[i].x / 5.;
-		position->y += SAMPLES[i].y / 5.;
-		position->z += SAMPLES[i].z / 5.;
+		position->x += SAMPLES[i].x / (double)GPS_HZ;
+		position->y += SAMPLES[i].y / (double)GPS_HZ;
+		position->z += SAMPLES[i].z / (double)GPS_HZ;
 	}
 
+	// mi casa
 	if(!position->x && !position->y){
 		position->x = -85.651659;
 		position->y = 42.962689;

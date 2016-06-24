@@ -259,8 +259,6 @@ static void estimate_pose(sensors_t* sens, pose_t* pose, int new_gps)
 //-----------------------------------------------------------------------------
 int senUpdate(sensors_t* sen)
 {
-	static int run_once;
-
 	if(imuUpdateState(FD_I2C, &sen->imu, SYS.magCal)){
 		printf("imuUpdateState() failed\n");
 		return -1;
@@ -287,7 +285,7 @@ int senUpdate(sensors_t* sen)
 
 	int new_gps = 0;
 	sen->measured = sen->imu.cal;
-	if(gpsHasNewReadings() || !run_once){
+	if(gpsHasNewReadings()){
 	 	// assign new ements
 		vec3f_t velLin = {};
 		vec3d_t pos = {};
@@ -295,7 +293,7 @@ int senUpdate(sensors_t* sen)
 
 		//printf("Coord %f, %f\n", pos.x, pos.y);
 		sen->measured.gps = pos;
-		run_once = new_gps = 1;
+		new_gps = 1;
 	}
 	// update the pose estimation
 	estimate_pose(sen, &SYS.pose, new_gps);
