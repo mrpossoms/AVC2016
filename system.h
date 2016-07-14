@@ -10,7 +10,8 @@
 #include "types.h"
 #include "sensors/imu.h"
 
-#define MAX_FEATURES 900
+#define FEATURES_PER_SIDE 40
+#define MAX_FEATURES (FEATURES_PER_SIDE * FEATURES_PER_SIDE)
 
 #define SYS_ERR(fmt, ...){\
 	char msg[256], prefix[512];\

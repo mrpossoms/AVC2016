@@ -4,16 +4,17 @@
 #include "types.h"
 
 #define TRK_ADJ_FEATURES      8
-#define TRK_REGIONS           16
+#define TRK_REGIONS           256
 #define TRK_HISTOGRAM_BUCKETS 16
 
-#define TRK_COINCIDENCE_THRESHOLD 2.25f
-#define TRK_THRESHOLD 2.5f
+#define TRK_COINCIDENCE_THRESHOLD 0.25f
+#define TRK_THRESHOLD 1.0
+//0.75f
 // 1.25f
 
 #define TRK_REGION_NONE   0
 #define TRK_REGION_ACTIVE 1
-#define TRK_MIN_REGION_SIZE 8
+#define TRK_MIN_REGION_SIZE 16
 
 using namespace std;
 using namespace cv;
@@ -29,7 +30,9 @@ struct MatFeature;
 typedef struct MatFeature{
 	Point2f position;
 	int8_t  col, row;
-	int8_t  histBucket, region;
+	int8_t  histBucket; // histogram indexed by vector magnitude
+	int8_t  region;     // index of the tracking region this feature belongs to
+	int8_t  visited;
 	float   deltaMag;
 	float   bias;
 	Point2f delta;
@@ -58,7 +61,7 @@ typedef struct{
 	int isOutOfBounds(Size2i dims)
 	{
 		return isnan(centroid.x * centroid.y) || centroid.x < 0 || centroid.y < 0 ||
-		       centroid.x >= dims.width || centroid.y >= dims.height;
+				 centroid.x >= dims.width || centroid.y >= dims.height;
 	}
 } trkRegion_t;
 
@@ -71,6 +74,7 @@ typedef struct{
 class TrackingMat{
 	public:
 		int         regionCount;
+		int8_t      frameCounter;
 		Size2i      dimensions;
 		trkRegion_t regions[TRK_REGIONS];
 
@@ -86,6 +90,7 @@ class TrackingMat{
 	private:
 		trkMatFeature_t** cols;
 		vector<Point2f>*  lastFeatureList;
+		vector<trkMatFeature_t*> histFeatureList[TRK_HISTOGRAM_BUCKETS];
 		float             maxDelta;
 		unsigned int      iterations;
 
