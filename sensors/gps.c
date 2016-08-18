@@ -32,8 +32,6 @@ static void* gpsWorker(void* args)
 			SAMPLES[i].y = GPS_STATE.Lat;
 			SAMPLES[i].z = GPS_STATE.Altitude;
 
-			printf("%f %f\n", GPS_STATE.Lon, GPS_STATE.Lat);
-		
 			LAST_CHK_SUM = GPS_STATE.checksum;
 		}
 		usleep(10000);

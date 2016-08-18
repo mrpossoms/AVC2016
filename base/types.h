@@ -104,6 +104,7 @@ typedef enum{
 	MISS_SRV_BLKBOX_DOWNLOAD,
 	MISS_SRV_KILL,
 	MISS_SRV_FOLLOW,
+	MISS_SRV_GET_ROUTE
 } missSrvAct_t;
 
 typedef struct{

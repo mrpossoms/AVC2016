@@ -238,8 +238,8 @@ static void estimate_pose(sensors_t* sens, pose_t* pose, int new_gps)
 		//printf("pose.y=%f, gps.y=%f\n", pose->pos.y, gps.y);
 		printf("weights: %f %f elapsed %f sec\n", w[0], w[1], elapsed);
 		
-		pose->pos.x = pose->pos.x * (1 - w[0]) + gps.x * w[0];
-		pose->pos.y = pose->pos.y * (1 - w[1]) + gps.y * w[1];
+		//pose->pos.x = pose->pos.x * (1 - w[0]) + gps.x * w[0];
+		//pose->pos.y = pose->pos.y * (1 - w[1]) + gps.y * w[1];
 
 		//pose->pos = pos;
 

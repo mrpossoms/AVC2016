@@ -98,7 +98,7 @@ void downloadBlackBoxLog(int connfd)
 	size_t bytes = 0;
 	sysSnap_t snap = {};
 	while((bytes = read(logFd, &snap, sizeof(snap)))){
-		if(snap.estimated.sensors.gps.x == 0 && snap.estimated.sensors.gps.y == 0){
+		if(snap.pose.pos.x == 0 && snap.pose.pos.y == 0){
 			if(hadGps){
 					syslog(0, "Log integrity uncertain");
 			}
@@ -129,11 +129,41 @@ void downloadMission(int connfd, const char* filepath)
 
 	for(int i = 0; i < header.waypoints; ++i){
 		read(connfd, waypoints + i, sizeof(gpsWaypoint_t));
-		vec3f_t pos = waypoints[i].location;
+		vec3d_t pos = waypoints[i].location;
 		syslog(0, "\t(%f, %f)\n", pos.x, pos.y);
 
 		write(missionfd, waypoints + i, sizeof(gpsWaypoint_t));
 	}
+
+	free(waypoints);
+	close(missionfd);
+}
+//-----------------------------------------------------------------------------
+void uploadMission(int connfd)
+{
+	char path[256];
+	sprintf(path, "%s/mission.gps", AVC_PATH);
+	int missionfd = open(path, O_RDONLY);
+
+	if(missionfd < 0) return;
+
+	gpsRouteHeader_t header = {};
+	gpsWaypoint_t* waypoints = NULL;
+
+	read(missionfd, &header, sizeof(header));
+	write(connfd, &header, sizeof(header));
+
+	waypoints = malloc(sizeof(gpsWaypoint_t) * header.waypoints);
+
+	syslog(0, "\nRoute with %d waypoints\n", header.waypoints);
+
+	for(int i = 0; i < header.waypoints; ++i){
+		read(missionfd, waypoints + i, sizeof(gpsWaypoint_t));
+		vec3d_t pos = waypoints[i].location;
+		syslog(0, "\t(%f, %f)\n", pos.x, pos.y);
+
+		write(connfd, waypoints + i, sizeof(gpsWaypoint_t));
+	}	
 
 	free(waypoints);
 	close(missionfd);
@@ -283,6 +313,9 @@ int main(int argc, char *argv[])
 				break;
 			case MISS_SRV_FOLLOW:
 				follow(connfd);
+				break;
+			case MISS_SRV_GET_ROUTE:
+				uploadMission(connfd);
 				break;
 		}
 
