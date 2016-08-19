@@ -26,7 +26,7 @@ int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints);
 int gpsRouteUnload(gpsWaypointCont_t** waypoints);
 int gpsRouteAdvance(vec3d_t* position, gpsWaypointCont_t** current, uint8_t lapFlag);
 
-vec3d_t mtoll(vec3d_t* lat_lon)
+vec3d_t mtoll(vec3d_t* lat_lon);
 
 #ifdef __cplusplus
 }
