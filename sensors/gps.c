@@ -25,7 +25,7 @@ static void* gpsWorker(void* args)
 		if(lnParseMsg(&GPS_STATE, buf) == LN_GPGLL){
 			// fresh coordinates
 			int i = UPDATES % GPS_HZ;
-		
+
 			++UPDATES;
 			i = UPDATES % GPS_HZ;
 			SAMPLES[i].x = GPS_STATE.Lon;
@@ -103,16 +103,19 @@ int gpsHasNewReadings()
 	return (UPDATES % GPS_HZ) == 0;
 }
 //-----------------------------------------------------------------------------
-void latLon2meters(vec3d_t* coord)
+vec3d_t mtoll(vec3d_t* meters)
 {
 	const double dia = 6371000 * 2;
 	double latRad = coord->y * (M_PI / 180.0f);
 	double lonRad = coord->x * (M_PI / 180.0f);
 
-	// circumferance = d * pi
+	vec3d_t ll = {
+		meters->x * 180 / (dia * M_PI),
+		meters->y * 180 / (dia * M_PI),
+		meters->z
+	};
 
-	coord->x = dia * lonRad;
-	coord->y = dia * latRad;
+	return ll;
 }
 //-----------------------------------------------------------------------------
 int gpsGetReadings(vec3d_t* position, vec3f_t* heading)
@@ -131,7 +134,6 @@ int gpsGetReadings(vec3d_t* position, vec3f_t* heading)
 		position->y = 42.962689;
 	}
 
-	latLon2meters(position);
 	UPDATES += 1;
 
 	return GPS_STATE.Fix;
@@ -191,13 +193,6 @@ int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints)
 		}
 
 		vec3d_t loc = (*waypoints)[i].self.location;
-		if(fabs(loc.x) <= 90 || fabs(loc.y) <= 90){
-			printf("\t(%f lon, %f lat) -> ", loc.x, loc.y);
-			latLon2meters(&(*waypoints)[i].self.location);
-
-			printf("(%fm, %fm)\n", (*waypoints)[i].self.location.x, (*waypoints)[i].self.location.y);
-		}
-
 		(*waypoints)[i].next = NULL;
 
 		if(last){

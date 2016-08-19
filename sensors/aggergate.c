@@ -66,7 +66,7 @@ int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile
 		printf("Sensor filter init failed.\n");
 		return -4;
 	}
-	
+
 	printf("OK!\n");
 
 	printf("IMU stats collected.\n");
@@ -212,6 +212,8 @@ static void estimate_pose(sensors_t* sens, pose_t* pose, int new_gps)
 		0.
 	};
 
+	delta = mtoll(&delta); // convert to lat-lon
+
 	vec3Add(pose->pos, pose->pos, delta);
 
 	if(new_gps){
@@ -220,10 +222,10 @@ static void estimate_pose(sensors_t* sens, pose_t* pose, int new_gps)
 
 		vec3d_t gps = sens->measured.gps;
 		double w[2] = {
-			bias + gauss(pose->pos.x, 3, gps.x) / max, 
+			bias + gauss(pose->pos.x, 3, gps.x) / max,
 			bias + gauss(pose->pos.y, 3, gps.y) / max,
-		}; 
-		
+		};
+
 		if(isnan(pose->pos.x * pose->pos.y) ||
 		   w[0] == 0 || w[1] == 0
 		){
@@ -237,7 +239,7 @@ static void estimate_pose(sensors_t* sens, pose_t* pose, int new_gps)
 		//printf("pose.x=%f, gps.x=%f\n", pose->pos.x, gps.x);
 		//printf("pose.y=%f, gps.y=%f\n", pose->pos.y, gps.y);
 		printf("weights: %f %f elapsed %f sec\n", w[0], w[1], elapsed);
-		
+
 		//pose->pos.x = pose->pos.x * (1 - w[0]) + gps.x * w[0];
 		//pose->pos.y = pose->pos.y * (1 - w[1]) + gps.y * w[1];
 
@@ -270,7 +272,7 @@ int senUpdate(sensors_t* sen)
 	if(ticks == 255){
 		ticks = 0;
 	}
-	
+
 	const float diameter = 0.1; // meters
 	float sign = ctrlGet(SERVO_THROTTLE) > 50 ? 1.f : -1.f;
 	sen->imu.cal.enc_dist_delta = ticks * diameter * M_PI * sign;
@@ -286,7 +288,7 @@ int senUpdate(sensors_t* sen)
 	int new_gps = 0;
 	sen->measured = sen->imu.cal;
 	if(gpsHasNewReadings()){
-	 	// assign new ements
+		 // assign new ements
 		vec3f_t velLin = {};
 		vec3d_t pos = {};
 		sen->hasGpsFix = gpsGetReadings(&pos, &velLin);
