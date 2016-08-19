@@ -32,11 +32,7 @@
 
     _snapshot = snapshot;
 
-    const float dia = 6371000 * 2; // diameter of the earth (meters)
-    [self setCoordinate:CLLocationCoordinate2DMake(
-                                                   (_snapshot.pose.pos.y / dia) / (M_PI / 180.0f),
-                                                   (_snapshot.pose.pos.x / dia) / (M_PI / 180.0f)
-                                                   )];
+    [self setCoordinate:CLLocationCoordinate2DMake(_snapshot.pose.pos.y, _snapshot.pose.pos.x)];
 
     if(memcpy(&lastWaypoint, &_snapshot.currentWaypoint.location, sizeof(vec3f_t))){
         NSMutableArray<id<MKAnnotation>>* toRemove = [NSMutableArray array];
