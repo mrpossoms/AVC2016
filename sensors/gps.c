@@ -106,8 +106,6 @@ int gpsHasNewReadings()
 vec3d_t mtoll(vec3d_t* meters)
 {
 	const double dia = 6371000 * 2;
-	double latRad = coord->y * (M_PI / 180.0f);
-	double lonRad = coord->x * (M_PI / 180.0f);
 
 	vec3d_t ll = {
 		meters->x * 180 / (dia * M_PI),
@@ -192,7 +190,7 @@ int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints)
 			return -4;
 		}
 
-		vec3d_t loc = (*waypoints)[i].self.location;
+		//vec3d_t loc = (*waypoints)[i].self.location;
 		(*waypoints)[i].next = NULL;
 
 		if(last){
