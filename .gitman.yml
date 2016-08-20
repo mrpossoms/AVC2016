@@ -1,18 +1,22 @@
 location: .gdm
 sources:
-- repo: https://github.com/mrpossoms/libNEMA
-  dir: libNEMA
+- name: libNEMA
+  repo: https://github.com/mrpossoms/libNEMA
   rev: master
   link: ./external/libNEMA
-- repo: https://github.com/mrpossoms/indicurses
-  dir: indicurses
+- name: indicurses
+  repo: https://github.com/mrpossoms/indicurses
   rev: master
   link: ./external/indicurses
-- repo: https://github.com/mrpossoms/libKF
-  dir: libKF
+- name: libKF
+  repo: https://github.com/mrpossoms/libKF
   rev: master
   link: ./external/libKF
-- repo: https://github.com/mrpossoms/linmath.h
-  dir: linmath.h
+- name: linmath.h
+  repo: https://github.com/mrpossoms/linmath.h
   rev: master
   link: ./external/linmath.h
+- name: opt.h
+  repo: https://github.com/mrpossoms/opt.h
+  rev: master
+  link: ./external/opt.h

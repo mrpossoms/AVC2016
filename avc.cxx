@@ -10,6 +10,7 @@
 #include <signal.h>
 #include <pthread.h>
 #include <dirent.h>
+#include <opt.h>
 
 #include "base/system.h"
 #include "controls/servos.h"
@@ -18,12 +19,91 @@
 #include "utilities/diagnostics/diagnostics.h"
 #include "utilities/RC/rc.h"
 
+const char HEADER[] = "  _  ___   _ ___  _______  ___ _____ \n"
+                      " | |/ / | | | _ \\|_  / _ )/ _ \\_   _|\n"
+                      " | ' <| |_| |   / / /| _ \\ (_) || |  \n"
+                      " |_|\\_\\\\___/|_|_\\/___|___/\\___/ |_|  \n"
+                      "                                     \n";
+
 pthread_t RC_THREAD;
 int MISSION_FD = 0;
 uint32_t MISSION_WAYPOINTS = 0;
-static char** ARGV;
-static int    ARGC;
+int IS_RC = 0, REC_ROUTE = 0;
+int USE_BLACK_BOX = 1;
 
+void* RCHandler(void* arg);
+
+//      _   ___  ___   _  _         _ _          
+//     /_\ | _ \/ __| | || |_ _  __| | |_ _ ___  
+//    / _ \|   / (_ | | __ | ' \/ _` | | '_(_-<_ 
+//   /_/ \_\_|_\\___| |_||_|_||_\__,_|_|_| /__(_)
+//                                               
+static void mag_reset_opt(char* value, int present)
+{
+	printf("Reseting magnetometer calibration readings\n");
+	bzero(SYS.sensors.imu.calMinMax[0].mag.v, sizeof(vec3i16_t));
+	bzero(SYS.sensors.imu.calMinMax[1].mag.v, sizeof(vec3i16_t));
+}
+
+static void speed_opt(char* value, int present)
+{
+	if(present)
+	{
+		SYS.maxSpeed = atoi(value);
+	}
+	else
+	{
+		SYS.maxSpeed = 50;
+		printf("No speed set\n");
+	}
+	
+	printf("Max speed: %d\n", SYS.maxSpeed);
+}
+
+static void no_sensors_opt(char* value, int present)
+{
+	int err = 0;
+	if(present){
+		err = senInit("/dev/null", "/dev/null", "./imu.cal");
+	}
+	else{
+		err = senInit("/dev/i2c-1", "/dev/ttyAMA0", "./imu.cal");
+	}
+
+	if(err){
+		SYS_ERR("Initializing sensor '%s' failed", "");
+		exit(err);
+	}
+
+}
+
+static void no_servos_opt(char* value, int present)
+{
+	if(present) return;
+
+	int err = ctrlInit();
+	if(err){
+		SYS_ERR("Starting servo driver failed %d", err);
+		exit(err);
+	}
+}
+
+static void record_opt(char* value, int present)
+{
+	REC_ROUTE = IS_RC && present;
+}
+
+static void rc_opt(char* value, int present)
+{
+	IS_RC = present;	
+	
+	if(IS_RC)
+	{
+		printf("Using radio control\n");
+		pthread_create(&RC_THREAD, NULL, RCHandler, NULL);
+	}
+}
+//------------------------------------------------------------------------------
 static void mark_process()
 {
 	int fd;
@@ -74,66 +154,57 @@ void* RCHandler(void* arg)
 	}
 }
 //------------------------------------------------------------------------------
-int hasOpt(const char* target)
-{
-	for(int i = ARGC; i--;){
-		if(!strcmp(ARGV[i], target)) return 1;
-	}
-
-	return 0;
-}
-//------------------------------------------------------------------------------
-int intFromOpt(const char* target, int* val)
-{
-	for(int i = ARGC; i--;){
-		if(!strncmp(ARGV[i], target, strlen(target))){
-			char* num = ARGV[i];
-			for(int j = 0; ARGV[i][j++] != '='; num++);
-			*val = atoi(num + 1);
-			return 0;
-		}
-	}
-
-	return -1;
-}
-//------------------------------------------------------------------------------
 int main(int argc, char* argv[])
 {
-	int err = 0, isRC = 0, rec_route = 0;
-	int useBlackBox;
+	USE_OPT
 
-	ARGC = argc; ARGV = argv;
+	int err = 0;
 	openlog("AVC_BOT", 0, 0);
 	mark_process();
 
-	if(hasOpt("--RC")){
-		printf("Using radio control\n");
-		isRC = 1;
-		pthread_create(&RC_THREAD, NULL, RCHandler, NULL);
+	USE_BLACK_BOX = opt_has_flag("--no-black-box");
+	SYS.debugging = opt_has_flag("--debug");
+	SYS.magCal = opt_has_flag("--mag-cal");
+	SYS.following = opt_has_flag("--follow");
+
+	OPT_LIST_START
+	{
+		"--RC",
+		"Enables remote control of throttle and steering.",
+		0,
+		rc_opt
+	},
+	{
+		"--mag-reset",
+		"Zeros out all mag calibration values",
+		0,
+		mag_reset_opt
+	},
+	{
+		"--speed",
+		"Set max speed. 50 is stopped.",
+		1,
+		speed_opt
+	},
+	{
+		"--no-sensors",
+		"Skips enabling sensors.",
+		0,
+		no_sensors_opt
+	},
+	{
+		"--no-servos",
+		"Skips starting servo driver and enabling servo control system",
+		0,
+		no_servos_opt
+	},
+	{
+		"--record",
+		"Records over top of existing mission file",
+		0,
+		record_opt
 	}
-
-
-	useBlackBox = !hasOpt("--no-black-box");
-	SYS.debugging = hasOpt("--debug");
-	SYS.magCal = hasOpt("--mag-cal");
-	SYS.following = hasOpt("--follow");
-	rec_route = isRC && hasOpt("--record");
-
-	if(intFromOpt("--speed", &SYS.maxSpeed)){
-		SYS.maxSpeed = 50;
-		printf("No speed set\n");
-	}
-
-	printf("Max speed: %d\n", SYS.maxSpeed);
-
-	// start servo controlling
-	if(!hasOpt("--no-servo")){
-		err = ctrlInit();
-		if(err){
-			SYS_ERR("Starting servo driver failed %d", err);
-			return err;
-		}
-	}
+	OPT_LIST_END(HEADER)
 
 	int signals[] = { SIGINT, SIGTERM, SIGHUP };
 	struct sigaction sa = {};
@@ -149,31 +220,11 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	// start up IMU and GPS sensors
-
-	if(hasOpt("--no-sensors")){
-		err = senInit("/dev/null", "/dev/null", "./imu.cal");
-	}
-	else{
-		err = senInit("/dev/i2c-1", "/dev/ttyAMA0", "./imu.cal");
-	}
-
-	if(err){
-		SYS_ERR("Initializing sensor '%s' failed", "");
-		return err;
-	}
-
-	if(hasOpt("--mag-reset")){
-		printf("Reseting magnetometer calibration readings\n");
-		bzero(SYS.sensors.imu.calMinMax[0].mag.v, sizeof(vec3i16_t));
-		bzero(SYS.sensors.imu.calMinMax[1].mag.v, sizeof(vec3i16_t));
-	}
-
 	// sensors are started, start diagnostic endpoint
 	diagHost(1340);
 
 	// load a route
-	if(argc >= 2 && !rec_route){
+	if(argc >= 2 && !REC_ROUTE){
 		printf("Loading route...");
 		err = gpsRouteLoad(argv[1], &SYS.route.start);
 		if(err){
@@ -187,7 +238,7 @@ int main(int argc, char* argv[])
 	else{
 		printf("No route loaded\n");
 
-		if(rec_route){
+		if(REC_ROUTE){
 			static vec3f_t last_pos;
 			gpsRouteHeader_t hdr;
 			MISSION_FD = open("mission.gps", O_WRONLY | O_TRUNC | O_CREAT, 0666);
@@ -223,7 +274,7 @@ int main(int argc, char* argv[])
 		senUpdate(&SYS.sensors);
 		assert(!isnan(SYS.pose.pos.x));
 
-		if(!isRC){
+		if(!IS_RC){
 			// TODO
 			SYS.sensors.hasGpsFix = 1;
 
@@ -238,7 +289,7 @@ int main(int argc, char* argv[])
 				break;
 			}
 		}
-		else if(rec_route){
+		else if(REC_ROUTE){
 			static vec3d_t last_pos;
 			gpsWaypoint_t wp = {
 				.location = SYS.pose.pos,
@@ -255,7 +306,7 @@ int main(int argc, char* argv[])
 		sysTimerUpdate();
 		
 		// record system state, if indicated
-		if(useBlackBox){
+		if(USE_BLACK_BOX){
 			diagBlkBoxLog();
 		}
 

@@ -15,7 +15,7 @@ RC      = ./utilities/RC
 EXTERNALS = ./external/libNEMA/ ./external/indicurses/ ./external/libKF/
 DEPENDS = $(SYS)/ $(DIAG)/ $(SENSORS)/ $(CTRLS)/ $(DESC)/ $(RC)/
 
-INC=-I./ -I/usr/local/include $(EXTERNALS:./%/=-I./%/include)
+INC=-I./ -I/usr/local/include -I./external/opt.h/ $(EXTERNALS:./%/=-I./%/include)
 LIB=-L/usr/lib -L/usr/local/lib
 LINK=-lm -lpthread -lNEMA -lKF
 FLAGS=-g -Wno-format-extra-args

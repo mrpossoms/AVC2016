@@ -41,5 +41,6 @@ AVC
 *.jpg
 .gitman
 
+./external
 ./utilities/AVC\ Controller/AVC\ Controller.xcodeproj/project.xcworkspace/xcuserdata
 utilities/AVC\ Controller/AVC\ Controller.xcodeproj/project.xcworkspace/xcuserdata/
