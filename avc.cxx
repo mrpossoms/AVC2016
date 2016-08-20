@@ -215,11 +215,18 @@ int main(int argc, char* argv[])
 	// setup all the decision agents
 	agentInitAgents();
 
+	SYS.pose.pos.x = SYS.pose.pos.y = 1;
+
 	printf("Starting main loop\n");
 	while(1){
+		assert(!isnan(SYS.pose.pos.x));
 		senUpdate(&SYS.sensors);
+		assert(!isnan(SYS.pose.pos.x));
 
 		if(!isRC){
+			// TODO
+			SYS.sensors.hasGpsFix = 1;
+
 			AGENT_ROUTING.action(NULL, NULL);
 			AGENT_STEERING.action(NULL, NULL);
 			AGENT_THROTTLE.action(NULL, NULL);
@@ -237,7 +244,7 @@ int main(int argc, char* argv[])
 				.location = SYS.pose.pos,
 			};
 			
-			if(vec3Dist(wp.location, last_pos) > 5){
+			if(vec3Dist(wp.location, last_pos) > 0.000001){
 				printf("Saving pos %f, %f\n", wp.location.x, wp.location.y);
 				write(MISSION_FD, &wp, sizeof(gpsWaypoint_t));	
 				last_pos = wp.location;

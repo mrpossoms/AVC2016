@@ -12,7 +12,7 @@ CTRL = ./../controls
 INC=-I./../ -I./../utilities -I/usr/local/include
 LIB=-L/usr/lib -L/usr/local/lib
 LINK=-lm -lNEMA -lpthread -lKF
-FLAGS= -g -std=c99 -Wall -Werror -Wno-comment -Wno-unused-function -Wno-missing-braces -fpic -D_XOPEN_SOURCE=500
+FLAGS= -g -std=c99 -shared -Wall -Werror -Wno-comment -Wno-unused-function -Wno-missing-braces -fpic -D_XOPEN_SOURCE=500
 
 INC += -I$(SYS)
 INC += -I$(DIAG)
@@ -22,7 +22,7 @@ SRCS = $(wildcard ./*.c)
 OBJS = $(SRCS:.c=.o)
 
 all: $(OBJS)
-	gcc -shared -g -o .so $(OBJS) $(LINK)
+	gcc $(FLAGS) -o .so $(OBJS) $(LINK)
 
 .c.o:
 	$(CMP) $(INC) $(FLAGS) -c $< -o $@

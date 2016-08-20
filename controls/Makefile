@@ -8,7 +8,7 @@ CMP = gcc
 INC=-I/usr/local/include
 LIB=-L/usr/lib -L/usr/local/lib
 LINK=-lm
-FLAGS=-std=c99 -Wall -Werror -fpic
+FLAGS=-g -std=c99 -Wall -Werror -fpic
 
 SRCS = $(wildcard ./*.c)
 OBJS = $(SRCS:.c=.o)

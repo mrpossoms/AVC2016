@@ -131,6 +131,7 @@ typedef struct __GpsWaypoint{
 
 void    vec3iEndianSwap(vec3i16_t* v);
 int     vec3fIsNan(vec3f_t* v);
+int     vec3dIsNan(vec3d_t* v);
 vec3f_t vec3fSub(vec3f_t* v1, vec3f_t* v2);
 vec3f_t vec3fScl(vec3f_t* v, float s);
 vec3f_t vec3fMul(vec3f_t* v1, vec3f_t* v2);

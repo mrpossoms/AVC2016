@@ -45,7 +45,7 @@ static void* action(agent_t* lastState, void* args)
 		float d_dist = last_dist - dist;
 
 		// less than 6 meters away, lets move on to the next one
-		if((last_d_dist <= 0 && d_dist >= 0) && dist < 6){
+		if((last_d_dist <= 0 && d_dist >= 0) && dist < 0.00001){
 			waypoint->self.flags++;
 			SYS.route.currentWaypoint = waypoint->next;
 		}

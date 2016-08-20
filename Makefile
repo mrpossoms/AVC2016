@@ -27,8 +27,8 @@ OBJS = avc.o
 
 all: dependencies #externals
 	$(eval LINK += $(DEPENDS:/=/.so))
-	$(CMP) $(CFLAGS) $(INC) $(LIB) -c $(SRC) -o $(OBJS)
-	$(CMP) $(CFLAGS) $(INC) $(LIB) $(OBJS) -o AVC $(LINK)
+	$(CMP) $(FLAGS) $(INC) $(LIB) -c $(SRC) -o $(OBJS)
+	$(CMP) $(FLAGS) $(INC) $(LIB) $(OBJS) -o AVC $(LINK)
 
 .PHONY: run
 .PHONY: run-throttle

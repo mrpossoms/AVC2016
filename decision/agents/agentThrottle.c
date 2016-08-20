@@ -19,7 +19,7 @@ static void* action(agent_t* lastState, void* args)
 	
 	// do stuff here, choose a successor state if appropriate
 	if(SYS.route.currentWaypoint){
-		if(SYS.sensors.hasGpsFix && vec3Dist(SYS.pose.pos, waypoint->self.location) > 8){
+		if(SYS.sensors.hasGpsFix && vec3Dist(SYS.pose.pos, waypoint->self.location) > 0.000001){
 			ctrlSet(SERVO_THROTTLE, SYS.maxSpeed);
 		}
 	}

@@ -40,6 +40,9 @@ int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile
 		printf("Failed!\n");
 		return -2;
 	}
+
+	// tell the encoder to reset
+	i2cSendByte(FD_I2C, 0x08, 0, 1);
 	printf("OK!\n");
 
 	printf("Allocating filter matrices...");
@@ -126,9 +129,13 @@ static void estimateHeading(float dt, sensors_t* sensors, pose_t* pose)
 
 		// use the gyro to estimate how confident we should be in the magnetometer's
 		// current measured heading
-		float w = sensors->filtered.gyro.z / -32000.0f;
+		float w = sensors->filtered.gyro.z;// / -32000.0f;
 
-		vec2fRot((vec2f_t*)&gyroHeading, (vec2f_t*)&lastHeading, w * dt);
+		if(fabs(w) > 0.08){
+			//printf("G %f\n", w);
+			vec2fRot((vec2f_t*)&gyroHeading, (vec2f_t*)&lastHeading, w * dt);
+			vec3Lerp(pose->heading, pose->heading, gyroHeading, 0.75);
+		}
 
 	//	float p = pow(vec3Dot(gyroHeading, mea->heading), 4);
 
@@ -214,9 +221,12 @@ static void estimate_pose(sensors_t* sens, pose_t* pose, int new_gps)
 
 	delta = mtoll(&delta); // convert to lat-lon
 
-	vec3Add(pose->pos, pose->pos, delta);
+	if(!vec3dIsNan(&delta))
+	{
+		vec3Add(pose->pos, pose->pos, delta);
+	}
 
-	if(new_gps){
+	if(new_gps && 0){
 		const double max = 1;//gauss(0, 6, 0);
 		const double bias = 0.0001;
 

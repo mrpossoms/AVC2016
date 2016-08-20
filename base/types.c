@@ -5,6 +5,11 @@ int vec3fIsNan(vec3f_t* v)
 	return isnan(v->x) || isnan(v->y) || isnan(v->z);
 }
 
+int vec3dIsNan(vec3d_t* v)
+{
+	return isnan(v->x) || isnan(v->y) || isnan(v->z);
+}
+
 void vec3iEndianSwap(vec3i16_t* v)
 {
 	return;
