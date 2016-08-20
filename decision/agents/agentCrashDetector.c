@@ -18,7 +18,7 @@ static void* action(agent_t* lastState, void* args)
 	acc.x = 0;
 
 	// do stuff here, choose a successor state if appropriate
-	if(vec3fMag(&acc) > LIL_G * 3){
+	if(vec3fMag(&acc) > LIL_G * 2.5){
 		// set the current waypoint to NULL, this will terminate the
 		// program
 		printf("IMPACT DETECTED\n");

@@ -40,9 +40,11 @@ void* RCHandler(void* arg);
 //                                               
 static void mag_reset_opt(char* value, int present)
 {
-	printf("Reseting magnetometer calibration readings\n");
-	bzero(SYS.sensors.imu.calMinMax[0].mag.v, sizeof(vec3i16_t));
-	bzero(SYS.sensors.imu.calMinMax[1].mag.v, sizeof(vec3i16_t));
+	if(present){
+		printf("Reseting magnetometer calibration readings\n");
+		bzero(SYS.sensors.imu.calMinMax[0].mag.v, sizeof(vec3i16_t));
+		bzero(SYS.sensors.imu.calMinMax[1].mag.v, sizeof(vec3i16_t));
+	}
 }
 
 static void speed_opt(char* value, int present)
@@ -169,6 +171,12 @@ int main(int argc, char* argv[])
 
 	OPT_LIST_START
 	{
+		"--record",
+		"Records over top of existing mission file",
+		0,
+		record_opt
+	},
+	{
 		"--RC",
 		"Enables remote control of throttle and steering.",
 		0,
@@ -197,12 +205,6 @@ int main(int argc, char* argv[])
 		"Skips starting servo driver and enabling servo control system",
 		0,
 		no_servos_opt
-	},
-	{
-		"--record",
-		"Records over top of existing mission file",
-		0,
-		record_opt
 	}
 	OPT_LIST_END(HEADER)
 
@@ -260,7 +262,6 @@ int main(int argc, char* argv[])
 		}
  
 		SYS.route.currentWaypoint = (gpsWaypointCont_t*)(&SYS.shm->followLocation);	
-		printf("%f %f", SYS.route.currentWaypoint->self.location.x, SYS.route.currentWaypoint->self.location.y);
 	}
 
 	// setup all the decision agents
@@ -294,7 +295,7 @@ int main(int argc, char* argv[])
 			gpsWaypoint_t wp = {
 				.location = SYS.pose.pos,
 			};
-			
+		
 			if(vec3Dist(wp.location, last_pos) > 0.000001){
 				printf("Saving pos %f, %f\n", wp.location.x, wp.location.y);
 				write(MISSION_FD, &wp, sizeof(gpsWaypoint_t));	
