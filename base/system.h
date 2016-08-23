@@ -47,6 +47,7 @@ typedef struct {
 	sensorStatef_t measured;
 	sensorStatef_t filtered;
 	readingFilter_t filters;
+	float   mag_expected[2]; 
 	uint8_t hasGpsFix;
 } sensors_t;
 

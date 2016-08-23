@@ -6,7 +6,7 @@
 //   | (_ | / _ \ '_ \/ _` | (_-<
 //    \___|_\___/_.__/\__,_|_/__/
 //
-system_t SYS;
+system_t SYS = {};
 
 sysSnap_t sysSnapshot(system_t* sys)
 {

@@ -184,13 +184,15 @@ int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints)
 
 	gpsWaypointCont_t* last = NULL;
 	for(int i = 0; i < header.waypoints; ++i){
-		if(read(fd, (*waypoints) + i, sizeof(gpsWaypoint_t)) != sizeof(gpsWaypoint_t)){
+		gpsWaypoint_t next_point = {};
+		if(read(fd, &next_point, sizeof(gpsWaypoint_t)) != sizeof(gpsWaypoint_t)){
 			free(*waypoints);
 			close(fd);
 			return -4;
 		}
 
 		//vec3d_t loc = (*waypoints)[i].self.location;
+		(*waypoints)[i].self = next_point;
 		(*waypoints)[i].next = NULL;
 
 		if(last){

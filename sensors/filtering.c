@@ -49,8 +49,11 @@ static int create_filters(readingFilter_t* filters)
 int sen_filters_init(int imu_fd, sensors_t* sen)
 {
 	sensorStatef_t samples[IMU_SAMPLES] = {};
+	float mag_mags[IMU_SAMPLES] = {};
 	readingFilter_t* filters = &sen->filters;
 	vec3f_t heading;
+
+	write(1, "~", 1);
 
 	// wait to get a gps fix
 	while(0 && gpsGetReadings(&samples[0].gps, &heading) != GPS_FIX){
@@ -65,6 +68,9 @@ int sen_filters_init(int imu_fd, sensors_t* sen)
 		gpsGetReadings(&samples[i].gps, &heading);
 
 		samples[i] = cal;
+		mag_mags[i] = vec3fMag(&cal.mag);
+		write(1, "*", 1);
+		sen->mag_expected[MAG] += mag_mags[i];
 
 		// begin summation for the mean
 		vec3Add(filters->means.acc, filters->means.acc, cal.acc);
@@ -91,6 +97,7 @@ int sen_filters_init(int imu_fd, sensors_t* sen)
 	vec3Scl(filters->means.gyro, filters->means.gyro, 1 / (float)IMU_SAMPLES);
 	vec3Scl(filters->means.mag,  filters->means.mag,  1 / (float)IMU_SAMPLES);
 	vec3Scl(filters->means.gps,  filters->means.gps,  1 / (float)IMU_SAMPLES);
+	float mag_mu = (sen->mag_expected[MAG] /= (float)IMU_SAMPLES);
 
 	vec3f_t* std_devs = &(filters->stdDevs.acc);
 	vec3f_t* mean = &(filters->means.acc);
@@ -106,6 +113,8 @@ int sen_filters_init(int imu_fd, sensors_t* sen)
 
 			vec3Add(std_devs[j], std_devs[j], delta);
 		}
+
+		sen->mag_expected[STD_DEV] += pow(mag_mags[i] - mag_mu, 2);
 	}
 
 	// compute standard deviations
@@ -114,6 +123,9 @@ int sen_filters_init(int imu_fd, sensors_t* sen)
 		std_devs[i].y = sqrt(std_devs[i].y);
 		std_devs[i].z = sqrt(std_devs[i].z);
 	}
+	sen->mag_expected[STD_DEV] = sqrtf(sen->mag_expected[STD_DEV]);
+
+	printf("Mag exp: %f, std dev: %f\n", sen->mag_expected[MAG], sen->mag_expected[STD_DEV]);
 
 	return create_filters(filters);
 }

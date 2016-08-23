@@ -117,6 +117,8 @@ static void estimateHeading(float dt, sensors_t* sensors, pose_t* pose)
 	pose->heading = vec3fNorm(&pose->heading);
 	pose->heading.x *= -1; pose->heading.y *= -1;
 
+	if(vec3fIsNan(&lastHeading)) return;
+
 	// ONCE_START
 	// *est= *mea;
 	// ONCE_END
@@ -126,17 +128,38 @@ static void estimateHeading(float dt, sensors_t* sensors, pose_t* pose)
 	// the apparent rate of vehicle rotation
 	{
 		vec3f_t gyroHeading = {};
+		static float last_dev;
+		float expected = sensors->mag_expected[MAG];
+		float std_dev  = sensors->mag_expected[STD_DEV];
+		float mag = vec3fMag(&sensors->measured.mag);
+		float dev = fabs(expected - mag);
+
+		if(last_dev == 0) last_dev = dev;
+
+		dev = last_dev * 0.75 + dev * 0.25;
+		last_dev = dev;
+
+		//printf("Exp %f, Std.d %f, len: %f, ∆ %f\n", expected, std_dev, mag, expected - mag);		
+
+		//printf(dev <= std_dev ? "good\n" : "bad\n");
 
 		// use the gyro to estimate how confident we should be in the magnetometer's
 		// current measured heading
-		float w = sensors->filtered.gyro.z;// / -32000.0f;
+		float w = -sensors->filtered.gyro.z;// / -32000.0f;
 
-		if(fabs(w) > 0.08){
-			//printf("G %f\n", w);
-			vec2fRot((vec2f_t*)&gyroHeading, (vec2f_t*)&lastHeading, w * dt);
-			vec3Lerp(pose->heading, pose->heading, gyroHeading, 0.75);
+		if(dev > std_dev){
+			dev = std_dev;
 		}
 
+			//printf("G %f\n", w);
+		float p = dev / std_dev;
+
+		printf("mag = %f, p = %f\n", mag, p);
+		vec2fRot((vec2f_t*)&gyroHeading, (vec2f_t*)&lastHeading, w * dt);
+		//printf("gh = %f, %f\n", gyroHeading.x, gyroHeading.y);	
+		vec3Lerp(pose->heading, pose->heading, gyroHeading, p);
+
+		pose->heading = vec3fNorm(&pose->heading);
 	//	float p = pow(vec3Dot(gyroHeading, mea->heading), 4);
 
 	}

@@ -4,6 +4,12 @@
 #include <inttypes.h>
 #include "base/types.h"
 
+#define CAL_MIN 0
+#define CAL_MAX 1
+
+#define MAG 0
+#define STD_DEV 1
+
 typedef struct{
 	vec3i16_t acc;
 	vec3i16_t gyro;

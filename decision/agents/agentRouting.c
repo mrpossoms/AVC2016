@@ -27,7 +27,7 @@ static void* action(agent_t* lastState, void* args)
 		return NULL;
 	}
 
-	if(SYS.following){
+	if(SYS.following && SYS.shm){
 		if(SYS.shm->updatedTime > time(NULL) - 5)
 		{
 			SYS.route.currentWaypoint = (gpsWaypointCont_t*)(&SYS.shm->followLocation);

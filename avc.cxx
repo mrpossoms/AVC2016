@@ -112,7 +112,7 @@ static void mark_process()
 	pid_t id = getpid();
 	char path[32] = {};
 
-	sprintf(path, "%d.pid", id);
+	snprintf(path, sizeof(path), "%d.pid", id);
 	fd = open(path, O_CREAT | O_TRUNC, O_WRONLY);
 	close(fd);
 }
@@ -168,6 +168,7 @@ int main(int argc, char* argv[])
 	SYS.debugging = opt_has_flag("--debug");
 	SYS.magCal = opt_has_flag("--mag-cal");
 	SYS.following = opt_has_flag("--follow");
+	assert(!SYS.following);
 
 	OPT_LIST_START
 	{
@@ -263,12 +264,13 @@ int main(int argc, char* argv[])
  
 		SYS.route.currentWaypoint = (gpsWaypointCont_t*)(&SYS.shm->followLocation);	
 	}
-
+	
 	// setup all the decision agents
 	agentInitAgents();
 
 	SYS.pose.pos.x = SYS.pose.pos.y = 1;
 
+	printf("exp %f\n", SYS.sensors.mag_expected[MAG]);
 	printf("Starting main loop\n");
 	while(1){
 		assert(!isnan(SYS.pose.pos.x));
@@ -287,7 +289,7 @@ int main(int argc, char* argv[])
 			// if there is no next goal or GPS then terminate
 			if(!SYS.route.currentWaypoint){
 				printf("\nReached end of route\n");
-				break;
+				//break;
 			}
 		}
 		else if(REC_ROUTE){
