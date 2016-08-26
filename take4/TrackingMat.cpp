@@ -214,6 +214,12 @@ static int exploreRegion(trkRegion_t* region, Point2f& min, Point2f& max, trkMat
 }
 
 //------------------------------------------------------------------------------
+trkMatFeature_t* TrackingMat::getCenter()
+{
+	int ci_x = dimensions.width / 2, ci_y = dimensions.height / 2;
+	return &cols[ci_x][ci_y];
+}
+//------------------------------------------------------------------------------
 int TrackingMat::update(vector<Point2f>* featureList)
 {
 	if(!lastFeatureList){

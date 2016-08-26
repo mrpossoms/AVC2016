@@ -77,10 +77,13 @@ class TrackingMat{
 		int8_t      frameCounter;
 		Size2i      dimensions;
 		trkRegion_t regions[TRK_REGIONS];
+		Point2f     angles;
 
 		TrackingMat(Size2i size);
 		~TrackingMat();
 		int update(vector<Point2f>* featureList);
+
+		trkMatFeature_t* getCenter();
 
 		trkMatFeature_t* operator[](const int x)
 		{
