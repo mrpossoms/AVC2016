@@ -250,7 +250,8 @@ int main(int argc, char* argv[])
 				return -1;
 			}
 
-			write(MISSION_FD, &hdr, sizeof(gpsRouteHeader_t));
+			// seek to the starting position of the first waypoint	
+			lseek(MISSION_FD, sizeof(hdr), SEEK_SET);
 		}
 	}
 
