@@ -87,3 +87,9 @@ void Renderer::present()
 	glfwSwapBuffers(win);
 	glfwPollEvents();
 }
+//-----------------------------------------------------------------------------
+void Renderer::getRotation(quat rotation)
+{
+	for(int i = 4; i--;)
+		rotation[i] = this->rotation[i];
+}

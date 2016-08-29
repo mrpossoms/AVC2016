@@ -14,6 +14,8 @@ public:
 
 	int  isOpen();
 	void present();
+
+	void getRotation(quat rotation);
 private:
 	GLFWwindow* win;
 	mat4x4 view, proj;
