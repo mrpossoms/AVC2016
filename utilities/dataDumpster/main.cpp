@@ -55,14 +55,14 @@ static void onData(sysSnap_t snap)
 
 	DAT_SNAPS[DAT_CUR_IDX] = snap;
 
-	vec3 rawMag = { snap.imu.raw.mag.x, snap.imu.raw.mag.y, snap.imu.raw.mag.z };
+	vec3 rawMag = { snap.sensors.filtered.mag.x, snap.sensors.filtered.mag.y, snap.sensors.filtered.mag.z };
 
-	memcpy(DAT_MAG_CAL + DAT_CUR_IDX, &snap.imu.cal.mag, sizeof(vec3));
-	memcpy(DAT_MAG_EST + DAT_CUR_IDX, &snap.estimated.heading, sizeof(vec3));
+	memcpy(DAT_MAG_CAL + DAT_CUR_IDX, &snap.sensors.filtered.mag, sizeof(vec3));
+	memcpy(DAT_MAG_EST + DAT_CUR_IDX, &snap.pose.heading, sizeof(vec3));
 	memcpy(DAT_MAG_RAW + DAT_CUR_IDX, rawMag, sizeof(vec3));
-	memcpy(&DAT_ACC_CAL, &snap.imu.cal.acc, sizeof(vec3));
+	memcpy(&DAT_ACC_CAL, &snap.sensors.filtered.acc, sizeof(vec3));
 
-	memcpy(&ACC_BASIS_MAT, snap.estimated.accFrame, sizeof(snap.estimated.accFrame));
+	memcpy(&ACC_BASIS_MAT, snap.pose.accFrame, sizeof(snap.pose.accFrame));
 
 }
 
@@ -112,6 +112,12 @@ int main(int argc, char* argv[])
 
 	Gimbal gimbal;
 
+	if(argv[1] == NULL)
+	{
+		printf("Error: Please provide an IP address\n");
+		return -1;
+	}
+
 	Client client(argv[1], 1340);
 	client.onConnect = onConnect;
 	client.onData = onData;
@@ -131,10 +137,14 @@ int main(int argc, char* argv[])
 
 	float t = 0;
 	while(win.isOpen()){
-		vec3 delta = { 0.01, 0.01, 0.01 };
-		vec3_scale(delta, DAT_SNAPS[DAT_CUR_IDX].imu.filtered.gyro.v, 0.00001);
-		vec3_add(gimbal.angles.v, gimbal.angles.v, delta);
-	
+		static float last_time;
+		if(last_time == 0) last_time = glfwGetTime();
+		float dt = glfwGetTime() - last_time;
+
+		vec3f_t delta = DAT_SNAPS[DAT_CUR_IDX].sensors.filtered.gyro;
+		vec3_scale(delta.v, delta.v, dt);
+		vec3_add(gimbal.angles.v, gimbal.angles.v, delta.v);
+
 		background.draw(&win);
 
 		if(client.state == ccs_connecting){

@@ -8,7 +8,7 @@ LIB=-L/opt/boxen/homebrew/lib/
 GFX_SRC=./gfx/*.cpp
 DAT_SRC=./data/*.cpp
 APP_SRC=main.cpp
-FLAGS=
+FLAGS=-g
 SRC = $(GFX_SRC) $(DAT_SRC) $(APP_SRC)
 
 LINK=-lglfw3 -framework Cocoa -framework OpenGL -framework IOKit -framework CoreVideo -framework Carbon

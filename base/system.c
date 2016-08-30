@@ -1,5 +1,6 @@
 #include <sys/shm.h>
 #include "system.h"
+#include "servos.h"
 
 //     ___ _     _          _
 //    / __| |___| |__  __ _| |___
@@ -14,6 +15,8 @@ sysSnap_t sysSnapshot(system_t* sys)
 
 	snap.pose    = sys->pose;
 	snap.sensors.filtered = sys->sensors.filtered;
+	snap.controls.throttle = ctrlGet(SERVO_THROTTLE);
+	snap.controls.steering = ctrlGet(SERVO_STEERING);
 
 	gpsWaypointCont_t* waypoint = sys->route.currentWaypoint;
 	if(waypoint){

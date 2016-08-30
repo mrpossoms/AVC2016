@@ -79,10 +79,12 @@ void PointCloud::draw(Renderer* renderer)
 			vec3_t color = colorForPoint(points[i], min, max, scaleFactor);
 
 			// scale pos and rotate
+			quat rotation;
+			renderer->getRotation(rotation);
 			vec3_scale(pos.v, pos.v, scaleFactor);
 			quat_mul_vec3(pos.v, rotation, pos.v);
 
-			float attenuation = vec3_mul_inner(pos.v, pos.v) / 10;
+			float attenuation = vec3_mul_inner(pos.v, pos.v) / 1;
 			vec3_scale(color.v, color.v, attenuation);
 
 			glColor3f(color.x, color.y, color.z);

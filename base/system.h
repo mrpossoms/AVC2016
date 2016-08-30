@@ -87,6 +87,11 @@ typedef struct {
 	gpsWaypoint_t currentWaypoint;
 	gpsWaypoint_t nextWaypoint;
 	uint8_t hasGpsFix;
+
+	struct {
+		uint8_t throttle;
+		uint8_t steering;	
+	} controls;
 } __attribute__((packed)) sysSnap_t;
 //     ___ _     _          _
 //    / __| |___| |__  __ _| |___
