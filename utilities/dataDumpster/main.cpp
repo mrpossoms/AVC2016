@@ -14,6 +14,7 @@ using namespace data;
 
 PointCloud* magCloud;
 mat3_t ACC_BASIS_MAT;
+vec3f_t HEADING;
 
 static vec3_t pcRawColor(vec3 point, vec3 min, vec3 max, float s)
 {
@@ -57,10 +58,11 @@ static void onData(sysSnap_t snap)
 
 	vec3 rawMag = { snap.sensors.filtered.mag.x, snap.sensors.filtered.mag.y, snap.sensors.filtered.mag.z };
 
-	memcpy(DAT_MAG_CAL + DAT_CUR_IDX, &snap.sensors.filtered.mag, sizeof(vec3));
-	memcpy(DAT_MAG_EST + DAT_CUR_IDX, &snap.pose.heading, sizeof(vec3));
+	memcpy(DAT_MAG_CAL + DAT_CUR_IDX, snap.sensors.filtered.mag.v, sizeof(vec3));
+	memcpy(DAT_MAG_EST + DAT_CUR_IDX, snap.pose.heading.v, sizeof(vec3));
 	memcpy(DAT_MAG_RAW + DAT_CUR_IDX, rawMag, sizeof(vec3));
-	memcpy(&DAT_ACC_CAL, &snap.sensors.filtered.acc, sizeof(vec3));
+	memcpy(&DAT_ACC_CAL, snap.sensors.filtered.acc.v, sizeof(vec3));
+	memcpy(HEADING.v, snap.pose.heading.v, sizeof(vec3));
 
 	memcpy(&ACC_BASIS_MAT, snap.pose.accFrame, sizeof(snap.pose.accFrame));
 
@@ -68,7 +70,6 @@ static void onData(sysSnap_t snap)
 
 static void onConnect(int res)
 {
-
 	if(res == ccs_connected){
 		magCloud->points = (vec3*)DAT_MAG_CAL;
 		magCloud->style = GL_POINTS;
@@ -110,6 +111,10 @@ int main(int argc, char* argv[])
 	PointCloud estMagCloud((vec3*)DAT_MAG_EST, 1000);
 	estMagCloud.colorForPoint = pcEstColor;
 
+	PointCloud currentHeading((vec3*)HEADING.v, 1);
+	currentHeading.colorForPoint = pcEstColor;
+	currentHeading.style = GL_LINES;
+
 	Gimbal gimbal;
 
 	if(argv[1] == NULL)
@@ -134,6 +139,7 @@ int main(int argc, char* argv[])
 	drawables.push_back(&accBasis);
 	drawables.push_back(&accPlot);
 	drawables.push_back(&gimbal);
+	drawables.push_back(&currentHeading);
 
 	float t = 0;
 	while(win.isOpen()){

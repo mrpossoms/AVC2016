@@ -15,3 +15,6 @@ LINK=-lglfw3 -framework Cocoa -framework OpenGL -framework IOKit -framework Core
 
 all:
 	$(CMP) $(INC) $(LIB) $(FLAGS) $(SRC) -o DataDump $(LINK)
+
+clean:
+	rm DataDump

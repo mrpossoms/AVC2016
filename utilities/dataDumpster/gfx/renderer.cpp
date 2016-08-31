@@ -5,7 +5,8 @@ using namespace gfx;
 
 static int IS_MOUSE_DOWN;
 static float CAM_DX, CAM_DY;
-static float CAM_X, CAM_Y;
+static float CAM_X, CAM_Y, CAM_Z = -2;
+static mat4x4* VIEW;
 
 static void cursorMoved(GLFWwindow* win, double x, double y)
 {
@@ -24,6 +25,12 @@ static void mouseButton(GLFWwindow* win, int btn, int act, int mod)
 	IS_MOUSE_DOWN = act == GLFW_PRESS;
 }
 //------------------------------------------------------------------------------
+void scroll(GLFWwindow* win, double dx, double dy)
+{
+	CAM_Z += dy * 0.01f;
+	mat4x4_translate(*VIEW, 0, -0.5, CAM_Z);
+}
+//------------------------------------------------------------------------------
 Renderer::Renderer(int w, int h)
 {
 	assert(glfwInit());
@@ -32,9 +39,12 @@ Renderer::Renderer(int w, int h)
 
 	glfwSetCursorPosCallback(win, cursorMoved);
 	glfwSetMouseButtonCallback(win, mouseButton);
+	glfwSetScrollCallback(win, scroll);
 
 	mat4x4_perspective(proj, M_PI / 2, w / (float)h, 0.01, 10);
-	mat4x4_translate(view, 0, -0.5, -2);
+	mat4x4_translate(view, 0, -0.5, CAM_Z);
+
+	VIEW = &view;
 
 	glClearColor(0, 0, 0, 1);
 
