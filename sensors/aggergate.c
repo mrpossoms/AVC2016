@@ -7,6 +7,7 @@
 #include <libNEMA.h>
 
 #include "filtering.h"
+#include "scanner.h"
 #include "servos.h"
 
 static int FD_I2C;
@@ -26,7 +27,7 @@ static int openSensor(const char* dev, int* fd, int flags)
 	return fd > 0;
 }
 //-----------------------------------------------------------------------------
-int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile)
+int senInit(const char* i2c_dev, const char* gpsDevice, const char* calProfile)
 {
 	printf("Initializing GPS...");
 	if(gpsInit(gpsDevice)){
@@ -36,9 +37,20 @@ int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile
 	printf("OK!\n");
 
 	printf("Initializing I2C bus...");
-	if(!openSensor(imuDevice, &FD_I2C, O_RDWR)){
+	if(!openSensor(i2c_dev, &FD_I2C, O_RDWR)){
 		printf("Failed!\n");
 		return -2;
+	}
+
+	// Initalize the scanner turret and range finder
+	if(scn_init(
+		&SYS.sensors.scanner
+		FD_I2C,
+		25, 75,
+		M_PI / 2,  // 90 deg scan window
+		0.01))	   // 1/100th sec per percent
+	{
+		return -3;
 	}
 
 	// tell the encoder to reset
@@ -57,7 +69,7 @@ int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile
 
 		if(calFd <= 0 || imuLoadCalibrationProfile(calFd, &SYS.sensors.imu)){
 			close(calFd);
-			return -3;
+			return -4;
 		}
 
 		close(calFd);
@@ -67,7 +79,7 @@ int senInit(const char* imuDevice, const char* gpsDevice, const char* calProfile
 	printf("Initalizing filters"); fflush(stdout);
 	if(sen_filters_init(FD_I2C, &SYS.sensors)){
 		printf("Sensor filter init failed.\n");
-		return -4;
+		return -5;
 	}
 
 	printf("OK!\n");

@@ -11,6 +11,7 @@
 
 #include "types.h"
 #include "sensors/types.h"
+#include "sensors/scanner.h"
 #include "constants.h"
 
 #define SYS_ERR(fmt, ...){\
@@ -43,6 +44,7 @@ typedef struct {
 
 typedef struct {
 	imuState_t    imu;
+	scn_t         scanner;
 	float         lastMeasureTime;
 	float         lastEstTime;
 	sensorStatef_t measured;

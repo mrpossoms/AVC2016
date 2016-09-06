@@ -7,6 +7,7 @@ extern "C" {
 
 #define SERVO_STEERING 0
 #define SERVO_THROTTLE 1
+#define SERVO_SCANNER  2
 
 int ctrlInit();
 int ctrlSet(int servo, int percent);
