@@ -69,22 +69,29 @@ void PointCloud::draw(Renderer* renderer)
 
 	glBegin(style);
 	{
+		if(style == GL_TRIANGLE_FAN)
+		{
+				glColor3f(0, 0, 0);
+				glVertex3f(0, 0, 0);
+		}
+
 		for(int i = count; i--;){
-			if(style == GL_LINES){
+			if(style == GL_LINES)
+			{
 				glColor3f(0, 0, 0);
 				glVertex3f(0, 0, 0);
 			}
 
-			vec3_t pos = { points[i][0], points[i][1], points[i][2] };
+			vec3_t pos = { points[i][0], points[i][1], points[i][2] }, t_pos;
 			vec3_t color = colorForPoint(points[i], min, max, scaleFactor);
 
 			// scale pos and rotate
 			quat rotation;
 			renderer->getRotation(rotation);
 			vec3_scale(pos.v, pos.v, scaleFactor);
-			quat_mul_vec3(pos.v, rotation, pos.v);
+			quat_mul_vec3(t_pos.v, rotation, pos.v);
 
-			float attenuation = vec3_mul_inner(pos.v, pos.v) / 1;
+			float attenuation = vec3_mul_inner(t_pos.v, t_pos.v) / 1;
 			vec3_scale(color.v, color.v, attenuation);
 
 			glColor3f(color.x, color.y, color.z);

@@ -13,6 +13,7 @@ typedef struct {
 	float time_taken;
 	float distance;
 	float angle;
+	uint8_t index;
 } scn_datum_t;
 
 typedef struct {

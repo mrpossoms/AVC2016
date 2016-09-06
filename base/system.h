@@ -40,7 +40,7 @@ typedef struct {
 	vec3f_t vel;
 	vec3f_t heading;
 	vec3f_t accFrame[3];
-} pose_t;
+} pose_t; // 84B
 
 typedef struct {
 	imuState_t    imu;
@@ -91,6 +91,8 @@ typedef struct {
 		sensorStatef_t filtered;
 	} sensors;
 	pose_t pose;
+
+	scn_datum_t lastDepth;
 
 	gpsWaypoint_t currentWaypoint;
 	gpsWaypoint_t nextWaypoint;

@@ -7,6 +7,7 @@
 #include <pthread.h>
 
 #include "base/system.h"
+#include "sensors/scanner.h"
 
 namespace data {
 
