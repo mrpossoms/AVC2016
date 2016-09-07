@@ -18,6 +18,8 @@ sysSnap_t sysSnapshot(system_t* sys)
 	snap.controls.throttle = ctrlGet(SERVO_THROTTLE);
 	snap.controls.steering = ctrlGet(SERVO_STEERING);
 
+	snap.lastDepth = *sys->sensors.scanner.last_reading;
+
 	gpsWaypointCont_t* waypoint = sys->route.currentWaypoint;
 	if(waypoint){
 		snap.currentWaypoint = waypoint->self;

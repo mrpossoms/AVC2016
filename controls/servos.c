@@ -17,7 +17,7 @@ int ctrlInit()
 	if(!stat("/dev/servoblaster", &buf)){
 		fprintf(stderr, "Servo driver already running\n");
 	}	
-	else if(system("servod --p1pins=37,38,39")){
+	else if(system("servod --p1pins=37,38,36")){
 		fprintf(stderr, "Failed to start servo driver\n");
 		return -1;
 	}

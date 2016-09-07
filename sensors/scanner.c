@@ -1,57 +1,69 @@
 #include "scanner.h"
 #include "base/system.h"
-#include <pthread.h>
+#include "i2c.h"
 #include <unistd.h>
+#include <arpa/inet.h>
 
 #define HIST_SIZE 10
-#define SCN_I2C_ADDR 0xC4
+#define SCN_I2C_ADDR 0x62
 
-pthread_t SWEEPER_THREAD;
 static int I2C_FD;
 
 static float _scn_get_range(scn_t* scanner)
 {
-	i2cSendByte(I2C_FD, SCN_I2C_ADDR, 0x0, 0x4);
 	uint16_t dist = 0;
 
-	while(i2cReqBytes(I2C_FD, SCN_I2C_ADDR, 0x0f, &dist, 2)) usleep(20000); 	 
+	while(i2cSendByte(I2C_FD, SCN_I2C_ADDR, 0x0, 0x4))
+	{
+		usleep(1000);
+	}
+
+	usleep(20000);
+
+	while(i2cReqBytes(I2C_FD, SCN_I2C_ADDR, 0x8f, &dist, 2))
+	{
+		usleep(20000);
+	}
+
+	dist = ((dist & 0x00FF) << 8) + (dist >> 8);
 
 	return dist / 100.f; // cm to meters
 }
 //------------------------------------------------------------------------------
-void* _scn_sweeper_handler(void* args)
+static int SERVO_DIR = 1;
+static float LAST_SCANNED;
+void scn_update(scn_t* scanner)
 {
-	scn_t* scanner = (scn_t*)args;
-	float last_scanned = SYS.timeUp;
 	int* i = &scanner->servo.position;
-	int dir = 1;
 	int min = scanner->servo.min, max = scanner->servo.max;
 
-	while(1)
+	if(SYS.timeUp - LAST_SCANNED < scanner->servo.rate)
 	{
-		if(SYS.timeUp - last_scanned < scanner->servo.rate)
-		{
-			usleep(1000);
-			continue;
-		}
-
-		scanner->readings[*i].time_take = SYS.timeUp;
-		scanner->readings[*i].distance = _scn_get_range(scanner);
-
-		*i += dir;
-
-		// if we reach either side of the range, change directions
-		if(*i == min || *i == max - 1)
-		{
-			dir = -dir;
-		}
-		
-		// move the servo
-		ctrlSet(SERVO_SCANNER, *i);
-		last_scanned = SYS.timeUp;
+		return;
 	}
 
-	return NULL;
+	float distance = _scn_get_range(scanner);
+
+	if(distance > 40) return;
+
+	scanner->readings[*i].time_taken = SYS.timeUp;
+	scanner->readings[*i].distance = distance;
+
+	printf("%fM\n", scanner->readings[*i].distance);
+
+	scanner->last_reading = scanner->readings + *i;
+	*i += SERVO_DIR;
+
+	// if we reach either side of the range, change SERVO_DIRections
+	if(*i == min || *i == max - 1)
+	{
+		SERVO_DIR = -SERVO_DIR;
+	}
+	
+	// move the servo
+	ctrlSet(SERVO_SCANNER, *i);
+	LAST_SCANNED = SYS.timeUp;
+
 }
 //------------------------------------------------------------------------------
 int scn_init(
@@ -68,6 +80,7 @@ int scn_init(
 
 	I2C_FD = i2c_dev;
 
+	
 	scanner->servo.min = servo_min;
 	scanner->servo.max = servo_max;
 	scanner->servo.range = servo_range;
@@ -83,12 +96,13 @@ int scn_init(
 	for(int i = SCANNER_RES; i--;)
 	{
 		scanner->readings[i].angle = i * angle_tick + angle_0;
+		scanner->readings[i].index = i;
 	}
 
 	// wait for servo to make it to home. Not a huge fan of this
 	sleep(1);
 
-	return pthread_create(&SWEEPER_THREAD, NULL, NULL, scanner);
+	return 0;
 } 
 //------------------------------------------------------------------------------
 static int datum_comp(void* a, void* b)
@@ -121,12 +135,13 @@ void scn_find_obstacles(
 	scn_obstacle_t* list,
 	int list_size)
 {
-	vec3f_t left = {}, right = {};
-	vec3f_t heading = vec3fNorm(&SYS.pose.heading);
-	scn_datum_t* data[SCANNER_RES] = {};
-	scn_datum_t* hist[HIST_SIZE][SCANNER_RES] = {}
+	//vec3f_t left = {}, right = {};
+	//vec3f_t heading = vec3fNorm(&SYS.pose.heading);
+	//scn_datum_t* data[SCANNER_RES] = {};
+	scn_datum_t* hist[HIST_SIZE][SCANNER_RES] = {};
+	scn_datum_t*** ptr = (scn_datum_t***)hist;
 	
-	_fill_hist(hist, scanner);
+	_fill_hist(ptr, scanner);
 
 	// sort 
 	//memcpy(data, scanner->readings, sizeof(scn_datum_t) * SCANNER_RES);
@@ -137,6 +152,6 @@ void scn_find_obstacles(
 		scn_datum_t* d = scanner->readings + i;
 		
 
-		
+		d = d;	
 	}
 }

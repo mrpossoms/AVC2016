@@ -13,7 +13,7 @@ void sysTimerUpdate()
 	struct timeval now;
 	gettimeofday(&now, NULL);
 	
-	if(!isSetup){
+	if(isSetup){
 		usElapsed = (now.tv_sec - START_TIME.tv_sec) * 1000000 +
 		                    (now.tv_usec - START_TIME.tv_usec);
 	}

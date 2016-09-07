@@ -41,21 +41,28 @@ int senInit(const char* i2c_dev, const char* gpsDevice, const char* calProfile)
 		printf("Failed!\n");
 		return -2;
 	}
-
-	// Initalize the scanner turret and range finder
-	if(scn_init(
-		&SYS.sensors.scanner
-		FD_I2C,
-		25, 75,
-		M_PI / 2,  // 90 deg scan window
-		0.01))	   // 1/100th sec per percent
-	{
-		return -3;
-	}
-
 	// tell the encoder to reset
 	i2cSendByte(FD_I2C, 0x08, 0, 1);
 	printf("OK!\n");
+
+
+	// Initalize the scanner turret and range finder
+	printf("Initializing scanner...");
+	if(scn_init(
+		&SYS.sensors.scanner,
+		FD_I2C,
+		25, 75,
+		M_PI / 2,  // 90 deg scan window
+		0.04,	   // 1/10th sec per percent
+		10))       // far-plane, 10M
+	{
+		printf("Failed!\n");
+		return -3;
+	}
+	else
+	{
+		printf("OK!\n");
+	}
 
 	printf("Allocating filter matrices...");
 	ROT_MAT = kfMatAlloc(3, 3);
@@ -359,6 +366,8 @@ int senUpdate(sensors_t* sen)
 		printf("imuUpdateState() failed\n");
 		return -1;
 	}
+
+	scn_update(&SYS.sensors.scanner);
 
 	// read the wheel rotations from the rotary encoder
 	uint8_t ticks;

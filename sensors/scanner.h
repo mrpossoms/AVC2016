@@ -1,9 +1,11 @@
 #ifndef AVC_SCANNER
 #define AVC_SCANNER
 
+#include <inttypes.h>
 #include "controls/servos.h"
+#include "base/types.h"
 
-#ifndef __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -30,6 +32,7 @@ typedef struct {
 	} servo;
 	float far_plane;
 	scn_datum_t readings[SCANNER_RES];
+	scn_datum_t* last_reading;
 } scn_t;
 
 int scn_init(
@@ -38,11 +41,17 @@ int scn_init(
 	int servo_min,
 	int servo_max,
 	float servo_range,
-	float sec_per_tick);
+	float sec_per_tick,
+	float far_plane);
 
-void scn_find_obstacles(scn_obstacle_t* list, int list_size);
+void scn_update(scn_t* scanner);
 
-#ifndef __cplusplus
+void scn_find_obstacles(
+	scn_t* scanner,
+	scn_obstacle_t* list,
+	int list_size);
+
+#ifdef __cplusplus
 }
 #endif
 
