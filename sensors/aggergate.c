@@ -51,9 +51,9 @@ int senInit(const char* i2c_dev, const char* gpsDevice, const char* calProfile)
 	if(scn_init(
 		&SYS.sensors.scanner,
 		FD_I2C,
-		25, 75,
+		30, 60,
 		M_PI / 2,  // 90 deg scan window
-		0.04,	   // 1/10th sec per percent
+		0.021,	   // 20ms / tick
 		10))       // far-plane, 10M
 	{
 		printf("Failed!\n");
@@ -367,23 +367,29 @@ int senUpdate(sensors_t* sen)
 		return -1;
 	}
 
-	scn_update(&SYS.sensors.scanner);
 
 	// read the wheel rotations from the rotary encoder
-	uint8_t ticks;
-	i2cReqBytes(FD_I2C, 0x08, 0, &ticks, 1);
+	uint8_t data[2] = {};
+	ioctl(FD_I2C, I2C_SLAVE, 0x08);
+	read(FD_I2C, data, 2);
+
+	uint8_t ticks = data[0], dec_m = data[1];
+
+/*
+	if(ticks){
+		printf("%d %d\n", ticks, dec_m);
+	}
+*/
 	if(ticks == 255){
 		ticks = 0;
 	}
+
+	scn_update(&SYS.sensors.scanner, dec_m / 10.f);
 
 	const float diameter = 0.1; // meters
 	float sign = ctrlGet(SERVO_THROTTLE) > 50 ? 1.f : -1.f;
 	sen->imu.cal.enc_dist_delta = ticks * diameter * M_PI * sign;
 	sen->imu.cal.enc_dist += sen->imu.cal.enc_dist_delta;
-
-	if(ticks){
-//		printf("dist: %fM\n", sen->imu.cal.enc_dist);
-	}
 
 	// do filtering
 	sen_filter(sen);

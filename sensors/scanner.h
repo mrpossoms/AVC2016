@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define SCANNER_RES 100
+#define SCANNER_RES 30
 
 typedef struct {
 	float time_taken;
@@ -44,7 +44,7 @@ int scn_init(
 	float sec_per_tick,
 	float far_plane);
 
-void scn_update(scn_t* scanner);
+void scn_update(scn_t* scanner, float meters);
 
 void scn_find_obstacles(
 	scn_t* scanner,

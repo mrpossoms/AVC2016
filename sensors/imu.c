@@ -48,7 +48,7 @@ sensorStatei_t imuGetReadings(int fd)
 	res += i2cReqBytes(fd, ADDR_GYRO,    GYR_REG, &reading.gyro, sizeof(vec3i16_t));
 	res += i2cReqBytes(fd, ADDR_ACC_MAG, MAG_REG, &reading.mag, sizeof(vec3i16_t));
 
-	assert(res == 0);
+	//assert(res == 0);
 
 	return reading;
 }
