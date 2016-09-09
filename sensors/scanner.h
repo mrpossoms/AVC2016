@@ -15,12 +15,12 @@ typedef struct {
 	float time_taken;
 	float distance;
 	float angle;
-	uint8_t index;
+	uint8_t index, obs_ind;
 } scn_datum_t;
 
 typedef struct {
-	vec3f_t left, right;
-	vec3f_t nearest;
+	uint8_t left_i, right_i;
+	float nearest;
 } scn_obstacle_t;
 
 typedef struct {
@@ -32,6 +32,7 @@ typedef struct {
 	} servo;
 	float far_plane;
 	scn_datum_t readings[SCANNER_RES];
+	scn_obstacle_t obstacles[SCANNER_RES];
 	scn_datum_t* last_reading;
 } scn_t;
 
@@ -46,7 +47,7 @@ int scn_init(
 
 void scn_update(scn_t* scanner, float meters);
 
-void scn_find_obstacles(
+int scn_find_obstacles(
 	scn_t* scanner,
 	scn_obstacle_t* list,
 	int list_size);
