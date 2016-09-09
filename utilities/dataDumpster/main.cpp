@@ -48,6 +48,30 @@ static vec3_t pcEstColor(vec3 point, vec3 min, vec3 max, float s)
 	return color;
 }
 
+static float vec3_std_dev(vec3f_t* arr, int len)
+{
+	float var = 0;
+	vec3f_t mu = {};
+	float w = 1 / (float)len;
+
+	for(int i = len; i--;)
+	{
+		vec3f_t temp = arr[i];
+		vec3_scale(temp.v, temp.v, w);
+		vec3_add(mu.v, mu.v, temp.v);
+	}
+
+	for(int i = len; i--;)
+	{
+		vec3f_t temp;
+		vec3_sub(temp.v, arr[i].v, mu.v);
+
+		var += vec3_mul_inner(temp.v, temp.v) * w;
+	}
+
+	return sqrtf(var);
+}
+
 static void onData(sysSnap_t snap)
 {
 
@@ -69,6 +93,10 @@ static void onData(sysSnap_t snap)
 	vec3f_t loc = { cosf(d.angle) * d.distance, 0, sinf(d.angle) * d.distance };
 	DAT_DEPTH[d.index] = loc;
 
+	if(d.index == 0)
+	{
+		printf("Scanner stddev: %f\n", vec3_std_dev(DAT_DEPTH, SCANNER_RES));
+	}
 }
 
 static void onConnect(int res)
@@ -121,8 +149,8 @@ int main(int argc, char* argv[])
 
 	for(int i = SCANNER_RES; i--;)
 	{
-		DAT_DEPTH[i].x = cosf(i * ((M_PI / 2) / SCANNER_RES) - (M_PI / 4));	
-		DAT_DEPTH[i].z = sinf(i * ((M_PI / 2) / SCANNER_RES) - (M_PI / 4));	
+		DAT_DEPTH[i].x = 0;//cosf(i * ((M_PI / 2) / SCANNER_RES) - (M_PI / 4));
+		DAT_DEPTH[i].z = 0;//sinf(i * ((M_PI / 2) / SCANNER_RES) - (M_PI / 4));
 	}
 
 	Gimbal gimbal;
@@ -143,14 +171,14 @@ int main(int argc, char* argv[])
 	std::vector<Drawable*> drawables;
 
 	drawables.push_back(&grid);
-	//drawables.push_back(magCloud);
-	//drawables.push_back(&rawMagCloud);
-	//drawables.push_back(&estMagCloud);
-	//drawables.push_back(&accBasis);
-	//drawables.push_back(&accPlot);
-	//drawables.push_back(&gimbal);
+	drawables.push_back(magCloud);
+	drawables.push_back(&rawMagCloud);
+	drawables.push_back(&estMagCloud);
+	drawables.push_back(&accBasis);
+	drawables.push_back(&accPlot);
+	drawables.push_back(&gimbal);
 	drawables.push_back(&scannerCloud);
-	
+
 	float t = 0;
 	while(win.isOpen()){
 		static float last_time;
