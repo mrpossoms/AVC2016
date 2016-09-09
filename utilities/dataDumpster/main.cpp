@@ -15,8 +15,52 @@ using namespace data;
 PointCloud* magCloud;
 mat3_t ACC_BASIS_MAT;
 
-static vec3_t pcRawColor(vec3 point, vec3 min, vec3 max, float s)
+vec3_t regionColor(unsigned char theta)
 {
+	unsigned char rgb[3] = {};
+	unsigned char hsv[3] = {
+		theta,
+		255,
+		255
+	};
+	unsigned char region, remainder, p, q, t;
+
+	region = hsv[0] / 43;
+	remainder = (hsv[0] - (region * 43)) * 6;
+
+	p = 0;
+	q = (hsv[2] * (255 - ((hsv[1] * remainder) >> 8))) >> 8;
+	t = (hsv[2] * (255 - ((hsv[1] * (255 - remainder)) >> 8))) >> 8;
+
+	switch (region)
+	{
+		 case 0:
+			  rgb[0] = hsv[2]; rgb[1] = t; rgb[2] = p;
+			  break;
+		 case 1:
+			  rgb[0] = q; rgb[1] = hsv[2]; rgb[2] = p;
+			  break;
+		 case 2:
+			  rgb[0] = p; rgb[1] = hsv[2]; rgb[2] = t;
+			  break;
+		 case 3:
+			  rgb[0] = p; rgb[1] = q; rgb[2] = hsv[2];
+			  break;
+		 case 4:
+			  rgb[0] = t; rgb[1] = p; rgb[2] = hsv[2];
+			  break;
+		 default:
+			  rgb[0] = hsv[2]; rgb[1] = p; rgb[2] = q;
+			  break;
+	}
+
+	vec3_t color = {rgb[0] / 255.f, rgb[1] / 255.f, rgb[2] / 255.f};
+	return color;
+}
+
+static vec3_t pcRawColor(vec3* points, int point_i, vec3 min, vec3 max, float s)
+{
+	vec3 point = { points[point_i][0], points[point_i][1], points[point_i][2] };
 	vec3_t color = {
 		1,
 		(point[1] - min[1]) / (max[1] - min[1]),
@@ -26,8 +70,14 @@ static vec3_t pcRawColor(vec3 point, vec3 min, vec3 max, float s)
 	return color;
 }
 
-static vec3_t pcCalColor(vec3 point, vec3 min, vec3 max, float s)
+static vec3_t pcObsColor(vec3* points, int point_i, vec3 min, vec3 max, float s)
 {
+	return regionColor(point_i * 10);
+}
+
+static vec3_t pcCalColor(vec3* points, int point_i, vec3 min, vec3 max, float s)
+{
+	vec3 point = { points[point_i][0], points[point_i][1], points[point_i][2] };
 	vec3_t color = {
 		(point[0] - min[0]) / (max[0] - min[0]),
 		1,
@@ -37,8 +87,9 @@ static vec3_t pcCalColor(vec3 point, vec3 min, vec3 max, float s)
 	return color;
 }
 
-static vec3_t pcEstColor(vec3 point, vec3 min, vec3 max, float s)
+static vec3_t pcEstColor(vec3* points, int point_i, vec3 min, vec3 max, float s)
 {
+	vec3 point = { points[point_i][0], points[point_i][1], points[point_i][2] };
 	vec3_t color = {
 		(point[0] - min[0]) / (max[0] - min[0]),
 		(point[1] - min[1]) / (max[1] - min[1]),
@@ -92,6 +143,9 @@ static void onData(sysSnap_t snap)
 	scn_datum_t d = snap.lastDepth;
 	vec3f_t loc = { cosf(d.angle) * d.distance, 0, sinf(d.angle) * d.distance };
 	DAT_DEPTH[d.index] = loc;
+	DAT_OBS[d.index] = d.obs_ind;
+
+	// printf("%d\n", d.obs_ind);
 
 	if(d.index == 0)
 	{
@@ -144,7 +198,7 @@ int main(int argc, char* argv[])
 	estMagCloud.colorForPoint = pcEstColor;
 
 	PointCloud scannerCloud((vec3*)DAT_DEPTH, SCANNER_RES);
-	scannerCloud.colorForPoint = pcRawColor;
+	scannerCloud.colorForPoint = pcObsColor;
 	scannerCloud.style = GL_TRIANGLE_FAN;
 
 	for(int i = SCANNER_RES; i--;)

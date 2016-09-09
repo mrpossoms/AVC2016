@@ -3,8 +3,9 @@
 
 using namespace gfx;
 
-static vec3_t pcDefaultColoration(vec3 point, vec3 min, vec3 max, float s)
+static vec3_t pcDefaultColoration(vec3* points, int point_i, vec3 min, vec3 max, float s)
 {
+	vec3 point = { points[point_i][0], points[point_i][1], points[point_i][2] };
 	vec3_t color = {
 		(point[0] - min[0]) / (max[0] - min[0]),
 		(point[1] - min[1]) / (max[1] - min[1]),
@@ -83,7 +84,7 @@ void PointCloud::draw(Renderer* renderer)
 			}
 
 			vec3_t pos = { points[i][0], points[i][1], points[i][2] }, t_pos;
-			vec3_t color = colorForPoint(points[i], min, max, scaleFactor);
+			vec3_t color = colorForPoint(points, i, min, max, scaleFactor);
 
 			// scale pos and rotate
 			quat rotation;

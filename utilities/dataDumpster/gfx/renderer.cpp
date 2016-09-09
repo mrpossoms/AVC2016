@@ -33,7 +33,7 @@ Renderer::Renderer(int w, int h)
 	glfwSetCursorPosCallback(win, cursorMoved);
 	glfwSetMouseButtonCallback(win, mouseButton);
 
-	mat4x4_perspective(proj, M_PI / 2, w / (float)h, 0.01, 100);
+	mat4x4_perspective(proj, M_PI / 2, w / (float)h, 0.01, 1000);
 	mat4x4_translate(view, 0, -0.5, -2);
 
 	glClearColor(0, 0, 0, 1);
