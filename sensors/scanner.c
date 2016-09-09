@@ -9,34 +9,6 @@
 
 static int I2C_FD;
 
-static void _scn_req_reading()
-{
-	for(int i = 3; i--;)
-	{
-		if(!i2cSendByte(I2C_FD, SCN_I2C_ADDR, 0x0, 0x4)) break;
-		usleep(1000);
-	}
-}
-//------------------------------------------------------------------------------
-static float _scn_get_range()
-{
-	uint16_t dist = 0;
-
-	
-	for(int i = 3; i--;)
-	{
-		if(!i2cReqBytes(I2C_FD, SCN_I2C_ADDR, 0x8f, &dist, 2)) break;
-		usleep(20000);
-	}
-
-	// premptively ask for the next reading.
-	_scn_req_reading();
-
-	dist = ((dist & 0x00FF) << 8) + (dist >> 8);
-
-	return dist / 100.f; // cm to meters
-}
-//------------------------------------------------------------------------------
 static int SERVO_DIR = 1;
 static float LAST_SCANNED;
 void scn_update(scn_t* scanner, float meters)
@@ -119,6 +91,8 @@ int scn_init(
 	scanner->servo.rate = sec_per_tick;
 	scanner->servo.position = (servo_min + servo_max) / 2;
 	scanner->far_plane = far_plane;
+	
+	// set servo to home position
 	ctrlSet(SERVO_SCANNER, scanner->servo.position);
 
 	const float angle_tick = -scanner->servo.range / (float)SCANNER_RES;
@@ -131,11 +105,6 @@ int scn_init(
 		scanner->readings[i].index = i;
 	}
 
-	// wait for servo to make it to home. Not a huge fan of this
-	sleep(1);
-
-	_scn_req_reading();
-	
 	return 0;
 } 
 //------------------------------------------------------------------------------
@@ -169,23 +138,21 @@ void scn_find_obstacles(
 	scn_obstacle_t* list,
 	int list_size)
 {
+	const float max_dd = 0.3; // max change in distance Meters
+	int objs_ind = 0;
+
 	//vec3f_t left = {}, right = {};
 	//vec3f_t heading = vec3fNorm(&SYS.pose.heading);
 	//scn_datum_t* data[SCANNER_RES] = {};
-	scn_datum_t* hist[HIST_SIZE][SCANNER_RES] = {};
-	scn_datum_t*** ptr = (scn_datum_t***)hist;
+
+	for(int i = 0; i < SCANNER_RES; ++i)
+	{
+		
+	}
 	
-	_fill_hist(ptr, scanner);
 
 	// sort 
 	//memcpy(data, scanner->readings, sizeof(scn_datum_t) * SCANNER_RES);
 	//qsort(data, SCANNER_RES, sizeof(scn_datum_t), datum_comp);
 
-	for(int i = 0; i < HIST_SIZE; ++i)
-	{
-		scn_datum_t* d = scanner->readings + i;
-		
-
-		d = d;	
-	}
 }
