@@ -53,8 +53,6 @@ void scn_update(scn_t* scanner, float meters)
 
 	float distance = meters;
 
-	printf("%d @ pos %d\n", i, *pos);
-
 	// TODO i is the issue here. I is servo position where really we want index
 	if(distance > 40)
 	{
@@ -73,11 +71,13 @@ void scn_update(scn_t* scanner, float meters)
 	{
 		scanner->readings[i].time_taken = SYS.timeUp;
 
+/*
 		if(last)
 		{
 			scanner->readings[i].distance = distance * .75 + last->distance * .25f;
 		}
 		else
+*/
 		{
 			scanner->readings[i].distance = distance;
 		}

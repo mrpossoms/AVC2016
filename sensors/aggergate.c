@@ -45,15 +45,14 @@ int senInit(const char* i2c_dev, const char* gpsDevice, const char* calProfile)
 	i2cSendByte(FD_I2C, 0x08, 0, 1);
 	printf("OK!\n");
 
-
 	// Initalize the scanner turret and range finder
 	printf("Initializing scanner...");
 	if(scn_init(
 		&SYS.sensors.scanner,
 		FD_I2C,
 		30, 60,
-		M_PI / 2,  // 90 deg scan window
-		0.021,	   // 20ms / tick
+		54 * M_PI / 180.f,  // 54 deg scan window
+		0.2,	   // 20ms / tick
 		10))       // far-plane, 10M
 	{
 		printf("Failed!\n");
@@ -375,11 +374,11 @@ int senUpdate(sensors_t* sen)
 
 	uint8_t ticks = data[0], dec_m = data[1];
 
-/*
+
 	if(ticks){
 		printf("%d %d\n", ticks, dec_m);
 	}
-*/
+
 	if(ticks == 255){
 		ticks = 0;
 	}
