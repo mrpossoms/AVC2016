@@ -50,33 +50,11 @@ int scn_init(
 	return 0;
 }
 //------------------------------------------------------------------------------
-static int datum_comp(void* a, void* b)
+static int _scn_obs_compare(const void* a, const void* b)
 {
 	scn_datum_t* A = (scn_datum_t*)a;
 	scn_datum_t* B = (scn_datum_t*)b;
 
-	return A->distance < B->distance;
-}
-//------------------------------------------------------------------------------
-static void _fill_hist(scn_datum_t*** hist, scn_t* scanner)
-{
-	int bucket_size[SCANNER_RES] = {};
-	float hist_scale = HIST_SIZE / scanner->far_plane;
-
-	for(int i = 0; i < SCANNER_RES; ++i)
-	{
-		scn_datum_t* d = scanner->readings + i;
-		if(d->distance >= scanner->far_plane) continue;
-
-		int bucket = (int)(hist_scale * d->distance);
-
-		hist[bucket][bucket_size[bucket]] = d;
-		++bucket_size[bucket];
-	}
-}
-//------------------------------------------------------------------------------
-static int _scn_obs_compare(void* a, void* b)
-{
 	if(A->distance < B->distance) return -1;
 	if(A->distance > B->distance) return  1;
 	return 0;
@@ -87,7 +65,7 @@ int scn_find_obstacles(
 	scn_obstacle_t* list,
 	int list_size)
 {
-	const float max_dd = 0.3; // max change in distance Meters
+	const float max_dd = 0.5; // max change in distance Meters
 	int obs_ind = 0;
 
 	scn_datum_t* last = scanner->readings;

@@ -53,7 +53,7 @@ int senInit(const char* i2c_dev, const char* gpsDevice, const char* calProfile)
 		30, 60,
 		54 * M_PI / 180.f,  // 54 deg scan window
 		0.2,	   // 20ms / tick
-		10))       // far-plane, 10M
+		30))       // far-plane, 10M
 	{
 		printf("Failed!\n");
 		return -3;
@@ -373,6 +373,7 @@ int senUpdate(sensors_t* sen)
 	read(FD_I2C, data, 2);
 
 	uint8_t ticks = data[0], dec_m = data[1];
+	float m = dec_m;
 
 
 	if(ticks){
@@ -383,7 +384,7 @@ int senUpdate(sensors_t* sen)
 		ticks = 0;
 	}
 
-	scn_update(&SYS.sensors.scanner, dec_m / 10.f);
+	scn_update(&SYS.sensors.scanner, m * .1f);
 
 	const float diameter = 0.1; // meters
 	float sign = ctrlGet(SERVO_THROTTLE) > 50 ? 1.f : -1.f;
