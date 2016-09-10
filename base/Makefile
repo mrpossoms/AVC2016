@@ -7,7 +7,7 @@ CMP = gcc
 SENSOR_DIR=./../sensors
 CTRL_DIR=./../controls
 
-INC=-I./ -I./../ -I$(SENSOR_DIR) -I$(CTRL_DIR) -I/usr/local/include
+INC=-I./ -I./../ -I../external/linmath.h -I$(SENSOR_DIR) -I$(CTRL_DIR) -I/usr/local/include
 LIB=-L/usr/lib -L/usr/local/lib -Wl,-rpath=$(CTRL_DIR)/
 LINK=-lm 
 FLAGS=-g -std=c99 -Wall -Werror -Wno-format-extra-args -Wno-missing-braces -fpic -D_XOPEN_SOURCE

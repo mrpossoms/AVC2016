@@ -27,8 +27,8 @@ static void* action(agent_t* lastState, void* args)
 	}
 
 	int has_impacted = fabs(last_mag - mag) > LIL_G / 2;
-	float dist_to_obs = vec3Dist(nearest->location, SYS.pose.pos);
-	int danger_of_impact = dist_to_obs < vec3_len(SYS.pose.vel) * 2; // travel vector for next 2 seconds
+	float dist_to_obs = vec3Dist(nearest->centroid, SYS.pose.pos);
+	int danger_of_impact = dist_to_obs < vec3_len(SYS.pose.vel.v) * 2; // travel vector for next 2 seconds
 
 	// do stuff here, choose a successor state if appropriate
 	if(has_impacted || danger_of_impact){

@@ -8,7 +8,7 @@ CMP = gcc
 SYS = ./../../base
 SENSOR = ./../../sensors
 
-INC=-I./../../ -I/usr/local/include
+INC=-I./../../ -I/usr/local/include -I./../../external/linmath.h
 LIB=-L/usr/lib -L/usr/local/lib
 LINK=-lm -lpthread -lindicurses -lncurses
 FLAGS=-std=c99

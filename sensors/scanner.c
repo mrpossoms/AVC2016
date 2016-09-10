@@ -158,10 +158,10 @@ void scn_update(scn_t* scanner, float meters)
 	quat rotation = { 0, 0, 0, 1 };
 	vec3_scale(temp.v, temp.v, reading->distance); // scale the normalized heading
 	quat_from_axis_angle(rotation, 0, 1, 0, reading->angle);
-	quat_mul_vec3(temp, rotation, temp); // rotate it by the angle of the measurement
-	vec3_add(reading->location.v, temp.v, SYS.pose.pos.v); // add to current position
+	quat_mul_vec3(temp.v, rotation, temp.v); // rotate it by the angle of the measurement
+	vec3Add(reading->location, temp, SYS.pose.pos); // add to current position
 
-	reading->pose.location = SYS.pose.pos;
+	vec3Set(reading->location, SYS.pose.pos);
 
 	scanner->last_reading = scanner->readings + i;
 	*pos += SERVO_DIR;

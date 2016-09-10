@@ -12,7 +12,7 @@ CTRLS   = ./controls
 DESC    = ./decision
 RC      = ./utilities/RC
 
-EXTERNALS = ./external/libNEMA/ ./external/indicurses/ ./external/libKF/
+EXTERNALS = ./external/libNEMA/ ./external/indicurses/ ./external/libKF/ ./external/linmath.h
 DEPENDS = $(SYS)/ $(DIAG)/ $(SENSORS)/ $(CTRLS)/ $(DESC)/ $(RC)/
 
 INC=-I./ -I/usr/local/include -I./external/opt.h/  $(EXTERNALS:./%/=-I./%/include)
