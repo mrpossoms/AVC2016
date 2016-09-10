@@ -103,23 +103,6 @@ int gpsHasNewReadings()
 	return (UPDATES % GPS_HZ) == 0;
 }
 //-----------------------------------------------------------------------------
-vec3d_t mtoll(vec3d_t* meters)
-{
-	vec3d_t ll = {
-		mtoll(meters->x),
-		mtoll(meters->y),
-		mtoll(meters->z)
-	};
-
-	return ll;
-}
-//-----------------------------------------------------------------------------
-double mtoll(float meters)
-{
-	const double dia = 6371000 * 2;
-	return meters * 180 / (dia * M_PI);
-}
-//-----------------------------------------------------------------------------
 int gpsGetReadings(vec3d_t* position, vec3f_t* heading)
 {
 	position->x = position->y = position->z = 0;

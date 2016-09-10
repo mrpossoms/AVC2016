@@ -150,6 +150,9 @@ float   vec3fAng(vec3f_t* a, vec3f_t* b);
 
 double gauss(double mu, double sigma, double x);
 
+double mtodeg(float meters);
+vec3d_t mtoll(vec3d_t* lat_lon);
+
 #ifdef __cplusplus
 }
 #endif

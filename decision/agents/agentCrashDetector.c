@@ -19,17 +19,17 @@ static void* action(agent_t* lastState, void* args)
 	acc.x = 0;
 	float mag = vec3fMag(&acc);
 
-	scn_obstacle_t* nearest = SYS.sensors.scanner.obstacles;
+	scn_datum_t* middle = SYS.sensors.scanner.readings + (SCANNER_RES / 2);
 
 	if(last_mag == 0)
 	{
 		last_mag = mag;
 	}
 
-	int has_impacted = fabs(last_mag - mag) > LIL_G / 2;
+	int has_impacted = fabs(last_mag - mag) > LIL_G;
 
-	float dist_to_obs = vec3Dist(nearest->centroid, SYS.pose.pos);
-	float speed = vec3_len(SYS.pose.vel.v);
+	float dist_to_obs = vec3Dist(middle->location, SYS.pose.pos);
+	float speed = mtodeg(vec3_len(SYS.pose.vel.v)) * 4;
 	int danger_of_impact = dist_to_obs < speed; // travel vector for next 2 seconds
 
 	// do stuff here, choose a successor state if appropriate
@@ -37,7 +37,7 @@ static void* action(agent_t* lastState, void* args)
 		// set the current waypoint to NULL, this will terminate the
 		// program
 		if(has_impacted) printf("IMPACT DETECTED\n");
-		if(danger_of_impact) printf("CLOSE OBSTACLE %fM @ %fM/s\n", dist_to_obs, speed);
+		if(danger_of_impact) printf("CLOSE OBSTACLE %fdeg @ %fdeg/s\n", dist_to_obs, speed);
 		SYS.route.currentWaypoint = NULL;
 	}
 

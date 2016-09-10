@@ -1,4 +1,5 @@
 #include "scanner.h"
+#include "gps.h"
 #include "base/system.h"
 #include <unistd.h>
 
@@ -33,6 +34,7 @@ int scn_init(
 	{
 		scanner->readings[i].angle = i * angle_tick + angle_0;
 		scanner->readings[i].index = i;
+		scanner->readings[i].distance = 1000;
 	}
 
 	return 0;
@@ -63,11 +65,13 @@ int scn_find_obstacles(
 	for(int i = 1; i < SCANNER_RES; ++i)
 	{
 		scn_datum_t* curr = scanner->readings + i;
+	
+		if(curr->time_taken == 0) continue;
 		float dd = fabs(last->distance - curr->distance);
 
 		// how big is the difference between this measurement, and the last?
 		// is it too big?
-		if(dd > max_dd)
+		if(dd > max_dd || curr->index == SCANNER_RES - 1)
 		{
 			// define the width of it, with the left and right
 			// indices
@@ -77,7 +81,7 @@ int scn_find_obstacles(
 			obs->nearest = nearest_point;
 
 			// compute the obstacle centroid
-			vec3_add(obs->centroid.v, obs_start->location.v, curr->location.v);
+			vec3_add(obs->centroid.v, obs_start->location.v, last->location.v);
 			vec3_scale(obs->centroid.v, obs->centroid.v, 0.5);
 
 			// find the 'radius' of the obstacle
@@ -156,12 +160,10 @@ void scn_update(scn_t* scanner, float meters)
 
 	vec3f_t temp;
 	quat rotation = { 0, 0, 0, 1 };
-	vec3_scale(temp.v, temp.v, (float)mtoll(reading->distance)); // scale the normalized heading
+	vec3_scale(temp.v, SYS.pose.heading.v, (float)mtodeg(reading->distance)); // scale the normalized heading
 	quat_from_axis_angle(rotation, 0, 1, 0, reading->angle);
 	quat_mul_vec3(temp.v, rotation, temp.v); // rotate it by the angle of the measurement
 	vec3Add(reading->location, temp, SYS.pose.pos); // add to current position
-
-	vec3Set(reading->location, SYS.pose.pos);
 
 	scanner->last_reading = scanner->readings + i;
 	*pos += SERVO_DIR;
@@ -173,7 +175,7 @@ void scn_update(scn_t* scanner, float meters)
 	}
 
 	// move the servo
-	//ctrlSet(SERVO_SCANNER, *pos);
+	ctrlSet(SERVO_SCANNER, *pos);
 	LAST_SCANNED = SYS.timeUp;
 
 	scn_find_obstacles(scanner, scanner->obstacles, SCANNER_RES);

@@ -89,3 +89,20 @@ double gauss(double mu, double sigma, double x)
 	double var2 = (sigma * sigma) * 2;
 	return (1.f / sqrt(var2 * M_PI)) * pow(M_E, -pow(x - mu, 2.f) / var2);
 }
+//-----------------------------------------------------------------------------
+vec3d_t mtoll(vec3d_t* meters)
+{
+	vec3d_t ll = {
+		mtodeg(meters->x),
+		mtodeg(meters->y),
+		mtodeg(meters->z)
+	};
+
+	return ll;
+}
+//-----------------------------------------------------------------------------
+double mtodeg(float meters)
+{
+	const double dia = 6371000 * 2;
+	return meters * 180 / (dia * M_PI);
+}
