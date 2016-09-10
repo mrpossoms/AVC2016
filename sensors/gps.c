@@ -105,15 +105,19 @@ int gpsHasNewReadings()
 //-----------------------------------------------------------------------------
 vec3d_t mtoll(vec3d_t* meters)
 {
-	const double dia = 6371000 * 2;
-
 	vec3d_t ll = {
-		meters->x * 180 / (dia * M_PI),
-		meters->y * 180 / (dia * M_PI),
-		meters->z
+		mtoll(meters->x),
+		mtoll(meters->y),
+		mtoll(meters->z)
 	};
 
 	return ll;
+}
+//-----------------------------------------------------------------------------
+double mtoll(float meters)
+{
+	const double dia = 6371000 * 2;
+	return meters * 180 / (dia * M_PI);
 }
 //-----------------------------------------------------------------------------
 int gpsGetReadings(vec3d_t* position, vec3f_t* heading)
