@@ -27,14 +27,17 @@ static void* action(agent_t* lastState, void* args)
 	}
 
 	int has_impacted = fabs(last_mag - mag) > LIL_G / 2;
+
 	float dist_to_obs = vec3Dist(nearest->centroid, SYS.pose.pos);
-	int danger_of_impact = dist_to_obs < vec3_len(SYS.pose.vel.v) * 2; // travel vector for next 2 seconds
+	float speed = vec3_len(SYS.pose.vel.v);
+	int danger_of_impact = dist_to_obs < speed; // travel vector for next 2 seconds
 
 	// do stuff here, choose a successor state if appropriate
 	if(has_impacted || danger_of_impact){
 		// set the current waypoint to NULL, this will terminate the
 		// program
-		printf("IMPACT DETECTED\n");
+		if(has_impacted) printf("IMPACT DETECTED\n");
+		if(danger_of_impact) printf("CLOSE OBSTACLE %fM @ %fM/s\n", dist_to_obs, speed);
 		SYS.route.currentWaypoint = NULL;
 	}
 

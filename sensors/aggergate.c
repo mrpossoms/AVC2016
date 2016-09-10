@@ -51,8 +51,8 @@ int senInit(const char* i2c_dev, const char* gpsDevice, const char* calProfile)
 		&SYS.sensors.scanner,
 		30, 60,
 		54 * M_PI / 180.f,  // 54 deg scan window
-		0.2,	   // 20ms / tick
-		30))       // far-plane, 30M
+		0.05,	   // 20ms / tick
+		30))       // far-plane, 10M
 	{
 		printf("Failed!\n");
 		return -3;

@@ -127,14 +127,14 @@ void scn_update(scn_t* scanner, float meters)
 	int i = SCANNER_RES * (*pos - min) / (float)(max - min);
 	scn_datum_t* last = scanner->last_reading;
 
-	if(SYS.timeUp - LAST_SCANNED < scanner->servo.rate)
+	if(SYS.timeUp - LAST_SCANNED < scanner->servo.rate || meters < 0.1)
 	{
 		return;
 	}
 
 	float distance = meters;
-	scn_datum_t* reading = scanner->readings + i;
 
+	scn_datum_t* reading = scanner->readings + i;
 	reading->time_taken = SYS.timeUp;
 
 
@@ -173,7 +173,7 @@ void scn_update(scn_t* scanner, float meters)
 	}
 
 	// move the servo
-	ctrlSet(SERVO_SCANNER, *pos);
+	//ctrlSet(SERVO_SCANNER, *pos);
 	LAST_SCANNED = SYS.timeUp;
 
 	scn_find_obstacles(scanner, scanner->obstacles, SCANNER_RES);

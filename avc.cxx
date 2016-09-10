@@ -30,6 +30,7 @@ int MISSION_FD = 0;
 uint32_t MISSION_WAYPOINTS = 0;
 int IS_RC = 0, REC_ROUTE = 0;
 int USE_BLACK_BOX = 1;
+int WAIT_TIME;
 
 void* RCHandler(void* arg);
 
@@ -44,6 +45,14 @@ static void mag_reset_opt(char* value, int present)
 		printf("Reseting magnetometer calibration readings\n");
 		bzero(SYS.sensors.imu.calMinMax[0].mag.v, sizeof(vec3i16_t));
 		bzero(SYS.sensors.imu.calMinMax[1].mag.v, sizeof(vec3i16_t));
+	}
+}
+
+static void delay_opt(char* value, int present)
+{
+	if(present)
+	{
+		WAIT_TIME = atoi(value);
 	}
 }
 
@@ -206,6 +215,12 @@ int main(int argc, char* argv[])
 		"Skips starting servo driver and enabling servo control system",
 		0,
 		no_servos_opt
+	},
+	{
+		"--delay",
+		"Causes a delay of N seconds after initialization",
+		1,
+		delay_opt
 	}
 	OPT_LIST_END(HEADER)
 
@@ -272,6 +287,8 @@ int main(int argc, char* argv[])
 	SYS.pose.pos.x = SYS.pose.pos.y = 1;
 
 	printf("exp %f\n", SYS.sensors.mag_expected.len);
+	
+	sleep(WAIT_TIME);
 	printf("Starting main loop\n");
 	while(1){
 		assert(!isnan(SYS.pose.pos.x));
