@@ -208,6 +208,20 @@ int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints)
 	return 0;
 }
 //-----------------------------------------------------------------------------
+vec3f_t gpsWaypointGradient(gpsWaypointCont_t* waypoint)
+{
+	vec3f_t delta = {};
+
+	if(waypoint->next)
+	{
+		delta.x = waypoint->self.location.x - waypoint->next->self.location.x;
+		delta.y = waypoint->self.location.y - waypoint->next->self.location.y;
+		delta.z = waypoint->self.location.z - waypoint->next->self.location.z;
+	}
+
+	return delta;
+}
+//-----------------------------------------------------------------------------
 int gpsRouteAdvance(vec3d_t* position, gpsWaypointCont_t** current, uint8_t lapFlag)
 {
 	if(!position) return -1;

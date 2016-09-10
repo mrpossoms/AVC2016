@@ -14,16 +14,31 @@ static float utility(agent_t* current, void* args)
 
 static void* action(agent_t* lastState, void* args)
 {
+	static float last_mag;
 	vec3f_t acc = SYS.sensors.measured.acc;
 	acc.x = 0;
+	float mag = vec3fMag(&acc);
+
+	scn_obstacle_t* nearest = SYS.sensors.scanner.obstacles;
+
+	if(last_mag == 0)
+	{
+		last_mag = mag;
+	}
+
+	int has_impacted = fabs(last_mag - mag) > LIL_G / 2;
+	float dist_to_obs = vec3Dist(nearest->location, SYS.pose.pos);
+	int danger_of_impact = dist_to_obs < vec3_len(SYS.pose.vel) * 2; // travel vector for next 2 seconds
 
 	// do stuff here, choose a successor state if appropriate
-	if(vec3fMag(&acc) > LIL_G * 2.5){
+	if(has_impacted || danger_of_impact){
 		// set the current waypoint to NULL, this will terminate the
 		// program
 		printf("IMPACT DETECTED\n");
 		SYS.route.currentWaypoint = NULL;
 	}
+
+	last_mag = mag;
 
 	return NULL;
 }

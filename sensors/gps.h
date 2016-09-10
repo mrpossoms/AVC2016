@@ -21,6 +21,7 @@ int gpsGetReadings(vec3d_t* position, vec3f_t* heading);
 float gpsDistToWaypoint(vec3d_t* position, gpsWaypointCont_t* waypoint);
 float gpsDistToWaypoint3D(vec3d_t* position, gpsWaypointCont_t* waypoint);
 vec3f_t gpsHeadingToWaypoint(vec3d_t* position, gpsWaypointCont_t* waypoint);
+vec3f_t gpsWaypointGradient(gpsWaypointCont_t* waypoint);
 
 int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints);
 int gpsRouteUnload(gpsWaypointCont_t** waypoints);

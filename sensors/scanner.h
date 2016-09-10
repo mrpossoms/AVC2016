@@ -12,6 +12,7 @@ extern "C" {
 #define SCANNER_RES 30
 
 typedef struct {
+	vec3f_t location;
 	float time_taken;
 	float distance;
 	float angle;
@@ -20,7 +21,9 @@ typedef struct {
 
 typedef struct {
 	uint8_t left_i, right_i;
+	vec3f_t centroid;
 	float nearest;
+	float radius;
 } scn_obstacle_t;
 
 typedef struct {
@@ -38,7 +41,6 @@ typedef struct {
 
 int scn_init(
 	scn_t* scanner,
-	int i2c_dev,
 	int servo_min,
 	int servo_max,
 	float servo_range,
@@ -51,6 +53,9 @@ int scn_find_obstacles(
 	scn_t* scanner,
 	scn_obstacle_t* list,
 	int list_size);
+
+int obs_pos_rel(scn_obstacle_t* a, scn_obstacle_t* b);
+int obs_intersect(scn_obstacle_t* obs, vec3f_t v0, vec3f_t v1, vec3f_t* res);
 
 #ifdef __cplusplus
 }

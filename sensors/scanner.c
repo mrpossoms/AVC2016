@@ -1,20 +1,12 @@
 #include "scanner.h"
 #include "base/system.h"
-#include "i2c.h"
 #include <unistd.h>
-#include <arpa/inet.h>
-
-#define HIST_SIZE 10
-#define SCN_I2C_ADDR 0x62
-
-static int I2C_FD;
 
 static int SERVO_DIR = 1;
 static float LAST_SCANNED;
 
 int scn_init(
 	scn_t* scanner,
-	int i2c_dev,
 	int servo_min,
 	int servo_max,
 	float servo_range,
@@ -22,10 +14,6 @@ int scn_init(
 	float far_plane)
 {
 	if(!scanner) return -1;
-	if(i2c_dev < 0) return -2;
-
-	I2C_FD = i2c_dev;
-
 
 	scanner->servo.min = servo_min;
 	scanner->servo.max = servo_max;
@@ -83,9 +71,19 @@ int scn_find_obstacles(
 		{
 			// define the width of it, with the left and right
 			// indices
-			int s_i = list[obs_ind].left_i  = obs_start->index;
-			int e_i = list[obs_ind].right_i = curr->index;
-			list[obs_ind].nearest = nearest_point;
+			scn_obstacle_t* obs = list + obs_ind;
+			int s_i = obs->left_i  = obs_start->index;
+			int e_i = obs->right_i = curr->index;
+			obs->nearest = nearest_point;
+
+			// compute the obstacle centroid
+			vec3_add(obs->centroid.v, obs_start->location.v, curr->location.v);
+			vec3_scale(obs->centroid.v, obs->centroid.v, 0.5);
+
+			// find the 'radius' of the obstacle
+			vec3 delta;
+			vec3_sub(delta, obs_start->location.v, curr->location.v);
+			obs->radius = vec3_len(delta) / 2;
 
 			// refresh the obs indices on the scanner data (for vis.)
 			for(int j = s_i; j <= e_i; ++j)
@@ -135,36 +133,35 @@ void scn_update(scn_t* scanner, float meters)
 	}
 
 	float distance = meters;
+	scn_datum_t* reading = scanner->readings + i;
 
-	// TODO i is the issue here. I is servo position where really we want index
+	reading->time_taken = SYS.timeUp;
+
+
 	if(distance > 40)
 	{
-		scanner->readings[i].time_taken = SYS.timeUp;
-
 		if(last)
 		{
-			scanner->readings[i].distance = last->distance;
+			reading->distance = last->distance;
 		}
 		else
 		{
-			scanner->readings[i].distance = distance;
+			reading->distance = distance;
 		}
 	}
 	else
 	{
-		scanner->readings[i].time_taken = SYS.timeUp;
-
-/*
-		if(last)
-		{
-			scanner->readings[i].distance = distance * .75 + last->distance * .25f;
-		}
-		else
-*/
-		{
-			scanner->readings[i].distance = distance;
-		}
+		reading->distance = distance;
 	}
+
+	vec3f_t temp;
+	quat rotation = { 0, 0, 0, 1 };
+	vec3_scale(temp.v, temp.v, reading->distance); // scale the normalized heading
+	quat_from_axis_angle(rotation, 0, 1, 0, reading->angle);
+	quat_mul_vec3(temp, rotation, temp); // rotate it by the angle of the measurement
+	vec3_add(reading->location.v, temp.v, SYS.pose.pos.v); // add to current position
+
+	reading->pose.location = SYS.pose.pos;
 
 	scanner->last_reading = scanner->readings + i;
 	*pos += SERVO_DIR;
@@ -180,4 +177,37 @@ void scn_update(scn_t* scanner, float meters)
 	LAST_SCANNED = SYS.timeUp;
 
 	scn_find_obstacles(scanner, scanner->obstacles, SCANNER_RES);
+}
+//------------------------------------------------------------------------------
+int obs_pos_rel(scn_obstacle_t* a, scn_obstacle_t* b)
+{
+	if(a->left_i < b->left_i) return -1; // a is left of b
+	if(a->right_i > b->right_i) return 1; // a is right of b
+	return 0;// a is in-side of b
+}
+//------------------------------------------------------------------------------
+int obs_intersect(scn_obstacle_t* obs, vec3f_t v0, vec3f_t v1, vec3f_t* res)
+{
+	vec3f_t v = { v1.x - v0.y, 0, v1.z - v0.z };
+	vec3f_t d = { obs->centroid.x - v0.x, 0, obs->centroid.y - v1.z };
+
+	float a = v.x + v.z;
+	float b = 2 * (v.x * d.x + v.z * d.z);
+	float c = vec3_mul_inner(d.v, d.v) - obs->radius;
+	float rad_inner = b * b - 4 * a * c;
+
+	if(a == 0 || rad_inner < 0) return 0; // can't intersect
+
+	float radical = sqrtf(rad_inner);
+	float base = 2 * a;
+	float t[2] = { (-b + radical) / base, (-b - radical) / base };
+
+	for(int i = 2; i--;){
+		if(t[i] >= 0 && t[i] <= 1)
+		{
+			return 1; // intersecting
+		}
+	}
+
+	return -1; // not intersecting
 }
