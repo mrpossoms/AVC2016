@@ -20,8 +20,9 @@ typedef struct {
 } scn_datum_t;
 
 typedef struct {
-	uint8_t left_i, right_i;
+	uint8_t left_i, right_i, valid;
 	vec3f_t centroid;
+	float width;
 	float nearest;
 	float radius;
 } scn_obstacle_t;
@@ -56,6 +57,7 @@ int scn_find_obstacles(
 
 int obs_pos_rel(scn_obstacle_t* a, scn_obstacle_t* b);
 int obs_intersect(scn_obstacle_t* obs, vec3f_t v0, vec3f_t v1, vec3f_t* res);
+int obs_on_border(scn_obstacle_t* obs);
 
 #ifdef __cplusplus
 }

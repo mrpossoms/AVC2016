@@ -12,11 +12,35 @@ static float utility(agent_t* current, void* args)
 	return 0;
 }
 
+static int impact_danger()
+{
+	scn_obstacle_t* obs = SYS.sensors.scanner.obstacles;
+	vec3f_t v0 = SYS.pose.pos;
+	vec3f_t v1 = {};
+	vec3f_t intersect_point = {};
+
+	vec3Scl(v1, SYS.pose.vel, mtodeg(1) * 4);
+	vec3Add(v1, v1, v0);
+
+	for(int i = SCANNER_RES; i--;)
+	{
+		if(!obs[i].valid) continue;
+
+		if(obs_intersect(obs + i, v0, v1, &intersect_point))
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 static void* action(agent_t* lastState, void* args)
 {
 	static float last_mag;
 	vec3f_t acc = SYS.sensors.measured.acc;
 	acc.x = 0;
+	acc.z = 0; // don't catch jumps and stuff
 	float mag = vec3fMag(&acc);
 
 	scn_datum_t* middle = SYS.sensors.scanner.readings + (SCANNER_RES / 2);
@@ -28,12 +52,8 @@ static void* action(agent_t* lastState, void* args)
 
 	int has_impacted = fabs(last_mag - mag) > LIL_G;
 
-	float dist_to_obs = vec3Dist(middle->location, SYS.pose.pos);
-	float speed = mtodeg(vec3_len(SYS.pose.vel.v)) * 4;
-	int danger_of_impact = dist_to_obs < speed; // travel vector for next 2 seconds
-
 	// do stuff here, choose a successor state if appropriate
-	if(has_impacted || danger_of_impact){
+	if(has_impacted || impact_danger()){
 		// set the current waypoint to NULL, this will terminate the
 		// program
 		if(has_impacted) printf("IMPACT DETECTED\n");

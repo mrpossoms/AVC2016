@@ -58,14 +58,21 @@ int scn_find_obstacles(
 	const float max_dd = 0.5; // max change in distance Meters
 	int obs_ind = 0;
 
-	scn_datum_t* last = scanner->readings;
+	const scn_datum_t* readings = scanner->readings;
+	scn_datum_t* last = readings;
 	scn_datum_t* obs_start = last;
 	float nearest_point = obs_start->distance;
 
+	// invalidate all obstacles
+	for(int i = SCANNER_RES; i--;)
+	{
+		list[i].valid = 0;
+	}
+
 	for(int i = 1; i < SCANNER_RES; ++i)
 	{
-		scn_datum_t* curr = scanner->readings + i;
-	
+		scn_datum_t* curr = readings + i;
+
 		if(curr->time_taken == 0) continue;
 		float dd = fabs(last->distance - curr->distance);
 
@@ -88,11 +95,16 @@ int scn_find_obstacles(
 			vec3 delta;
 			vec3_sub(delta, obs_start->location.v, curr->location.v);
 			obs->radius = vec3_len(delta) / 2;
+			obs->valid = 1;
+
+			{
+				obs->width = (readings[s_i].angle - readings[e_i].angle) * obs->nearest;
+			}
 
 			// refresh the obs indices on the scanner data (for vis.)
 			for(int j = s_i; j <= e_i; ++j)
 			{
-				scanner->readings[j].obs_ind = obs_ind;
+				readings[j].obs_ind = obs_ind;
 			}
 
 			++obs_ind;
@@ -212,4 +224,9 @@ int obs_intersect(scn_obstacle_t* obs, vec3f_t v0, vec3f_t v1, vec3f_t* res)
 	}
 
 	return -1; // not intersecting
+}
+//------------------------------------------------------------------------------
+int obs_on_border(scn_obstacle_t* obs)
+{
+	return obs->left_i == 0 || obs->right_i == SCANNER_RES - 1;
 }
