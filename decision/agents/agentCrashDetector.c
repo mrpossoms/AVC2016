@@ -14,30 +14,38 @@ static float utility(agent_t* current, void* args)
 
 static int impact_danger()
 {
-	scn_obstacle_t* obs = SYS.sensors.scanner.obstacles;
-	vec3f_t v0 = {};
-	vec3f_t v1 = {};
-	vec3f_t intersect_point = {};
+	// scn_obstacle_t* obs = SYS.sensors.scanner.obstacles;
+	// vec3f_t v0 = {};
+	// vec3f_t v1 = {};
+	// vec3f_t intersect_point = {};
+	//
+	// v0.x = SYS.pose.pos.x; v0.y = SYS.pose.pos.y; v0.z = SYS.pose.pos.z;
+	//
+	// vec3Scl(v1, SYS.pose.vel, mtodeg(1) * -2);
+	// vec3Add(v1, v1, v0);
+	//
+	// for(int i = 0; i < SCANNER_RES; ++i)
+	// {
+	// 	if(!obs[i].valid) continue;
+	//
+	// 	if(obs_intersect(obs + i, v0, v1, &intersect_point) == 1)
+	// 	{
+	//
+	// 		printf("obs%d dist:%f rad:%f width:%f\n",
+	// 			i,
+	// 			obs[i].nearest,
+	// 			obs[i].radius,
+	// 			obs[i].width);
+	// 		return 1;
+	// 	}
+	// }
 
-	v0.x = SYS.pose.pos.x; v0.y = SYS.pose.pos.y; v0.z = SYS.pose.pos.z;
-
-	vec3Scl(v1, SYS.pose.vel, mtodeg(1) * -2);
-	vec3Add(v1, v1, v0);
-
-	for(int i = 0; i < SCANNER_RES; ++i)
+	vec3f_t inter;
+	scn_obstacle_t* obs;
+	if((obs = obs_intersects_route(SYS.route.currentWaypoint, &inter)))
 	{
-		if(!obs[i].valid) continue;
-
-		if(obs_intersect(obs + i, v0, v1, &intersect_point) == 1)
-		{
-
-			printf("obs%d dist:%f rad:%f width:%f\n",
-				i,
-				obs[i].nearest,
-				obs[i].radius,
-				obs[i].width);
-			return 1;
-		}
+		obs_print_info(obs);
+		return 1;
 	}
 
 	return 0;

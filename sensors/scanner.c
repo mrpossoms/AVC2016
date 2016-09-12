@@ -42,11 +42,11 @@ int scn_init(
 //------------------------------------------------------------------------------
 static int _scn_obs_compare(const void* a, const void* b)
 {
-	scn_obstacle_t* A = (scn_obstacle_t*)a;
-	scn_obstacle_t* B = (scn_obstacle_t*)b;
+	scn_datum_t* A = (scn_datum_t*)a;
+	scn_datum_t* B = (scn_datum_t*)b;
 
-	if(A->nearest < B->nearest) return -1;
-	if(A->nearest > B->nearest) return  1;
+	if(A->distance < B->distance) return -1;
+	if(A->distance > B->distance) return  1;
 	return 0;
 }
 //------------------------------------------------------------------------------
@@ -83,8 +83,8 @@ int scn_find_obstacles(
 			// define the width of it, with the left and right
 			// indices
 			scn_obstacle_t* obs = list + obs_ind;
-			int s_i = obs->left_i  = SERVO_DIR > 0 ? obs_start->index : last->index;
-			int e_i = obs->right_i = SERVO_DIR > 0 ? last->index : obs_start->index;
+			int s_i = obs->left_i  = obs_start->index;
+			int e_i = obs->right_i = curr->index;
 			obs->nearest = nearest_point;
 
 			// compute the obstacle centroid
@@ -93,15 +93,15 @@ int scn_find_obstacles(
 
 			// find the 'radius' of the obstacle
 			vec3 delta;
-			vec3_sub(delta, obs_start->location.v, last->location.v);
-			obs->radius = vec3_len(delta) / 3.5;
+			vec3_sub(delta, obs_start->location.v, curr->location.v);
+			obs->radius = vec3_len(delta) / 2;
 			obs->width = (readings[s_i].angle - readings[e_i].angle) * obs->nearest;
 
 			if(nearest_point < scanner->far_plane)
 			{
 				obs->valid = 1;
 
-				//printf("obs%d range:%f width:%f\n", i, nearest_point, obs->width);
+				printf("obs%d range:%f width:%f\n", i, nearest_point, obs->width);
 			}
 
 
@@ -137,8 +137,6 @@ int scn_find_obstacles(
 	// sort obstacles, nearest to furthest
 	qsort(list, list_size, sizeof(scn_obstacle_t), _scn_obs_compare);
 
-	obs_print_info(list);
-
 	return 0;
 }
 //------------------------------------------------------------------------------
@@ -159,14 +157,17 @@ void scn_update(scn_t* scanner, float meters)
 	scn_datum_t* reading = scanner->readings + i;
 	reading->time_taken = SYS.timeUp;
 
-	if(last)
-	{
-		if(distance < 0.1)
-		{
-			distance = last->distance;
-		}
 
-		reading->distance = distance * .75f + last->distance * .25f;
+	if(distance > 40)
+	{
+		if(last)
+		{
+			reading->distance = last->distance;
+		}
+		else
+		{
+			reading->distance = distance;
+		}
 	}
 	else
 	{
@@ -196,21 +197,6 @@ void scn_update(scn_t* scanner, float meters)
 	scn_find_obstacles(scanner, scanner->obstacles, SCANNER_RES);
 }
 //------------------------------------------------------------------------------
-int scn_all_far(scn_t* s)
-{
-	for(int i = SCANNER_RES; i--;)
-	{
-		float dist = vec3Dist(s->readings[i].location, SYS.pose.pos);
-
-		if(degtom(dist) < s->far_plane)
-		{
-			return 0;
-		}
-	}
-
-	return 1;
-}
-//------------------------------------------------------------------------------
 int obs_pos_rel(scn_obstacle_t* a, scn_obstacle_t* b)
 {
 	if(a->left_i < b->left_i) return -1; // a is left of b
@@ -227,12 +213,12 @@ int obs_intersect(scn_obstacle_t* obs, vec3f_t v0, vec3f_t v1, vec3f_t* res)
 	// (vt^2 + 2d*vt + d^2) + (wt^2 + 2e*wt + e^2) = r^2
 	// (vt^2 + 2d*vt) + (wt^2 + 2e*wt) = r^2 - d^2 - e^2
 	// t^2 (v + w) + 2t(dv * ew) = r^2 - d^2 - e^2
-	
+
 
 	vec3f_t v = { v1.x - v0.x, v1.y - v0.y, 0 };
-	vec3f_t d = { v0.x - obs->centroid.x, v0.y - obs->centroid.y, 0 };
+	vec3f_t d = { obs->centroid.x - v0.x, obs->centroid.y - v0.y, 0 };
 
-	float a = vec3_mul_inner(v.v, v.v);
+	float a = v.x + v.y;
 	float b = 2 * (v.x * d.x + v.y * d.y);
 	float c = vec3_mul_inner(d.v, d.v) - (obs->radius * obs->radius);
 	float rad_inner = b * b - 4 * a * c;
@@ -258,12 +244,34 @@ int obs_on_border(scn_obstacle_t* obs)
 	return obs->left_i == 0 || obs->right_i == SCANNER_RES - 1;
 }
 //------------------------------------------------------------------------------
-void obs_print_info(scn_obstacle_t* obs)
+scn_obstacle_t* obs_intersects_route(scn_t* scanner, gpsWaypointCont_t* curr, vec3f_t* at)
 {
-	printf("[%d, %d] nearest:%f width:%f rad:%f\n",
-		obs->left_i, obs->right_i,
-		obs->nearest,
-		obs->width,
-		obs->radius
-	);
+	const int max_exploration = 20;
+	scn_obstacle_t* obs = NULL;
+
+	for(int limit = max_exploration, gpsWaypointCont_t* way = curr;
+	    way && limit;
+	    way = curr->next;)
+	{
+		for(int i = 0; i < SCANNER_RES; ++i)
+		{
+			scn_obstacle_t* obs = scanner->obstacles + i;
+			if(!obs->valid) break; // reached the end of the list
+
+			float r2 = obs->radius * obs->radius;
+			vec3f_t delta = {};
+
+			vec3Sub(delta, way->self.location, obs->location);
+			float d2 = vec3Dot(delta, delta);
+
+			if(d2 <= r2) // way is inside of obs
+			{
+				return obs;
+			}
+		}
+
+		--limit; // we don't need to walk the entire route.
+	}
+
+	return obs;
 }
