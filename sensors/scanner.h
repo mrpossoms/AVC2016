@@ -60,6 +60,7 @@ int scn_all_far(scn_t* scanner);
 int obs_pos_rel(scn_obstacle_t* a, scn_obstacle_t* b);
 int obs_intersect(scn_obstacle_t* obs, vec3f_t v0, vec3f_t v1, vec3f_t* res);
 int obs_on_border(scn_obstacle_t* obs);
+void obs_print_info(scn_obstacle_t* obs);
 
 #ifdef __cplusplus
 }

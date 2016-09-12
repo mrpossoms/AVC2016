@@ -42,11 +42,11 @@ int scn_init(
 //------------------------------------------------------------------------------
 static int _scn_obs_compare(const void* a, const void* b)
 {
-	scn_datum_t* A = (scn_datum_t*)a;
-	scn_datum_t* B = (scn_datum_t*)b;
+	scn_obstacle_t* A = (scn_obstacle_t*)a;
+	scn_obstacle_t* B = (scn_obstacle_t*)b;
 
-	if(A->distance < B->distance) return -1;
-	if(A->distance > B->distance) return  1;
+	if(A->nearest < B->nearest) return -1;
+	if(A->nearest > B->nearest) return  1;
 	return 0;
 }
 //------------------------------------------------------------------------------
@@ -136,6 +136,8 @@ int scn_find_obstacles(
 
 	// sort obstacles, nearest to furthest
 	qsort(list, list_size, sizeof(scn_obstacle_t), _scn_obs_compare);
+
+	obs_print_info(list);
 
 	return 0;
 }
@@ -254,4 +256,14 @@ int obs_intersect(scn_obstacle_t* obs, vec3f_t v0, vec3f_t v1, vec3f_t* res)
 int obs_on_border(scn_obstacle_t* obs)
 {
 	return obs->left_i == 0 || obs->right_i == SCANNER_RES - 1;
+}
+//------------------------------------------------------------------------------
+void obs_print_info(scn_obstacle_t* obs)
+{
+	printf("[%d, %d] nearest:%f width:%f rad:%f\n",
+		obs->left_i, obs->right_i,
+		obs->nearest,
+		obs->width,
+		obs->radius
+	);
 }
