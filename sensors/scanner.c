@@ -55,7 +55,7 @@ int scn_find_obstacles(
 	scn_obstacle_t* list,
 	int list_size)
 {
-	const float max_dd = 0.5; // max change in distance Meters
+	const float max_dd = 0.2; // max change in distance Meters
 	int obs_ind = 0;
 
 	scn_datum_t* const readings = scanner->readings;
@@ -83,8 +83,8 @@ int scn_find_obstacles(
 			// define the width of it, with the left and right
 			// indices
 			scn_obstacle_t* obs = list + obs_ind;
-			int s_i = obs->left_i  = obs_start->index;
-			int e_i = obs->right_i = curr->index;
+			int s_i = obs->left_i  = SERVO_DIR > 0 ? obs_start->index : last->index;
+			int e_i = obs->right_i = SERVO_DIR > 0 ? last->index : obs_start->index;
 			obs->nearest = nearest_point;
 
 			// compute the obstacle centroid
@@ -101,7 +101,7 @@ int scn_find_obstacles(
 			{
 				obs->valid = 1;
 
-				printf("obs%d range:%f width:%f\n", i, nearest_point, obs->width);
+				//printf("obs%d range:%f width:%f\n", i, nearest_point, obs->width);
 			}
 
 
@@ -216,9 +216,9 @@ int obs_intersect(scn_obstacle_t* obs, vec3f_t v0, vec3f_t v1, vec3f_t* res)
 	
 
 	vec3f_t v = { v1.x - v0.x, v1.y - v0.y, 0 };
-	vec3f_t d = { obs->centroid.x - v0.x, obs->centroid.y - v0.y, 0 };
+	vec3f_t d = { v0.x - obs->centroid.x, v0.y - obs->centroid.y, 0 };
 
-	float a = v.x + v.y;
+	float a = vec3_mul_inner(v.v, v.v);
 	float b = 2 * (v.x * d.x + v.y * d.y);
 	float c = vec3_mul_inner(d.v, d.v) - (obs->radius * obs->radius);
 	float rad_inner = b * b - 4 * a * c;

@@ -21,7 +21,7 @@ static int impact_danger()
 
 	v0.x = SYS.pose.pos.x; v0.y = SYS.pose.pos.y; v0.z = SYS.pose.pos.z;
 
-	vec3Scl(v1, SYS.pose.heading, mtodeg(1) * 4);
+	vec3Scl(v1, SYS.pose.vel, mtodeg(1) * 4);
 	vec3Add(v1, v1, v0);
 
 	for(int i = SCANNER_RES; i--;)
