@@ -7,8 +7,8 @@
 #include <string.h>
 
 int SERVO_FD;
-int SERVOS[2];
-int TRIM[2] = { 8, 0 };
+int SERVOS[3];
+int TRIM[3] = { 8, 0, 3 };
 
 int ctrlInit()
 {
@@ -36,8 +36,7 @@ int ctrlSet(int servo, int percent)
 	if(!SERVO_FD) return -1;
 
 	char str[12] = {};
-	percent += TRIM[servo];
-	sprintf(str, "%d=%d%%\n", servo, percent);
+	sprintf(str, "%d=%d%%\n", servo, percent + TRIM[servo]);
 	write(SERVO_FD, str, strlen(str));
 	SERVOS[servo] = percent;
 

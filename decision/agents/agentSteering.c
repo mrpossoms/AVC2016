@@ -80,7 +80,6 @@ static float utility(agent_t* current, void* args)
 static void* action(agent_t* lastState, void* args)
 {
 	if(!SYS.route.start || !SYS.route.currentWaypoint){
-		printf("no route");
 		return NULL;
 	}
 

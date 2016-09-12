@@ -290,24 +290,32 @@ int main(int argc, char* argv[])
 	
 	sleep(WAIT_TIME);
 	printf("Starting main loop\n");
+	int has_started = 0;
 	while(1){
 		assert(!isnan(SYS.pose.pos.x));
 		senUpdate(&SYS.sensors);
 		assert(!isnan(SYS.pose.pos.x));
 
+		if(fabs(SYS.sensors.measured.acc.y) > LIL_G / 4)
+		{
+			has_started = 1;
+		}
+
 		if(!IS_RC){
 			// TODO
 			SYS.sensors.hasGpsFix = 1;
 
-			AGENT_ROUTING.action(NULL, NULL);
-			AGENT_STEERING.action(NULL, NULL);
-			AGENT_THROTTLE.action(NULL, NULL);
-			AGENT_CRASH_DETECTOR.action(NULL, NULL);
-		
+			if(has_started)
+			{
+				AGENT_ROUTING.action(NULL, NULL);
+				AGENT_STEERING.action(NULL, NULL);
+				AGENT_THROTTLE.action(NULL, NULL);
+				AGENT_CRASH_DETECTOR.action(NULL, NULL);
+			}		
+
 			// if there is no next goal or GPS then terminate
 			if(!SYS.route.currentWaypoint){
-				printf("\nReached end of route\n");
-				break;
+				//break;
 			}
 		}
 		else if(REC_ROUTE){

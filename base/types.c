@@ -106,3 +106,9 @@ double mtodeg(float meters)
 	const double dia = 6371000 * 2;
 	return meters * 180 / (dia * M_PI);
 }
+//-----------------------------------------------------------------------------
+double degtom(float degrees)
+{
+	const double dia = 6371000 * 2;
+	return (degrees * (dia * M_PI)) / 180;
+}

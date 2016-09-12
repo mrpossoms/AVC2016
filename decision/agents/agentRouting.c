@@ -19,29 +19,6 @@ static float utility(agent_t* current, void* args)
 	return 10 / vec3Dist(SYS.pose.pos, waypoint->self.location);
 }
 //------------------------------------------------------------------------------
-static float waypoint_cost(gpsWaypointCont_t* way)
-{
-	const float min_dist = 0.00001;
-
-	vec3f_t delta = {};
-	delta.x = SYS.pose.pos.x - way->self.location.x;
-	delta.y = SYS.pose.pos.y - way->self.location.y;
-	delta.z = 0; // we don't give a shit about altitude
-
-	float dist = vec3fMag(&delta);
-	float coincidence = 0;
-	vec3f_t grad = gpsWaypointGradient(way);
-	vec3f_t* heading = &SYS.pose.heading;
-
-	if(grad.x || grad.y || grad.z)
-	{
-		float base = vec3fMag(&grad) * vec3fMag(heading);
-		coincidence = acosf(vec3fDot(&grad, heading) / base);
-	}
-
-	return powf(dist - min_dist, 2) + coincidence;
-}
-//------------------------------------------------------------------------------
 static void standard_routing()
 {
 	static float last_dist;
@@ -89,23 +66,25 @@ static void cost_routing()
 		delta.y = SYS.pose.pos.y - waypoint->self.location.y;
 		delta.z = 0; // we don't give a shit about altitude
 
-		if(vec3fMag(&delta) < 0.00001){
+		if(vec3fMag(&delta) < mtodeg(0.5)){
 			waypoint->self.flags++;
 			SYS.route.currentWaypoint = waypoint->next;
+
+			printf("Finished!\n");
 		}
 
 		return;
 	}
 
 	// start with our current waypoint
-	float best_cost = waypoint_cost(waypoint);
+	float best_cost = waypoint_cost(waypoint, &SYS.pose);
 	gpsWaypointCont_t* best_way = waypoint;
 
 	// iterate over all remaining waypoints
 	for(gpsWaypointCont_t* way = best_way->next; way; way = way->next)
 	{
 		// is there a more optimal one to seek?
-		float cost = waypoint_cost(way);
+		float cost = waypoint_cost(way, &SYS.pose);
 		if(cost < best_cost)
 		{
 			printf("%x --> %x\n", (unsigned int)best_way, (unsigned int)way);

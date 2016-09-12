@@ -21,22 +21,21 @@ static int impact_danger()
 
 	v0.x = SYS.pose.pos.x; v0.y = SYS.pose.pos.y; v0.z = SYS.pose.pos.z;
 
-	vec3Scl(v1, SYS.pose.vel, mtodeg(1) * 4);
+	vec3Scl(v1, SYS.pose.vel, mtodeg(1) * -2);
 	vec3Add(v1, v1, v0);
 
-	for(int i = SCANNER_RES; i--;)
+	for(int i = 0; i < SCANNER_RES; ++i)
 	{
 		if(!obs[i].valid) continue;
 
 		if(obs_intersect(obs + i, v0, v1, &intersect_point) == 1)
 		{
 
-			printf("obs%d dist %f @ (%f, %f, %f)\n",
+			printf("obs%d dist:%f rad:%f width:%f\n",
 				i,
 				obs[i].nearest,
-				intersect_point.x,
-				intersect_point.y,
-				intersect_point.z);
+				obs[i].radius,
+				obs[i].width);
 			return 1;
 		}
 	}

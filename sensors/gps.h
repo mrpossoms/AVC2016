@@ -27,6 +27,9 @@ int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints);
 int gpsRouteUnload(gpsWaypointCont_t** waypoints);
 int gpsRouteAdvance(vec3d_t* position, gpsWaypointCont_t** current, uint8_t lapFlag);
 
+float waypoint_coincidence(gpsWaypointCont_t* way, pose_t* pose);
+float waypoint_cost(gpsWaypointCont_t* way, pose_t* pose);
+
 #ifdef __cplusplus
 }
 #endif

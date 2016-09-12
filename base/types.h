@@ -104,6 +104,13 @@ typedef union{
 	};
 } vec3d_t;
 
+typedef struct {
+	vec3d_t pos;
+	vec3f_t vel;
+	vec3f_t heading;
+	vec3f_t accFrame[3];
+} pose_t; // 84B
+
 typedef enum{
 	MISS_SRV_UPLOAD = 0,
 	MISS_SRV_RUN,
@@ -151,6 +158,7 @@ float   vec3fAng(vec3f_t* a, vec3f_t* b);
 double gauss(double mu, double sigma, double x);
 
 double mtodeg(float meters);
+double degtom(float degrees);
 vec3d_t mtoll(vec3d_t* lat_lon);
 
 #ifdef __cplusplus

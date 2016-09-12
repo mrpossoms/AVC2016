@@ -222,3 +222,33 @@ int gpsRouteAdvance(vec3d_t* position, gpsWaypointCont_t** current, uint8_t lapF
 
 	return 0;
 }
+//-----------------------------------------------------------------------------
+float waypoint_coincidence(gpsWaypointCont_t* way, pose_t* pose)
+{
+	vec3f_t grad = gpsWaypointGradient(way);
+	vec3f_t* heading = &pose->heading;
+
+	if(grad.x || grad.y || grad.z)
+	{
+		float base = vec3fMag(&grad) * vec3fMag(heading);
+		return acosf(vec3fDot(&grad, heading) / base);
+	}
+
+	return 0;
+}
+//-----------------------------------------------------------------------------
+float waypoint_cost(gpsWaypointCont_t* way, pose_t* pose)
+{
+	const float min_dist = 0.00001;
+
+	vec3f_t delta = {};
+	delta.x = pose->pos.x - way->self.location.x;
+	delta.y = pose->pos.y - way->self.location.y;
+	delta.z = 0; // we don't give a shit about altitude
+
+	float dist = vec3fMag(&delta);
+	
+
+	return powf(dist - min_dist, 2) + waypoint_coincidence(way, pose);
+}
+

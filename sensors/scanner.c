@@ -55,7 +55,7 @@ int scn_find_obstacles(
 	scn_obstacle_t* list,
 	int list_size)
 {
-	const float max_dd = 0.2; // max change in distance Meters
+	const float max_dd = 0.5; // max change in distance Meters
 	int obs_ind = 0;
 
 	scn_datum_t* const readings = scanner->readings;
@@ -93,8 +93,8 @@ int scn_find_obstacles(
 
 			// find the 'radius' of the obstacle
 			vec3 delta;
-			vec3_sub(delta, obs_start->location.v, curr->location.v);
-			obs->radius = vec3_len(delta) / 2;
+			vec3_sub(delta, obs_start->location.v, last->location.v);
+			obs->radius = vec3_len(delta) / 3.5;
 			obs->width = (readings[s_i].angle - readings[e_i].angle) * obs->nearest;
 
 			if(nearest_point < scanner->far_plane)
@@ -157,17 +157,14 @@ void scn_update(scn_t* scanner, float meters)
 	scn_datum_t* reading = scanner->readings + i;
 	reading->time_taken = SYS.timeUp;
 
-
-	if(distance > 40)
+	if(last)
 	{
-		if(last)
+		if(distance < 0.1)
 		{
-			reading->distance = last->distance;
+			distance = last->distance;
 		}
-		else
-		{
-			reading->distance = distance;
-		}
+
+		reading->distance = distance * .75f + last->distance * .25f;
 	}
 	else
 	{
@@ -195,6 +192,21 @@ void scn_update(scn_t* scanner, float meters)
 	LAST_SCANNED = SYS.timeUp;
 
 	scn_find_obstacles(scanner, scanner->obstacles, SCANNER_RES);
+}
+//------------------------------------------------------------------------------
+int scn_all_far(scn_t* s)
+{
+	for(int i = SCANNER_RES; i--;)
+	{
+		float dist = vec3Dist(s->readings[i].location, SYS.pose.pos);
+
+		if(degtom(dist) < s->far_plane)
+		{
+			return 0;
+		}
+	}
+
+	return 1;
 }
 //------------------------------------------------------------------------------
 int obs_pos_rel(scn_obstacle_t* a, scn_obstacle_t* b)

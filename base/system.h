@@ -36,13 +36,6 @@ typedef struct {
 } depthWindow_t;
 
 typedef struct {
-	vec3d_t pos;
-	vec3f_t vel;
-	vec3f_t heading;
-	vec3f_t accFrame[3];
-} pose_t; // 84B
-
-typedef struct {
 	imuState_t    imu;
 	scn_t         scanner;
 	float         lastMeasureTime;

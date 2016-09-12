@@ -1,5 +1,6 @@
 #include "agents.h"
 #include "controls/servos.h"
+#include "sensors/gps.h"
 
 static void throttleInit(void)
 {
@@ -20,7 +21,12 @@ static void* action(agent_t* lastState, void* args)
 	// do stuff here, choose a successor state if appropriate
 	if(SYS.route.currentWaypoint){
 		if(SYS.sensors.hasGpsFix && vec3Dist(SYS.pose.pos, waypoint->self.location) > 0.000001){
-			ctrlSet(SERVO_THROTTLE, SYS.maxSpeed);
+			float boost = 0;
+
+			if(scn_all_far(&SYS.sensors.scanner) && waypoint_coincidence(waypoint, &SYS.pose) < 0.1)
+				boost = 1;
+
+			ctrlSet(SERVO_THROTTLE, SYS.maxSpeed + boost);
 		}
 	}
 	else{
