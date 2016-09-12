@@ -1,4 +1,5 @@
 #include "agents.h"
+#include "sensors/gps.h"
 
 static void routeInit(void)
 {
@@ -27,10 +28,10 @@ static float waypoint_cost(gpsWaypointCont_t* way)
 	delta.y = SYS.pose.pos.y - way->self.location.y;
 	delta.z = 0; // we don't give a shit about altitude
 
-	float dist = vec3fMag(delta);
+	float dist = vec3fMag(&delta);
 	float coincidence = 0;
 	vec3f_t grad = gpsWaypointGradient(way);
-	vec3f_t* heading = &SYS.pose.vel;
+	vec3f_t* heading = &SYS.pose.heading;
 
 	if(grad.x || grad.y || grad.z)
 	{
@@ -70,6 +71,14 @@ static void cost_routing()
 {
 	gpsWaypointCont_t* waypoint = SYS.route.currentWaypoint;
 
+	vec3f_t* h = &SYS.pose.heading;
+	
+	if(vec3fIsNan(h)) return;
+	if(!h->x && !h->y && !h->z)
+	{
+		return;
+	}
+
 	// are we near the end of our route?
 	if(!waypoint->next)
 	{
@@ -99,7 +108,9 @@ static void cost_routing()
 		float cost = waypoint_cost(way);
 		if(cost < best_cost)
 		{
+			printf("%x --> %x\n", (unsigned int)best_way, (unsigned int)way);
 			best_way = way;
+			best_cost = cost;
 		}
 	}
 

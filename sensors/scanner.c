@@ -58,7 +58,7 @@ int scn_find_obstacles(
 	const float max_dd = 0.5; // max change in distance Meters
 	int obs_ind = 0;
 
-	const scn_datum_t* readings = scanner->readings;
+	scn_datum_t* const readings = scanner->readings;
 	scn_datum_t* last = readings;
 	scn_datum_t* obs_start = last;
 	float nearest_point = obs_start->distance;
@@ -95,11 +95,15 @@ int scn_find_obstacles(
 			vec3 delta;
 			vec3_sub(delta, obs_start->location.v, curr->location.v);
 			obs->radius = vec3_len(delta) / 2;
-			obs->valid = 1;
+			obs->width = (readings[s_i].angle - readings[e_i].angle) * obs->nearest;
 
+			if(nearest_point < scanner->far_plane)
 			{
-				obs->width = (readings[s_i].angle - readings[e_i].angle) * obs->nearest;
+				obs->valid = 1;
+
+				printf("obs%d range:%f width:%f\n", i, nearest_point, obs->width);
 			}
+
 
 			// refresh the obs indices on the scanner data (for vis.)
 			for(int j = s_i; j <= e_i; ++j)
@@ -173,7 +177,7 @@ void scn_update(scn_t* scanner, float meters)
 	vec3f_t temp;
 	quat rotation = { 0, 0, 0, 1 };
 	vec3_scale(temp.v, SYS.pose.heading.v, (float)mtodeg(reading->distance)); // scale the normalized heading
-	quat_from_axis_angle(rotation, 0, 1, 0, reading->angle);
+	quat_from_axis_angle(rotation, 0, 0, 1, reading->angle);
 	quat_mul_vec3(temp.v, rotation, temp.v); // rotate it by the angle of the measurement
 	vec3Add(reading->location, temp, SYS.pose.pos); // add to current position
 
@@ -202,12 +206,12 @@ int obs_pos_rel(scn_obstacle_t* a, scn_obstacle_t* b)
 //------------------------------------------------------------------------------
 int obs_intersect(scn_obstacle_t* obs, vec3f_t v0, vec3f_t v1, vec3f_t* res)
 {
-	vec3f_t v = { v1.x - v0.y, 0, v1.z - v0.z };
-	vec3f_t d = { obs->centroid.x - v0.x, 0, obs->centroid.y - v1.z };
+	vec3f_t v = { v1.x - v0.x, v1.y - v0.y, 0 };
+	vec3f_t d = { obs->centroid.x - v0.x, obs->centroid.y - v0.y, 0 };
 
-	float a = v.x + v.z;
-	float b = 2 * (v.x * d.x + v.z * d.z);
-	float c = vec3_mul_inner(d.v, d.v) - obs->radius;
+	float a = v.x + v.y;
+	float b = 2 * (v.x * d.x + v.y * d.y);
+	float c = vec3_mul_inner(d.v, d.v) - (obs->radius * obs->radius);
 	float rad_inner = b * b - 4 * a * c;
 
 	if(a == 0 || rad_inner < 0) return 0; // can't intersect

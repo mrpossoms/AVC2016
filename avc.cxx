@@ -303,7 +303,7 @@ int main(int argc, char* argv[])
 			AGENT_STEERING.action(NULL, NULL);
 			AGENT_THROTTLE.action(NULL, NULL);
 			AGENT_CRASH_DETECTOR.action(NULL, NULL);
-
+		
 			// if there is no next goal or GPS then terminate
 			if(!SYS.route.currentWaypoint){
 				printf("\nReached end of route\n");
