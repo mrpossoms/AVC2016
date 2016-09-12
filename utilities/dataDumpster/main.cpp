@@ -72,7 +72,9 @@ static vec3_t pcRawColor(vec3* points, int point_i, vec3 min, vec3 max, float s)
 
 static vec3_t pcObsColor(vec3* points, int point_i, vec3 min, vec3 max, float s)
 {
-	return regionColor(point_i * 10);
+	vec3_t red = { 1, 0, 0 };
+	return red;
+	//return regionColor(DAT_OBS[point_i] * 20);
 }
 
 static vec3_t pcCalColor(vec3* points, int point_i, vec3 min, vec3 max, float s)
@@ -142,7 +144,14 @@ static void onData(sysSnap_t snap)
 
 	scn_datum_t d = snap.lastDepth;
 	vec3f_t loc = { cosf(d.angle) * d.distance, 0, sinf(d.angle) * d.distance };
-	DAT_DEPTH[d.index] = loc;
+	//DAT_DEPTH[d.index] = loc;
+	vec3Sub(DAT_DEPTH[d.index], d.location, snap.pose.pos);
+	vec3Scl(DAT_DEPTH[d.index], DAT_DEPTH[d.index], 100000);
+
+	quat rot = {};
+	quat_from_axis_angle(rot, 1, 0, 0, M_PI / 2);
+	quat_mul_vec3(DAT_DEPTH[d.index].v, rot, DAT_DEPTH[d.index].v);
+
 	DAT_OBS[d.index] = d.obs_ind;
 
 	// printf("%d\n", d.obs_ind);

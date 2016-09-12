@@ -206,6 +206,15 @@ int obs_pos_rel(scn_obstacle_t* a, scn_obstacle_t* b)
 //------------------------------------------------------------------------------
 int obs_intersect(scn_obstacle_t* obs, vec3f_t v0, vec3f_t v1, vec3f_t* res)
 {
+	// (x - o)^2 + (y - p)^2 = r^2
+	// (r + v * t - o)^2 + (s + w * t - p)^2 = r^2
+	// d = r - o, e = s - p
+	// (v * t + d)^2 + (w * t + e)^2 = r^2
+	// (vt^2 + 2d*vt + d^2) + (wt^2 + 2e*wt + e^2) = r^2
+	// (vt^2 + 2d*vt) + (wt^2 + 2e*wt) = r^2 - d^2 - e^2
+	// t^2 (v + w) + 2t(dv * ew) = r^2 - d^2 - e^2
+	
+
 	vec3f_t v = { v1.x - v0.x, v1.y - v0.y, 0 };
 	vec3f_t d = { obs->centroid.x - v0.x, obs->centroid.y - v0.y, 0 };
 
