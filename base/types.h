@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <math.h>
 #include <arpa/inet.h>
+#include "linmath.h"
 
 #ifdef DEBUG
 #include "kf.h"
@@ -14,6 +15,12 @@
 #define vec2Sub(r, v1, v2){\
 	(r).v[0] = (v1).v[0] - (v2).v[0];\
 	(r).v[1] = (v1).v[1] - (v2).v[1];\
+}\
+
+#define vec3Set(r, v1){\
+	(r).v[0] = (v1).v[0];\
+	(r).v[1] = (v1).v[1];\
+	(r).v[2] = (v1).v[2];\
 }\
 
 #define vec3Add(r, v1, v2){\
@@ -142,6 +149,9 @@ void    vec2fRot(vec2f_t* r, vec2f_t* v, float theta);
 float   vec3fAng(vec3f_t* a, vec3f_t* b);
 
 double gauss(double mu, double sigma, double x);
+
+double mtodeg(float meters);
+vec3d_t mtoll(vec3d_t* lat_lon);
 
 #ifdef __cplusplus
 }

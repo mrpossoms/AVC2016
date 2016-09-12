@@ -1,6 +1,7 @@
 #include "filtering.h"
 #include "imu.h"
 #include "gps.h"
+#include "servos.h"
 
 #define IMU_SAMPLES 25
 #define SENSOR_COUNT 4
@@ -69,8 +70,7 @@ int sen_filters_init(int imu_fd, sensors_t* sen)
 
 		samples[i] = cal;
 		mag_mags[i] = vec3fMag(&cal.mag);
-		write(1, "*", 1);
-		sen->mag_expected[MAG] += mag_mags[i];
+		sen->mag_expected.len += mag_mags[i] / (float)IMU_SAMPLES;
 
 		// begin summation for the mean
 		vec3Add(filters->means.acc, filters->means.acc, cal.acc);
@@ -91,13 +91,42 @@ int sen_filters_init(int imu_fd, sensors_t* sen)
 		usleep(1000 * 200);
 		if(i % 10) write(1, ".", 1);
 	}
+/*
+	ctrlSet(SERVO_STEERING, 25);
+	sleep(1);
+	for(int i = IMU_SAMPLES; i--;)
+	{
+		usleep(1000 * 20);
+		if(i % 10) write(1, ".", 1);
+		sensorStatei_t raw = imuGetReadings(imu_fd);
+		sensorStatef_t cal = imuApplyCalibration(&raw, sen->imu.calMinMax);
+
+		sen->mag_expected[0].len += vec3fMag(&cal.mag) / (float)IMU_SAMPLES;
+	}
+
+	ctrlSet(SERVO_STEERING, 75);
+	sleep(1);
+	for(int i = IMU_SAMPLES; i--;)
+	{
+		usleep(1000 * 20);
+		if(i % 10) write(1, ".", 1);
+		sensorStatei_t raw = imuGetReadings(imu_fd);
+		sensorStatef_t cal = imuApplyCalibration(&raw, sen->imu.calMinMax);
+
+		sen->mag_expected[2].len += vec3fMag(&cal.mag) / (float)IMU_SAMPLES;
+	}
+
+	ctrlSet(SERVO_STEERING, 50);
+	printf("\n25 -> %f\n50 -> %f\n75 -> %f\n", sen->mag_expected[0].len, sen->mag_expected.len, sen->mag_expected[2].len);
+	sleep(2);
+*/
 
 	// compute means
 	vec3Scl(filters->means.acc,  filters->means.acc,  1 / (float)IMU_SAMPLES);
 	vec3Scl(filters->means.gyro, filters->means.gyro, 1 / (float)IMU_SAMPLES);
 	vec3Scl(filters->means.mag,  filters->means.mag,  1 / (float)IMU_SAMPLES);
 	vec3Scl(filters->means.gps,  filters->means.gps,  1 / (float)IMU_SAMPLES);
-	float mag_mu = (sen->mag_expected[MAG] /= (float)IMU_SAMPLES);
+	float mag_mu = sen->mag_expected.len;
 
 	vec3f_t* std_devs = &(filters->stdDevs.acc);
 	vec3f_t* mean = &(filters->means.acc);
@@ -114,7 +143,7 @@ int sen_filters_init(int imu_fd, sensors_t* sen)
 			vec3Add(std_devs[j], std_devs[j], delta);
 		}
 
-		sen->mag_expected[STD_DEV] += pow(mag_mags[i] - mag_mu, 2);
+		sen->mag_expected.std_dev += pow(mag_mags[i] - mag_mu, 2);
 	}
 
 	// compute standard deviations
@@ -123,9 +152,9 @@ int sen_filters_init(int imu_fd, sensors_t* sen)
 		std_devs[i].y = sqrt(std_devs[i].y);
 		std_devs[i].z = sqrt(std_devs[i].z);
 	}
-	sen->mag_expected[STD_DEV] = sqrtf(sen->mag_expected[STD_DEV]);
+	sen->mag_expected.std_dev = sqrtf(sen->mag_expected.std_dev);
 
-	printf("Mag exp: %f, std dev: %f\n", sen->mag_expected[MAG], sen->mag_expected[STD_DEV]);
+	printf("Mag exp: %f, std dev: %f\n", sen->mag_expected.len, sen->mag_expected.std_dev);
 
 	return create_filters(filters);
 }

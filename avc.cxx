@@ -30,20 +30,29 @@ int MISSION_FD = 0;
 uint32_t MISSION_WAYPOINTS = 0;
 int IS_RC = 0, REC_ROUTE = 0;
 int USE_BLACK_BOX = 1;
+int WAIT_TIME;
 
 void* RCHandler(void* arg);
 
-//      _   ___  ___   _  _         _ _          
-//     /_\ | _ \/ __| | || |_ _  __| | |_ _ ___  
-//    / _ \|   / (_ | | __ | ' \/ _` | | '_(_-<_ 
+//      _   ___  ___   _  _         _ _
+//     /_\ | _ \/ __| | || |_ _  __| | |_ _ ___
+//    / _ \|   / (_ | | __ | ' \/ _` | | '_(_-<_
 //   /_/ \_\_|_\\___| |_||_|_||_\__,_|_|_| /__(_)
-//                                               
+//
 static void mag_reset_opt(char* value, int present)
 {
 	if(present){
 		printf("Reseting magnetometer calibration readings\n");
 		bzero(SYS.sensors.imu.calMinMax[0].mag.v, sizeof(vec3i16_t));
 		bzero(SYS.sensors.imu.calMinMax[1].mag.v, sizeof(vec3i16_t));
+	}
+}
+
+static void delay_opt(char* value, int present)
+{
+	if(present)
+	{
+		WAIT_TIME = atoi(value);
 	}
 }
 
@@ -58,7 +67,7 @@ static void speed_opt(char* value, int present)
 		SYS.maxSpeed = 50;
 		printf("No speed set\n");
 	}
-	
+
 	printf("Max speed: %d\n", SYS.maxSpeed);
 }
 
@@ -97,8 +106,8 @@ static void record_opt(char* value, int present)
 
 static void rc_opt(char* value, int present)
 {
-	IS_RC = present;	
-	
+	IS_RC = present;
+
 	if(IS_RC)
 	{
 		printf("Using radio control\n");
@@ -206,6 +215,12 @@ int main(int argc, char* argv[])
 		"Skips starting servo driver and enabling servo control system",
 		0,
 		no_servos_opt
+	},
+	{
+		"--delay",
+		"Causes a delay of N seconds after initialization",
+		1,
+		delay_opt
 	}
 	OPT_LIST_END(HEADER)
 
@@ -250,7 +265,7 @@ int main(int argc, char* argv[])
 				return -1;
 			}
 
-			// seek to the starting position of the first waypoint	
+			// seek to the starting position of the first waypoint
 			lseek(MISSION_FD, sizeof(hdr), SEEK_SET);
 		}
 	}
@@ -262,16 +277,18 @@ int main(int argc, char* argv[])
 			SYS_ERR("Attaching to shared memory failed %s\n", "");
 			return -1;
 		}
- 
-		SYS.route.currentWaypoint = (gpsWaypointCont_t*)(&SYS.shm->followLocation);	
+
+		SYS.route.currentWaypoint = (gpsWaypointCont_t*)(&SYS.shm->followLocation);
 	}
-	
+
 	// setup all the decision agents
 	agentInitAgents();
 
 	SYS.pose.pos.x = SYS.pose.pos.y = 1;
 
-	printf("exp %f\n", SYS.sensors.mag_expected[MAG]);
+	printf("exp %f\n", SYS.sensors.mag_expected.len);
+	
+	sleep(WAIT_TIME);
 	printf("Starting main loop\n");
 	while(1){
 		assert(!isnan(SYS.pose.pos.x));
@@ -286,11 +303,11 @@ int main(int argc, char* argv[])
 			AGENT_STEERING.action(NULL, NULL);
 			AGENT_THROTTLE.action(NULL, NULL);
 			AGENT_CRASH_DETECTOR.action(NULL, NULL);
-	
+		
 			// if there is no next goal or GPS then terminate
 			if(!SYS.route.currentWaypoint){
 				printf("\nReached end of route\n");
-				//break;
+				break;
 			}
 		}
 		else if(REC_ROUTE){
@@ -298,17 +315,17 @@ int main(int argc, char* argv[])
 			gpsWaypoint_t wp = {
 				.location = SYS.pose.pos,
 			};
-		
+
 			if(vec3Dist(wp.location, last_pos) > 0.000001){
 				printf("Saving pos %f, %f\n", wp.location.x, wp.location.y);
-				write(MISSION_FD, &wp, sizeof(gpsWaypoint_t));	
+				write(MISSION_FD, &wp, sizeof(gpsWaypoint_t));
 				last_pos = wp.location;
 				MISSION_WAYPOINTS++;
 			}
 		}
-		
+
 		sysTimerUpdate();
-		
+
 		// record system state, if indicated
 		if(USE_BLACK_BOX){
 			diagBlkBoxLog();

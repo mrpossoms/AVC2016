@@ -5,6 +5,9 @@
 
 #define SAMPLES 1000
 
+extern vec3f_t DAT_DEPTH[SCANNER_RES];
+extern uint8_t DAT_OBS[SCANNER_RES];
+
 extern vec3f_t DAT_MAG_RAW[SAMPLES];
 extern vec3f_t DAT_MAG_CAL[SAMPLES];
 extern vec3f_t DAT_MAG_EST[SAMPLES];

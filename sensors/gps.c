@@ -103,19 +103,6 @@ int gpsHasNewReadings()
 	return (UPDATES % GPS_HZ) == 0;
 }
 //-----------------------------------------------------------------------------
-vec3d_t mtoll(vec3d_t* meters)
-{
-	const double dia = 6371000 * 2;
-
-	vec3d_t ll = {
-		meters->x * 180 / (dia * M_PI),
-		meters->y * 180 / (dia * M_PI),
-		meters->z
-	};
-
-	return ll;
-}
-//-----------------------------------------------------------------------------
 int gpsGetReadings(vec3d_t* position, vec3f_t* heading)
 {
 	position->x = position->y = position->z = 0;
@@ -206,6 +193,20 @@ int gpsRouteLoad(const char* path, gpsWaypointCont_t** waypoints)
 	close(fd);
 
 	return 0;
+}
+//-----------------------------------------------------------------------------
+vec3f_t gpsWaypointGradient(gpsWaypointCont_t* waypoint)
+{
+	vec3f_t delta = {};
+
+	if(waypoint->next)
+	{
+		delta.x = waypoint->self.location.x - waypoint->next->self.location.x;
+		delta.y = waypoint->self.location.y - waypoint->next->self.location.y;
+		delta.z = waypoint->self.location.z - waypoint->next->self.location.z;
+	}
+
+	return delta;
 }
 //-----------------------------------------------------------------------------
 int gpsRouteAdvance(vec3d_t* position, gpsWaypointCont_t** current, uint8_t lapFlag)

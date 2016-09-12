@@ -8,7 +8,7 @@ CMP = gcc
 SYS  = ./../base
 CONTROLS = ./../controls
 
-INC= -I/usr/local/include -I./ -I./../ -I$(SYS)
+INC= -I/usr/local/include -I./ -I../ -I../external/linmath.h -I$(SYS)
 LIB=-L/usr/lib -L/usr/local/lib
 LINK=-lm
 FLAGS= -g -std=c99 -Wall -Werror -Wno-unused-function -fpic -D_XOPEN_SOURCE=500

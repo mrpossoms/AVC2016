@@ -41,7 +41,7 @@ Renderer::Renderer(int w, int h)
 	glfwSetMouseButtonCallback(win, mouseButton);
 	glfwSetScrollCallback(win, scroll);
 
-	mat4x4_perspective(proj, M_PI / 2, w / (float)h, 0.01, 10);
+	mat4x4_perspective(proj, M_PI / 2, w / (float)h, 0.01, 100);
 	mat4x4_translate(view, 0, -0.5, CAM_Z);
 
 	VIEW = &view;

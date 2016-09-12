@@ -3,6 +3,11 @@
 
 #include <inttypes.h>
 #include <sys/types.h>
+#include <sys/ioctl.h>
+
+#ifdef __linux__
+#include <linux/i2c-dev.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {

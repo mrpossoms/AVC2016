@@ -11,6 +11,7 @@
 
 #include "types.h"
 #include "sensors/types.h"
+#include "sensors/scanner.h"
 #include "constants.h"
 
 #define SYS_ERR(fmt, ...){\
@@ -36,18 +37,25 @@ typedef struct {
 
 typedef struct {
 	vec3d_t pos;
+	vec3f_t vel;
 	vec3f_t heading;
 	vec3f_t accFrame[3];
-} pose_t;
+} pose_t; // 84B
 
 typedef struct {
 	imuState_t    imu;
+	scn_t         scanner;
 	float         lastMeasureTime;
 	float         lastEstTime;
 	sensorStatef_t measured;
 	sensorStatef_t filtered;
 	readingFilter_t filters;
-	float   mag_expected[2]; 
+
+	struct {
+		float len;
+		float std_dev;
+	} mag_expected;
+
 	uint8_t hasGpsFix;
 } sensors_t;
 
@@ -84,13 +92,15 @@ typedef struct {
 	} sensors;
 	pose_t pose;
 
+	scn_datum_t lastDepth;
+
 	gpsWaypoint_t currentWaypoint;
 	gpsWaypoint_t nextWaypoint;
 	uint8_t hasGpsFix;
 
 	struct {
 		uint8_t throttle;
-		uint8_t steering;	
+		uint8_t steering;
 	} controls;
 } __attribute__((packed)) sysSnap_t;
 //     ___ _     _          _

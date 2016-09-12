@@ -6,7 +6,7 @@ CMP = gcc
 
 ROOT_DIR=./../../
 
-INC=-I./ -I./../ -I$(ROOT_DIR) -I/usr/local/include
+INC=-I./ -I./../ -I$(ROOT_DIR) -I../../external/linmath.h -I/usr/local/include
 LIB=-L/usr/lib -L/usr/local/lib
 LINK=-lm
 FLAGS=-std=c99 -Wall -Werror -Wno-format-extra-args -Wno-missing-braces -fpic
