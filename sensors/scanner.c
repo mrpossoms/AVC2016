@@ -174,8 +174,14 @@ void scn_update(scn_t* scanner, float meters)
 
 	vec3f_t temp;
 	quat rotation = { 0, 0, 0, 1 };
-	vec3_scale(temp.v, SYS.pose.heading.v, (float)mtodeg(reading->distance)); // scale the normalized heading
-	quat_from_axis_angle(rotation, 0, 0, 1, reading->angle);
+
+	// mirror the heading where it's used.... not somewhere else ya dingus
+	vec3_scale(temp.v, SYS.pose.heading.v, -(float)mtodeg(reading->distance)); // scale the normalized heading
+
+	// TODO determine if the rotation angle truly does need to be 
+	// negated, courtesey of the mirrored heading vector
+	quat_from_axis_angle(rotation, 0, 0, 1, -reading->angle);
+
 	quat_mul_vec3(temp.v, rotation, temp.v); // rotate it by the angle of the measurement
 	vec3Add(reading->location, temp, SYS.pose.pos); // add to current position
 

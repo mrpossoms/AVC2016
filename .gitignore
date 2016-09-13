@@ -34,13 +34,16 @@
 objectDetection
 AVC
 
+external
+utilities/AVC\ Controller/AVC\ Controller.xcodeproj/project.xcworkspace/xcuserdata
+utilities/AVC\ Controller/AVC\ Controller.xcodeproj/project.xcworkspace/xcuserdata/
+utilities/AVC Controller/AVC Controller.xcodeproj/xcuserdata/
+utilities/dataDumpster/DataDump
+utilities/missionUpload/missionUpload
+
 # Debug files
 *.dSYM/
 
 *.DS_Store
 *.jpg
 .gitman
-
-./external
-./utilities/AVC\ Controller/AVC\ Controller.xcodeproj/project.xcworkspace/xcuserdata
-utilities/AVC\ Controller/AVC\ Controller.xcodeproj/project.xcworkspace/xcuserdata/
