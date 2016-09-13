@@ -278,12 +278,13 @@ scn_obstacle_t* obs_intersects_route(
 	scn_obstacle_t* obstacles,
 	int len,
 	gpsWaypointCont_t* curr,
-	vec3f_t* at)
+	gpsWaypointCont_t** before_intersect)
 {
 	const int max_exploration = 20;
 	scn_obstacle_t* obs = NULL;
 	int limit = max_exploration;
 
+	*before_intersect = curr;
 	for(gpsWaypointCont_t* way = curr; way && limit; way = way->next)
 	{
 		for(int i = 0; i < len; ++i)
@@ -305,7 +306,8 @@ scn_obstacle_t* obs_intersects_route(
 			}
 		}
 
-		//--limit; // we don't need to walk the entire route.
+		--limit; // we don't need to walk the entire route.
+		*before_intersect = curr;
 	}
 
 	return obs;

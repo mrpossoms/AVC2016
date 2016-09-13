@@ -40,9 +40,13 @@ static int impact_danger()
 	// 	}
 	// }
 
-	vec3f_t inter;
 	scn_obstacle_t* obs;
-	if((obs = obs_intersects_route(&SYS.sensors.scanner, SYS.route.currentWaypoint, &inter)))
+	gpsWaypointCont_t* before_intersect;
+	if((obs = obs_intersects_route(
+		SYS.sensors.scanner.obstacles,
+		SCANNER_RES,
+		SYS.route.currentWaypoint,
+		&before_intersect)))
 	{
 		obs_print_info(obs);
 		return 1;

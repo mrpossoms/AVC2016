@@ -66,7 +66,7 @@ scn_obstacle_t* obs_intersects_route(
 	scn_obstacle_t* obstacles,
 	int obstacles_len,
 	gpsWaypointCont_t* current,
-	vec3f_t* at);
+	gpsWaypointCont_t** before_intersect);
 
 #ifdef __cplusplus
 }
