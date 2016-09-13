@@ -4,7 +4,10 @@
 #include <inttypes.h>
 #include <math.h>
 #include <arpa/inet.h>
+
+#ifdef __linux__
 #include "linmath.h"
+#endif
 
 #ifdef DEBUG
 #include "kf.h"
