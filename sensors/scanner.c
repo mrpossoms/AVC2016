@@ -100,8 +100,6 @@ int scn_find_obstacles(
 			if(nearest_point < scanner->far_plane)
 			{
 				obs->valid = 1;
-
-				printf("obs%d range:%f width:%f\n", i, nearest_point, obs->width);
 			}
 
 
@@ -197,6 +195,22 @@ void scn_update(scn_t* scanner, float meters)
 	scn_find_obstacles(scanner, scanner->obstacles, SCANNER_RES);
 }
 //------------------------------------------------------------------------------
+int scn_all_far(scn_t* s)
+{
+	for(int i = SCANNER_RES; i--;)
+	{
+		float dist = vec3Dist(s->readings[i].location, SYS.pose.pos);
+
+		if(degtom(dist) < s->far_plane)
+		{
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+//------------------------------------------------------------------------------
 int obs_pos_rel(scn_obstacle_t* a, scn_obstacle_t* b)
 {
 	if(a->left_i < b->left_i) return -1; // a is left of b
@@ -244,33 +258,44 @@ int obs_on_border(scn_obstacle_t* obs)
 	return obs->left_i == 0 || obs->right_i == SCANNER_RES - 1;
 }
 //------------------------------------------------------------------------------
+void obs_print_info(scn_obstacle_t* obs)
+{
+	printf("[%d, %d] nearest:%f width:%f rad:%f\n",
+		obs->left_i, obs->right_i,
+		obs->nearest,
+		obs->width,
+		obs->radius
+	);
+}
+//------------------------------------------------------------------------------
 scn_obstacle_t* obs_intersects_route(scn_t* scanner, gpsWaypointCont_t* curr, vec3f_t* at)
 {
 	const int max_exploration = 20;
 	scn_obstacle_t* obs = NULL;
+	int limit = max_exploration;
 
-	for(int limit = max_exploration, gpsWaypointCont_t* way = curr;
-	    way && limit;
-	    way = curr->next;)
+	for(gpsWaypointCont_t* way = curr; way && limit; way = way->next)
 	{
 		for(int i = 0; i < SCANNER_RES; ++i)
 		{
 			scn_obstacle_t* obs = scanner->obstacles + i;
 			if(!obs->valid) break; // reached the end of the list
 
-			float r2 = obs->radius * obs->radius;
-			vec3f_t delta = {};
-
-			vec3Sub(delta, way->self.location, obs->location);
-			float d2 = vec3Dot(delta, delta);
-
-			if(d2 <= r2) // way is inside of obs
+			if(way->next)
 			{
-				return obs;
+				vec3f_t v0, v1, res;
+
+				vec3Set(v0, way->self.location);
+				vec3Set(v1, way->next->self.location);
+
+				if(obs_intersect(obs, v0, v1, &res) == 1)
+				{
+					return obs;
+				}
 			}
 		}
 
-		--limit; // we don't need to walk the entire route.
+		//--limit; // we don't need to walk the entire route.
 	}
 
 	return obs;

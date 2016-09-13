@@ -42,7 +42,7 @@ static int impact_danger()
 
 	vec3f_t inter;
 	scn_obstacle_t* obs;
-	if((obs = obs_intersects_route(SYS.route.currentWaypoint, &inter)))
+	if((obs = obs_intersects_route(&SYS.sensors.scanner, SYS.route.currentWaypoint, &inter)))
 	{
 		obs_print_info(obs);
 		return 1;

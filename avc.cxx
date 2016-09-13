@@ -296,8 +296,9 @@ int main(int argc, char* argv[])
 		senUpdate(&SYS.sensors);
 		assert(!isnan(SYS.pose.pos.x));
 
-		if(fabs(SYS.sensors.measured.acc.y) > LIL_G / 4)
+		if(!has_started && fabs(SYS.sensors.measured.acc.y) > LIL_G / 4)
 		{
+			printf("Lets go!\n");
 			has_started = 1;
 		}
 

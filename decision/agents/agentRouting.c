@@ -114,8 +114,8 @@ static void* action(agent_t* lastState, void* args)
 		}
 	}
 	else{
-		//standard_routing();
-		cost_routing();
+		standard_routing();
+		//cost_routing();
 	}
 
 	// do stuff here, choose a successor state if appropriate
