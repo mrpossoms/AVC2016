@@ -268,7 +268,11 @@ void obs_print_info(scn_obstacle_t* obs)
 	);
 }
 //------------------------------------------------------------------------------
-scn_obstacle_t* obs_intersects_route(scn_t* scanner, gpsWaypointCont_t* curr, vec3f_t* at)
+scn_obstacle_t* obs_intersects_route(
+	scn_obstacle_t* obstacles,
+	int len,
+	gpsWaypointCont_t* curr,
+	vec3f_t* at)
 {
 	const int max_exploration = 20;
 	scn_obstacle_t* obs = NULL;
@@ -276,9 +280,9 @@ scn_obstacle_t* obs_intersects_route(scn_t* scanner, gpsWaypointCont_t* curr, ve
 
 	for(gpsWaypointCont_t* way = curr; way && limit; way = way->next)
 	{
-		for(int i = 0; i < SCANNER_RES; ++i)
+		for(int i = 0; i < len; ++i)
 		{
-			scn_obstacle_t* obs = scanner->obstacles + i;
+			scn_obstacle_t* obs = obstacles + i;
 			if(!obs->valid) break; // reached the end of the list
 
 			if(way->next)

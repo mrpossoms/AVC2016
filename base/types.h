@@ -5,7 +5,7 @@
 #include <math.h>
 #include <arpa/inet.h>
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 #include "linmath.h"
 #endif
 

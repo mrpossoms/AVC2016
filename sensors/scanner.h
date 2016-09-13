@@ -62,7 +62,11 @@ int obs_intersect(scn_obstacle_t* obs, vec3f_t v0, vec3f_t v1, vec3f_t* res);
 int obs_on_border(scn_obstacle_t* obs);
 void obs_print_info(scn_obstacle_t* obs);
 
-scn_obstacle_t* obs_intersects_route(scn_t* scanner, gpsWaypointCont_t* current, vec3f_t* at);
+scn_obstacle_t* obs_intersects_route(
+	scn_obstacle_t* obstacles,
+	int obstacles_len,
+	gpsWaypointCont_t* current,
+	vec3f_t* at);
 
 #ifdef __cplusplus
 }
