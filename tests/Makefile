@@ -1,7 +1,7 @@
 OS=$(shell uname)
 
 CXX=gcc
-CXX_FLAGS=-std=c99
+CXX_FLAGS=-std=c99 -g
 
 MAIN=./..
 
@@ -22,7 +22,7 @@ run: build
 
 build: $(TST_SRC)
 	@echo "Building tests..."
-	@for source in $(TST_SRC); do\
+	for source in $(TST_SRC); do\
 		($(CXX) $(INC) $(CXX_FLAGS) $$source  -o $${source%.*}.bin $(LINK)) || (exit 1);\
 		mv ./src/*.bin ./bin;\
 	done

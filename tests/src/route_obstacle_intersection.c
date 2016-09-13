@@ -7,7 +7,7 @@
 #define RAND_F (random() % 2048 / 1024.f)
 
 gpsWaypointCont_t route[ROUTE_LEN];
-scn_obstacle_t int_obs, obs;
+scn_obstacle_t int_obs, between_obs, obs;
 
 vec3d_t normal()
 {
@@ -23,10 +23,11 @@ void setup(void)
 	vec3d_t direction = normal();
 	double d_per_meter = mtodeg(1);
 
-	vec3Scl(direction, direction, d_per_meter * .1); // 10cm
+	vec3Scl(direction, direction, d_per_meter);
+	assert(sqrt(vec3Dot(direction, direction)) == d_per_meter);
 
 	// setup a fake route. Extending on the y axis
-	// for 10 meters, but in degree units
+	// for 100 meters, but in degree units
 	for(int i = 0; i < ROUTE_LEN; ++i)
 	{
 		route[i].self.location = location;
@@ -50,14 +51,24 @@ void setup(void)
 	// two widths
 	obs = int_obs;
 	obs.centroid.x += obs.radius * 2;
+
+	// place obstacle between two waypoints to check for intersection correctness
+	between_obs.valid = 1;
+	between_obs.width = 0.5; // 5cm
+	between_obs.radius = d_per_meter * 0.5; // 2.5cm radius
+	vec3Add(between_obs.centroid, route[0].self.location, route[1].self.location);
+	vec3Scl(between_obs.centroid, between_obs.centroid, 0.5); // place betwen 0 & 1
+
 }
 
 int test(void)
 {
 	vec3f_t intersection;
 	scn_obstacle_t* int_obs_ptr = &int_obs;
+	scn_obstacle_t* bet_obs_ptr = &between_obs;
 	assert(int_obs_ptr == obs_intersects_route(int_obs_ptr, 1, route, &intersection));
-	//assert(obs_intersects_route(&obs, 1, route, &intersection) == NULL);
+	assert(bet_obs_ptr == obs_intersects_route(bet_obs_ptr, 1, route, &intersection));
+	assert(obs_intersects_route(&obs, 1, route, &intersection) == NULL);
 
 	return 0;
 }
