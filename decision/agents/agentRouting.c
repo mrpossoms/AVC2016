@@ -101,6 +101,36 @@ static void cost_routing()
 	SYS.route.currentWaypoint = best_way;
 }
 //------------------------------------------------------------------------------
+static int reroute(scn_obstacle_t* obs, gpsWaypointCont_t* before)
+{
+	const float car_width = mtodeg(0.4); // 40cm
+	float safe_rad = obs->radius + car_width;
+	float inf_rad = safe_rad * 2;
+
+	// start from the current waypoint, walk through the obstacles
+	gpsWaypointCont_t* way = SYS.route.currentWaypoint;
+	for(; way; way = way->next)
+	{
+		vec3f_t delta;
+		vec3Sub(delta, way->self.location, obs->centroid);
+		float dist = vec3fMag(delta);
+		
+		assert(dist > 0);
+
+		if(dist <= inf_rad)
+		{
+			vec3f_t n = {};
+
+			// normalize
+			vec3Scl(n, delta, 1 / dist);
+			vec3Scl(n, n, (safe_rad / dist) * safe_rad);
+
+			// offset
+			vec3Add(way->self.location, way->self.location, n);	
+		}
+	}
+}
+//------------------------------------------------------------------------------
 static void* action(agent_t* lastState, void* args)
 {
 	if(!SYS.route.start || !SYS.route.currentWaypoint){
@@ -116,6 +146,29 @@ static void* action(agent_t* lastState, void* args)
 	else{
 		standard_routing();
 		//cost_routing();
+
+		
+		// while the route is intersected by obstacles
+		// keep rerouting
+		scn_obstacle_t* obs = NULL;
+		gpsWaypointCont_t* before_intersect = NULL;
+		while(1)
+		{
+			obs = obs_intersects_route(
+				SYS.sensors.scanner.obstacles,
+				SCANNER_RES,
+				SYS.route.currentWaypoint,
+				&before_intersect
+			);
+
+			if(!obs) // an intersection wasn't detected, we're good
+			{
+				break;
+			}
+
+			// one was detected... re route
+			reroute(obs, before_intersect);	
+		}
 	}
 
 	// do stuff here, choose a successor state if appropriate
