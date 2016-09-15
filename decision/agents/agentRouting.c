@@ -56,7 +56,7 @@ static void cost_routing()
 	const float min_dist = mtodeg(0.1);
 
 	vec3f_t* h = &SYS.pose.heading;
-	
+
 	if(vec3fIsNan(h)) return;
 	if(!h->x && !h->y && !h->z)
 	{
@@ -111,7 +111,7 @@ static void cost_routing()
 	SYS.route.currentWaypoint = best_way;
 }
 //------------------------------------------------------------------------------
-static int reroute(scn_obstacle_t* obs, gpsWaypointCont_t* before)
+static int reroute(scn_t* scn, scn_obstacle_t* obs, gpsWaypointCont_t* before)
 {
 	const float car_width = mtodeg(1.6); // 40cm
 	float safe_rad = obs->radius + car_width;
@@ -121,22 +121,45 @@ static int reroute(scn_obstacle_t* obs, gpsWaypointCont_t* before)
 	gpsWaypointCont_t* way = SYS.route.currentWaypoint;
 	for(; way; way = way->next)
 	{
+		scn_obstacle_t* neighbor_obs[2] = {
+				obs_left(scn, obs),
+				obs_right(scn, obs),
+		};
+		scn_obstacle_t* other_obs = NULL;
+
+		// pick the better of the right or left
+		for(int i = 2; i--;)
+		{
+			scn_obstacle_t* obs = neighbor_obs + i;
+			if(!other_obs) other_obs = obs;
+			else if(obs->width > other_obs->width && obs->nearest > other_obs->nearest)
+			{
+				other_obs = obs;
+			}
+		}
+
 		vec3f_t delta;
 		vec3Sub(delta, way->self.location, obs->centroid);
 		float dist = vec3fMag(&delta);
-		
+
+
 		assert(dist > 0);
 
 		if(dist <= inf_rad)
 		{
 			vec3f_t n = {};
+			vec3f_t norm_delta;
+
+			vec3Add(norm_delta, other_obs->centroid, SYS.pose.pos); // intersecting obs to better obs
+			vec3Scl(norm_delta, norm_delta, 0.5);
+			vec3Sub(norm_delta, norm_delta, obs->centroid);
 
 			// normalize
-			vec3Scl(n, delta, 1 / dist);
+			vec3Scl(n, norm_delta, 1 / vec3fMag(norm_delta));
 			vec3Scl(n, n, (safe_rad / dist) * safe_rad);
 
 			// offset
-			vec3Add(way->self.location, way->self.location, n);	
+			vec3Add(way->self.location, way->self.location, n);
 
 			printf(">>Repositioning %d<<\n", way->self.index);
 			return 1;
@@ -162,7 +185,7 @@ static void* action(agent_t* lastState, void* args)
 		standard_routing();
 		//cost_routing();
 
-		
+
 		// while the route is intersected by obstacles
 		// keep rerouting
 		scn_obstacle_t* obs = NULL;
@@ -180,10 +203,8 @@ static void* action(agent_t* lastState, void* args)
 			if(obs) // an intersection wasn't detected, we're good
 			{
 				ctrlSet(SERVO_THROTTLE, 50);
-				reroute(obs, before_intersect);	
+				reroute(obs, before_intersect);
 			}
-
-			// one was detected... re route
 		}
 	}
 

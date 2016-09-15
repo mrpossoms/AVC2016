@@ -1,6 +1,7 @@
 #include "data.h"
 
-vec3f_t DAT_DEPTH[SCANNER_RES]; 
+vec3f_t DAT_OBS_NEAREST;
+vec3f_t DAT_DEPTH[SCANNER_RES];
 uint8_t DAT_OBS[SCANNER_RES];
 
 vec3f_t DAT_MAG_RAW[SAMPLES];

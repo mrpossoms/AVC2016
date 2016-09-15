@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <vector>
+#include <assert.h>
 
 #include "gfx.h"
 #include "data.h"
@@ -12,9 +13,23 @@
 using namespace gfx;
 using namespace data;
 
+const vec3_t RED = { 1, 0, 0 };
+const vec3_t BLACK = { 0, 0, 0 };
+
+
 PointCloud* magCloud;
 mat3_t ACC_BASIS_MAT;
-vec3f_t HEADING;
+vec3_t HEADING;
+
+vec3_t pcRed(vec3* points, int point_i, vec3 min, vec3 max, float s)
+{
+	return RED;
+}
+
+vec3_t pcBlack(vec3* points, int point_i, vec3 min, vec3 max, float s)
+{
+	return BLACK;
+}
 
 vec3_t regionColor(unsigned char theta)
 {
@@ -143,16 +158,19 @@ static void onData(sysSnap_t snap)
 	memcpy(&ACC_BASIS_MAT, snap.pose.accFrame, sizeof(snap.pose.accFrame));
 
 	scn_datum_t d = snap.lastDepth;
-	vec3f_t loc = { cosf(d.angle) * d.distance, 0, sinf(d.angle) * d.distance };
-	//DAT_DEPTH[d.index] = loc;
+	DAT_OBS[d.index] = d.obs_ind;
 	vec3Sub(DAT_DEPTH[d.index], d.location, snap.pose.pos);
-	vec3Scl(DAT_DEPTH[d.index], DAT_DEPTH[d.index], 100000);
+	vec3Scl(DAT_DEPTH[d.index], DAT_DEPTH[d.index], 1000000);
+
 
 	quat rot = {};
 	quat_from_axis_angle(rot, 1, 0, 0, M_PI / 2);
 	quat_mul_vec3(DAT_DEPTH[d.index].v, rot, DAT_DEPTH[d.index].v);
 
-	DAT_OBS[d.index] = d.obs_ind;
+	vec3Sub(DAT_OBS_NEAREST, snap.nearest_obs.centroid, snap.pose.pos);
+	vec3Scl(DAT_OBS_NEAREST, DAT_OBS_NEAREST, 1000000);
+	quat_mul_vec3(DAT_OBS_NEAREST.v, rot, DAT_OBS_NEAREST.v);
+
 
 	if(d.index == 0)
 	{
@@ -211,6 +229,9 @@ int main(int argc, char* argv[])
 	scannerCloud.colorForPoint = pcObsColor;
 	scannerCloud.style = GL_TRIANGLE_FAN;
 
+	PointCloud obstaclePoint((vec3*)&DAT_OBS_NEAREST, 1);
+	obstaclePoint.colorForPoint = pcBlack;
+
 	for(int i = SCANNER_RES; i--;)
 	{
 		DAT_DEPTH[i].x = 0;//cosf(i * ((M_PI / 2) / SCANNER_RES) - (M_PI / 4));
@@ -243,6 +264,7 @@ int main(int argc, char* argv[])
 	drawables.push_back(&gimbal);
 	drawables.push_back(&currentHeading);
 	drawables.push_back(&scannerCloud);
+	drawables.push_back(&obstaclePoint);
 
 	float t = 0;
 	while(win.isOpen()){

@@ -94,8 +94,9 @@ int scn_find_obstacles(
 			// find the 'radius' of the obstacle
 			vec3 delta;
 			vec3_sub(delta, obs_start->location.v, curr->location.v);
+
 			obs->radius = vec3_len(delta);
-			obs->width = (readings[s_i].angle - readings[e_i].angle) * obs->nearest;
+			obs->width = fabs(readings[s_i].angle - readings[e_i].angle) * obs->nearest;
 
 			if(nearest_point < scanner->far_plane)
 			{
@@ -186,7 +187,7 @@ void scn_update(scn_t* scanner, float meters)
 	// mirror the heading where it's used.... not somewhere else ya dingus
 	vec3_scale(temp.v, SYS.pose.heading.v, -(float)mtodeg(reading->distance)); // scale the normalized heading
 
-	// TODO determine if the rotation angle truly does need to be 
+	// TODO determine if the rotation angle truly does need to be
 	// negated, courtesey of the mirrored heading vector
 	quat_from_axis_angle(rotation, 0, 0, 1, -reading->angle);
 
@@ -280,6 +281,44 @@ void obs_print_info(scn_obstacle_t* obs)
 		obs->width,
 		obs->radius
 	);
+}
+//------------------------------------------------------------------------------
+scn_obstacle_t* obs_left(scn_t* scn, scn_obstacle_t* obs)
+{
+	if(obs->left_i > 0)
+	{
+		uint8_t left_ind = scn->readings[left_i - 1].obs_ind;
+		if(scn->obstacles[left_ind].valid)
+		{
+			return scn->obstacles + left_ind;
+		}
+	}
+
+	return NULL;
+}
+//------------------------------------------------------------------------------
+scn_obstacle_t* obs_right(scn_t* scn, scn_obstacle_t* obs)
+{
+	if(obs->right_i > 0)
+	{
+		uint8_t right_ind = scn->readings[right_i + 1].obs_ind;
+		if(scn->obstacles[right_ind].valid)
+		{
+			return scn->obstacles + right_ind;
+		}
+	}
+
+	return NULL;
+}
+//------------------------------------------------------------------------------
+scn_obstacle_t* obs_furthest(scn_t* scn)
+{
+	for(int i = SCANNER_RES; i--;){
+		if(scn->obstacles[i].valid)
+			return scn->obstacles + i;
+	}
+
+	return NULL;
 }
 //------------------------------------------------------------------------------
 scn_obstacle_t* obs_intersects_route(
