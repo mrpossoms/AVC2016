@@ -287,7 +287,7 @@ scn_obstacle_t* obs_left(scn_t* scn, scn_obstacle_t* obs)
 {
 	if(obs->left_i > 0)
 	{
-		uint8_t left_ind = scn->readings[left_i - 1].obs_ind;
+		uint8_t left_ind = scn->readings[obs->left_i - 1].obs_ind;
 		if(scn->obstacles[left_ind].valid)
 		{
 			return scn->obstacles + left_ind;
@@ -301,7 +301,7 @@ scn_obstacle_t* obs_right(scn_t* scn, scn_obstacle_t* obs)
 {
 	if(obs->right_i > 0)
 	{
-		uint8_t right_ind = scn->readings[right_i + 1].obs_ind;
+		uint8_t right_ind = scn->readings[obs->right_i + 1].obs_ind;
 		if(scn->obstacles[right_ind].valid)
 		{
 			return scn->obstacles + right_ind;

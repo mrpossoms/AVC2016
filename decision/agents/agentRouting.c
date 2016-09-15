@@ -130,7 +130,7 @@ static int reroute(scn_t* scn, scn_obstacle_t* obs, gpsWaypointCont_t* before)
 		// pick the better of the right or left
 		for(int i = 2; i--;)
 		{
-			scn_obstacle_t* obs = neighbor_obs + i;
+			scn_obstacle_t* obs = neighbor_obs[i];
 			if(!other_obs) other_obs = obs;
 			else if(obs->width > other_obs->width && obs->nearest > other_obs->nearest)
 			{
@@ -155,7 +155,7 @@ static int reroute(scn_t* scn, scn_obstacle_t* obs, gpsWaypointCont_t* before)
 			vec3Sub(norm_delta, norm_delta, obs->centroid);
 
 			// normalize
-			vec3Scl(n, norm_delta, 1 / vec3fMag(norm_delta));
+			vec3Scl(n, norm_delta, 1 / vec3fMag(&norm_delta));
 			vec3Scl(n, n, (safe_rad / dist) * safe_rad);
 
 			// offset
@@ -203,7 +203,7 @@ static void* action(agent_t* lastState, void* args)
 			if(obs) // an intersection wasn't detected, we're good
 			{
 				ctrlSet(SERVO_THROTTLE, 50);
-				reroute(obs, before_intersect);
+				reroute(&SYS.sensors.scanner, obs, before_intersect);
 			}
 		}
 	}
