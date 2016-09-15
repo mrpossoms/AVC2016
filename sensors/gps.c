@@ -1,4 +1,5 @@
 #include "gps.h"
+#include "base/system.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -215,23 +216,21 @@ int gpsRouteAdvance(vec3d_t* position, gpsWaypointCont_t** current, uint8_t lapF
 	if(!current) return -2;
 
 	gpsWaypointCont_t* waypoint = *current;
-	if(gpsDistToWaypoint(position, waypoint) <= waypoint->self.tolerance){
-		*current = waypoint->next;
-		return 1;
-	}
-
-	return 0;
+	*current = waypoint->next;
+	return 1;
 }
 //-----------------------------------------------------------------------------
 float waypoint_coincidence(gpsWaypointCont_t* way, pose_t* pose)
 {
 	vec3f_t grad = gpsWaypointGradient(way);
-	vec3f_t* heading = &pose->heading;
+	vec3f_t heading = pose->heading;
+	vec3Scl(heading, heading, -1);
 
 	if(grad.x || grad.y || grad.z)
 	{
-		float base = vec3fMag(&grad) * vec3fMag(heading);
-		return acosf(vec3fDot(&grad, heading) / base);
+		float base = vec3fMag(&grad) * vec3fMag(&heading);
+		float angle = acosf(vec3fDot(&grad, &heading) / base);
+		return angle;
 	}
 
 	return 0;
@@ -239,16 +238,23 @@ float waypoint_coincidence(gpsWaypointCont_t* way, pose_t* pose)
 //-----------------------------------------------------------------------------
 float waypoint_cost(gpsWaypointCont_t* way, pose_t* pose)
 {
-	const float min_dist = 0.00001;
+	const float min_dist = mtodeg(0.1);
 
 	vec3f_t delta = {};
 	delta.x = pose->pos.x - way->self.location.x;
 	delta.y = pose->pos.y - way->self.location.y;
 	delta.z = 0; // we don't give a shit about altitude
 
-	float dist = vec3fMag(&delta);
+	float dist = vec3fMag(&delta) * 1e5;
+	int idx_cost = (way->self.index - SYS.route.currentWaypoint->self.index) * .1;
 	
+	if(dist < min_dist)
+	{
+		return 1000;
+	}
 
-	return powf(dist - min_dist, 2) + waypoint_coincidence(way, pose);
+	return dist + waypoint_coincidence(way, pose) + idx_cost;
+
+	//return powf(dist - min_dist, 2) + waypoint_coincidence(way, pose) + idx_cost;
 }
 

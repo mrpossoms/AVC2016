@@ -101,17 +101,28 @@ int contMagCal(sensorStatei_t* raw, sensorStatei_t calMinMax[2])
 			magMin->v[i] = raw->mag.v[i];
 			updatedMagWindow = 1;
 		}
+
+		printf("Mag range (%d, %d, %d) -- (%d, %d, %d)\n",
+			magMin->x, magMin->y, magMin->z,
+			magMax->x, magMax->y, magMax->z
+		);
 	}
 
 	// write new mag min and max if applicable
 	if(updatedMagWindow){
 		int calFd = open("./imu.cal", O_WRONLY);
 
+		printf("Mag range (%d, %d, %d) -- (%d, %d, %d)\n",
+			magMin->x, magMin->y, magMin->z,
+			magMax->x, magMax->y, magMax->z
+		);
+		
+
 		if(calFd < 0){
 			return -1;
 		}
 
-		write(calFd, &calMinMax, sizeof(sensorStatei_t) * 2);
+		write(calFd, calMinMax, sizeof(sensorStatei_t) * 2);
 		close(calFd);
 	}
 

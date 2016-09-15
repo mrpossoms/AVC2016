@@ -86,6 +86,7 @@ typedef struct {
 	pose_t pose;
 
 	scn_datum_t lastDepth;
+	scn_obstacle_t nearest_obs;
 
 	gpsWaypoint_t currentWaypoint;
 	gpsWaypoint_t nextWaypoint;

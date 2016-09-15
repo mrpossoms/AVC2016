@@ -1,5 +1,6 @@
 #include "agents.h"
 #include "sensors/gps.h"
+#include <assert.h>
 
 static void routeInit(void)
 {
@@ -23,6 +24,7 @@ static void standard_routing()
 {
 	static float last_dist;
 	static float last_d_dist;
+	float min_dist = mtodeg(1);
 
 	gpsWaypointCont_t* waypoint = SYS.route.currentWaypoint;
 	vec3f_t delta = {};
@@ -30,13 +32,17 @@ static void standard_routing()
 	delta.y = SYS.pose.pos.y - waypoint->self.location.y;
 	delta.z = 0; // we don't give a shit about altitude
 
+	if(!SYS.route.currentWaypoint->next)
+	{
+		min_dist *= 2;
+	}
+
 	// SYS.body.estimated.heading.goal = vec3fNorm(&delta);
 	float dist = vec3fMag(&delta);
 	float d_dist = last_dist - dist;
 
 	// less than 6 meters away, lets move on to the next one
-	if((last_d_dist <= 0 && d_dist >= 0) && dist < 0.00001){
-		waypoint->self.flags++;
+	if((last_d_dist <= 0 && d_dist >= 0) && dist < min_dist){
 		SYS.route.currentWaypoint = waypoint->next;
 	}
 
@@ -47,6 +53,7 @@ static void standard_routing()
 static void cost_routing()
 {
 	gpsWaypointCont_t* waypoint = SYS.route.currentWaypoint;
+	const float min_dist = mtodeg(0.1);
 
 	vec3f_t* h = &SYS.pose.heading;
 	
@@ -59,6 +66,7 @@ static void cost_routing()
 	// are we near the end of our route?
 	if(!waypoint->next)
 	{
+
 		// just check to see if we get close to the final waypoint
 		// then. There is no need to try to select one
 		vec3f_t delta = {};
@@ -66,8 +74,7 @@ static void cost_routing()
 		delta.y = SYS.pose.pos.y - waypoint->self.location.y;
 		delta.z = 0; // we don't give a shit about altitude
 
-		if(vec3fMag(&delta) < mtodeg(0.5)){
-			waypoint->self.flags++;
+		if(vec3fMag(&delta) < min_dist){
 			SYS.route.currentWaypoint = waypoint->next;
 
 			printf("Finished!\n");
@@ -87,15 +94,18 @@ static void cost_routing()
 		float cost = waypoint_cost(way, &SYS.pose);
 		if(cost < best_cost)
 		{
-			printf("%x --> %x\n", (unsigned int)best_way, (unsigned int)way);
-			best_way = way;
 			best_cost = cost;
+			printf("%x --> %x %f\n",
+				(unsigned int)best_way,
+				(unsigned int)way,
+				best_cost
+			);
+			best_way = way;
+			if(!best_way->next)
+			{
+				printf("LAST\n");
+			}
 		}
-	}
-
-	if(best_way != waypoint)
-	{
-		waypoint->self.flags++;
 	}
 
 	SYS.route.currentWaypoint = best_way;
@@ -103,9 +113,9 @@ static void cost_routing()
 //------------------------------------------------------------------------------
 static int reroute(scn_obstacle_t* obs, gpsWaypointCont_t* before)
 {
-	const float car_width = mtodeg(0.4); // 40cm
+	const float car_width = mtodeg(1.6); // 40cm
 	float safe_rad = obs->radius + car_width;
-	float inf_rad = safe_rad * 2;
+	float inf_rad = safe_rad * 4;
 
 	// start from the current waypoint, walk through the obstacles
 	gpsWaypointCont_t* way = SYS.route.currentWaypoint;
@@ -113,7 +123,7 @@ static int reroute(scn_obstacle_t* obs, gpsWaypointCont_t* before)
 	{
 		vec3f_t delta;
 		vec3Sub(delta, way->self.location, obs->centroid);
-		float dist = vec3fMag(delta);
+		float dist = vec3fMag(&delta);
 		
 		assert(dist > 0);
 
@@ -127,8 +137,13 @@ static int reroute(scn_obstacle_t* obs, gpsWaypointCont_t* before)
 
 			// offset
 			vec3Add(way->self.location, way->self.location, n);	
+
+			printf(">>Repositioning %d<<\n", way->self.index);
+			return 1;
 		}
 	}
+
+	return 0;
 }
 //------------------------------------------------------------------------------
 static void* action(agent_t* lastState, void* args)
@@ -152,7 +167,8 @@ static void* action(agent_t* lastState, void* args)
 		// keep rerouting
 		scn_obstacle_t* obs = NULL;
 		gpsWaypointCont_t* before_intersect = NULL;
-		while(1)
+
+		//while(1)
 		{
 			obs = obs_intersects_route(
 				SYS.sensors.scanner.obstacles,
@@ -161,13 +177,13 @@ static void* action(agent_t* lastState, void* args)
 				&before_intersect
 			);
 
-			if(!obs) // an intersection wasn't detected, we're good
+			if(obs) // an intersection wasn't detected, we're good
 			{
-				break;
+				ctrlSet(SERVO_THROTTLE, 50);
+				reroute(obs, before_intersect);	
 			}
 
 			// one was detected... re route
-			reroute(obs, before_intersect);	
 		}
 	}
 

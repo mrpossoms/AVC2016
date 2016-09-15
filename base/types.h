@@ -135,9 +135,7 @@ typedef struct{
 
 typedef struct{
 	vec3d_t location;
-	float   tolerance;
-	uint8_t nextWaypoint;
-	uint8_t flags;
+	uint16_t index;
 } gpsWaypoint_t;
 
 struct __GpsWaypoint;

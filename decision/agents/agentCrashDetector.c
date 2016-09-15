@@ -40,6 +40,8 @@ static int impact_danger()
 	// 	}
 	// }
 
+	return 0;
+
 	scn_obstacle_t* obs;
 	gpsWaypointCont_t* before_intersect;
 	if((obs = obs_intersects_route(
@@ -49,7 +51,7 @@ static int impact_danger()
 		&before_intersect)))
 	{
 		obs_print_info(obs);
-		return 1;
+		//return 1;
 	}
 
 	return 0;

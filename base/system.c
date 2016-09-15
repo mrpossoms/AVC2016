@@ -21,6 +21,7 @@ sysSnap_t sysSnapshot(system_t* sys)
 	if(sys->sensors.scanner.last_reading)
 	{
 		snap.lastDepth = *sys->sensors.scanner.last_reading;
+		snap.nearest_obs = sys->sensors.scanner.obstacles[0];
 	}
 
 	gpsWaypointCont_t* waypoint = sys->route.currentWaypoint;

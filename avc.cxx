@@ -31,6 +31,7 @@ uint32_t MISSION_WAYPOINTS = 0;
 int IS_RC = 0, REC_ROUTE = 0;
 int USE_BLACK_BOX = 1;
 int WAIT_TIME;
+int HAS_STARTED = 0;
 
 void* RCHandler(void* arg);
 
@@ -39,12 +40,18 @@ void* RCHandler(void* arg);
 //    / _ \|   / (_ | | __ | ' \/ _` | | '_(_-<_
 //   /_/ \_\_|_\\___| |_||_|_||_\__,_|_|_| /__(_)
 //
+static void start_now_opt(char* value, int present)
+{
+	HAS_STARTED = present;
+}
+
 static void mag_reset_opt(char* value, int present)
 {
 	if(present){
 		printf("Reseting magnetometer calibration readings\n");
 		bzero(SYS.sensors.imu.calMinMax[0].mag.v, sizeof(vec3i16_t));
 		bzero(SYS.sensors.imu.calMinMax[1].mag.v, sizeof(vec3i16_t));
+		SYS.magCal = 1;
 	}
 }
 
@@ -181,6 +188,12 @@ int main(int argc, char* argv[])
 
 	OPT_LIST_START
 	{
+		"--start-now",
+		"",
+		0,
+		start_now_opt
+	},
+	{
 		"--record",
 		"Records over top of existing mission file",
 		0,
@@ -199,17 +212,18 @@ int main(int argc, char* argv[])
 		mag_reset_opt
 	},
 	{
-		"--speed",
-		"Set max speed. 50 is stopped.",
-		1,
-		speed_opt
-	},
-	{
 		"--no-sensors",
 		"Skips enabling sensors.",
 		0,
 		no_sensors_opt
 	},
+	{
+		"--speed",
+		"Set max speed. 50 is stopped.",
+		1,
+		speed_opt
+	},
+
 	{
 		"--no-servos",
 		"Skips starting servo driver and enabling servo control system",
@@ -290,23 +304,23 @@ int main(int argc, char* argv[])
 	
 	sleep(WAIT_TIME);
 	printf("Starting main loop\n");
-	int has_started = 0;
+	uint16_t last_wp_idx = 0;
 	while(1){
 		assert(!isnan(SYS.pose.pos.x));
 		senUpdate(&SYS.sensors);
 		assert(!isnan(SYS.pose.pos.x));
 
-		if(!has_started && fabs(SYS.sensors.measured.acc.y) > LIL_G / 4)
+		if(!HAS_STARTED && fabs(SYS.sensors.measured.acc.y) > LIL_G / 4)
 		{
 			printf("Lets go!\n");
-			has_started = 1;
+			HAS_STARTED = 1;
 		}
 
 		if(!IS_RC){
 			// TODO
 			SYS.sensors.hasGpsFix = 1;
 
-			if(has_started)
+			if(HAS_STARTED)
 			{
 				AGENT_ROUTING.action(NULL, NULL);
 				AGENT_STEERING.action(NULL, NULL);
@@ -319,10 +333,12 @@ int main(int argc, char* argv[])
 				//break;
 			}
 		}
-		else if(REC_ROUTE){
+		else if(REC_ROUTE)
+		{
 			static vec3d_t last_pos;
 			gpsWaypoint_t wp = {
 				.location = SYS.pose.pos,
+				.index = last_wp_idx,
 			};
 
 			if(vec3Dist(wp.location, last_pos) > 0.000001){
@@ -330,6 +346,7 @@ int main(int argc, char* argv[])
 				write(MISSION_FD, &wp, sizeof(gpsWaypoint_t));
 				last_pos = wp.location;
 				MISSION_WAYPOINTS++;
+				last_wp_idx++;
 			}
 		}
 
