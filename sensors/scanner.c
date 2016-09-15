@@ -26,13 +26,13 @@ int scn_init(
 	// set servo to home position
 	ctrlSet(SERVO_SCANNER, scanner->servo.position);
 
-	const float angle_tick = -scanner->servo.range / (float)SCANNER_RES;
-	const float angle_0 = scanner->servo.range / 2;
+	const float angle_tick = scanner->servo.range / (float)SCANNER_RES;
+	const float angle_0 = scanner->servo.range / 4.5f;
 
 	// assign angular values to each data sample
 	for(int i = SCANNER_RES; i--;)
 	{
-		scanner->readings[i].angle = -i * angle_tick + angle_0;
+		scanner->readings[i].angle = i * -angle_tick + angle_0;
 		scanner->readings[i].index = i;
 		scanner->readings[i].distance = 1000;
 	}
@@ -76,10 +76,13 @@ int scn_find_obstacles(
 		if(curr->time_taken == 0) continue;
 		float dd = fabs(last->distance - curr->distance);
 
+
 		// how big is the difference between this measurement, and the last?
-		// is it too big?
+		// is it too big?	
 		if(dd > max_dd || curr->index == SCANNER_RES - 1)
 		{
+			//if(fabs(curr->index - last->index) < 2) continue;
+			
 			// define the width of it, with the left and right
 			// indices
 			scn_obstacle_t* obs = list + obs_ind;
@@ -185,11 +188,11 @@ void scn_update(scn_t* scanner, float meters)
 	quat rotation = { 0, 0, 0, 1 };
 
 	// mirror the heading where it's used.... not somewhere else ya dingus
-	vec3_scale(temp.v, SYS.pose.heading.v, -(float)mtodeg(reading->distance)); // scale the normalized heading
+	vec3_scale(temp.v, SYS.pose.heading.v, (float)mtodeg(reading->distance)); // scale the normalized heading
 
 	// TODO determine if the rotation angle truly does need to be
 	// negated, courtesey of the mirrored heading vector
-	quat_from_axis_angle(rotation, 0, 0, 1, -reading->angle);
+	quat_from_axis_angle(rotation, 0, 0, 1, reading->angle);
 
 	quat_mul_vec3(temp.v, rotation, temp.v); // rotate it by the angle of the measurement
 	vec3Add(reading->location, temp, SYS.pose.pos); // add to current position
@@ -245,9 +248,9 @@ int obs_intersect(scn_obstacle_t* obs, vec3f_t v0, vec3f_t v1, vec3f_t* res)
 
 
 	vec3f_t v = { v1.x - v0.x, v1.y - v0.y, 0 };
-	vec3f_t d = { obs->centroid.x - v0.x, obs->centroid.y - v0.y, 0 };
+	vec3f_t d = { v0.x - obs->centroid.x, v0.y - obs->centroid.y, 0 };
 
-	float a = v.x + v.y;
+	float a = vec3_mul_inner(v.v, v.v);
 	float b = 2 * (v.x * d.x + v.y * d.y);
 	float c = vec3_mul_inner(d.v, d.v) - (obs->radius * obs->radius);
 	float rad_inner = b * b - 4 * a * c;
@@ -259,7 +262,7 @@ int obs_intersect(scn_obstacle_t* obs, vec3f_t v0, vec3f_t v1, vec3f_t* res)
 	float t[2] = { (-b + radical) / base, (-b - radical) / base };
 
 	for(int i = 2; i--;){
-		if(t[i] >= 0 && t[i] <= 1)
+		if(t[i] > 0 && t[i] <= 1)
 		{
 			return 1; // intersecting
 		}
@@ -327,7 +330,7 @@ scn_obstacle_t* obs_intersects_route(
 	gpsWaypointCont_t* curr,
 	gpsWaypointCont_t** before_intersect)
 {
-	const int max_exploration = 10;
+	const int max_exploration = 2;
 	scn_obstacle_t* obs = NULL;
 	int limit = max_exploration;
 
