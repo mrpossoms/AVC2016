@@ -25,11 +25,17 @@ sysSnap_t sysSnapshot(system_t* sys)
 	}
 
 	gpsWaypointCont_t* waypoint = sys->route.currentWaypoint;
-	if(waypoint){
-		snap.currentWaypoint = waypoint->self;
+	for(int i = 0; i < 10; ++i)
+	{
+		snap.waypoints[i] = waypoint->self;
 
-		if(!sys->following && waypoint->next){
-			snap.nextWaypoint = waypoint->next->self;
+		if(!sys->following && waypoint->next)
+		{
+			waypoint = waypoint->next;
+		}
+		else
+		{
+			break;
 		}
 	}
 

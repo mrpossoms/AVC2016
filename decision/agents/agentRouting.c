@@ -113,60 +113,47 @@ static void cost_routing()
 //------------------------------------------------------------------------------
 static int reroute(scn_t* scn, scn_obstacle_t* obs, gpsWaypointCont_t* before)
 {
-	const float car_width = mtodeg(1.6); // 40cm
-	float safe_rad = obs->radius + car_width;
-	float inf_rad = safe_rad * 4;
+	const float car_width = mtodeg(0.4); // 40cm
+	float safe_rad = (obs->radius + car_width) / 2;
+	float inf_rad = safe_rad * 2;
+
+	
 
 	// start from the current waypoint, walk through the obstacles
 	gpsWaypointCont_t* way = SYS.route.currentWaypoint;
 	for(; way; way = way->next)
 	{
-		scn_obstacle_t* neighbor_obs[2] = {
-				obs_left(scn, obs),
-				obs_right(scn, obs),
-		};
-		scn_obstacle_t* other_obs = NULL;
+		vec3f_t delta = {};
 
-		// pick the better of the right or left
-		for(int i = 2; i--;)
-		{
-			scn_obstacle_t* obs = neighbor_obs[i];
-			if(!other_obs) other_obs = obs;
-			else if(obs->width > other_obs->width && obs->nearest > other_obs->nearest)
-			{
-				other_obs = obs;
-			}
-		}
+		printf("%d(%f) - %d(%f)\n",
+			obs->left_i, scn->readings[obs->left_i+1].distance,
+			obs->right_i, scn->readings[obs->right_i-1].distance);
+		vec3Sub(
+			delta,
+			scn->readings[obs->right_i+1].location,
+			scn->readings[obs->left_i-1].location
+		);
+		//vec3Add(delta, delta, jitter);		
+		vec3Scl(delta, delta, 2);
 
-		vec3f_t delta;
-		vec3Sub(delta, way->self.location, obs->centroid);
 		float dist = vec3fMag(&delta);
-
-
+		
 		assert(dist > 0);
 
 		if(dist <= inf_rad)
 		{
 			vec3f_t n = {};
-			vec3f_t norm_delta;
-
-			vec3Add(norm_delta, other_obs->centroid, SYS.pose.pos); // intersecting obs to better obs
-			vec3Scl(norm_delta, norm_delta, 0.5);
-			vec3Sub(norm_delta, norm_delta, obs->centroid);
 
 			// normalize
-			vec3Scl(n, norm_delta, 1 / vec3fMag(&norm_delta));
-			vec3Scl(n, n, (safe_rad / dist) * safe_rad);
+			//vec3Scl(n, delta, 1 / dist);
+			vec3Scl(n, delta, .001);
 
 			// offset
-			vec3Add(way->self.location, way->self.location, n);
-
-			printf(">>Repositioning %d<<\n", way->self.index);
-			return 1;
+			vec3Add(way->self.location, way->self.location, n);	
 		}
 	}
 
-	return 0;
+	return 1;
 }
 //------------------------------------------------------------------------------
 static void* action(agent_t* lastState, void* args)
