@@ -15,7 +15,7 @@ SRCS = $(wildcard ./*.c)
 OBJS = $(SRCS:.c=.o) $(CTRL_DIR)/servos.o
 
 all: $(OBJS)
-	gcc -shared -o .so $(OBJS) $(LINK)
+	gcc -g -shared -o .so $(OBJS) $(LINK)
 
 .c.o:
 	$(CMP) $(INC) $(FLAGS) -c $< -o $@

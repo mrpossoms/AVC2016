@@ -27,12 +27,13 @@ int scn_init(
 	ctrlSet(SERVO_SCANNER, scanner->servo.position);
 
 	const float angle_tick = scanner->servo.range / (float)SCANNER_RES;
-	const float angle_0 = 0.05;//scanner->servo.range / 6.f;
+	const float angle_0 = -0.1;//scanner->servo.range / 6.f;
+	//const float angle_0 = scanner->servo.range / 2.f;
 
 	// assign angular values to each data sample
 	for(int i = SCANNER_RES; i--;)
 	{
-		scanner->readings[i].angle = i * -angle_tick + angle_0;
+		scanner->readings[i].angle = -i * angle_tick + angle_0;
 		scanner->readings[i].index = i;
 		scanner->readings[i].distance = 1000;
 	}
@@ -98,7 +99,7 @@ int scn_find_obstacles(
 			vec3 delta;
 			vec3_sub(delta, obs_start->location.v, curr->location.v);
 
-			obs->radius = vec3_len(delta) / 2;
+			obs->radius = vec3_len(delta) / 2.f;
 			obs->width = fabs(readings[s_i].angle - readings[e_i].angle) * obs->nearest;
 
 			if(nearest_point < scanner->far_plane)
@@ -330,7 +331,7 @@ scn_obstacle_t* obs_intersects_route(
 	gpsWaypointCont_t* curr,
 	gpsWaypointCont_t** before_intersect)
 {
-	const int max_exploration = 10;
+	const int max_exploration = 2;
 	scn_obstacle_t* obs = NULL;
 	int limit = max_exploration;
 

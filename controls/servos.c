@@ -1,3 +1,5 @@
+#include "servos.h"
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdlib.h>
@@ -8,7 +10,7 @@
 
 int SERVO_FD;
 int SERVOS[3];
-int TRIM[3] = { 8, 0, 3 };
+int TRIM[3] = { 4, 0, 3 };
 
 int ctrlInit()
 {
@@ -26,6 +28,11 @@ int ctrlInit()
 
 	if(SERVO_FD <= 0){
 		return -2;
+	}
+
+	for(int i = 3; i--;)
+	{
+		ctrlSet(i, TRIM[i] + 50);
 	}
 
 	return 0;
