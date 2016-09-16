@@ -46,20 +46,23 @@ int senInit(const char* i2c_dev, const char* gpsDevice, const char* calProfile)
 	printf("OK!\n");
 
 	// Initalize the scanner turret and range finder
-	printf("Initializing scanner...");
-	if(scn_init(
-		&SYS.sensors.scanner,
-		30, 60,
-		54 * M_PI / 180.f,  // 54 deg scan window
-		0.1,	   // 20ms / tick
-		30))       // far-plane, 10M
+	if(SYS.use_scanner)
 	{
-		printf("Failed!\n");
-		return -3;
-	}
-	else
-	{
-		printf("OK!\n");
+		printf("Initializing scanner...");
+		if(scn_init(
+			&SYS.sensors.scanner,
+			30, 60,
+			54 * M_PI / 180.f,  // 54 deg scan window
+			0.1,	   // 20ms / tick
+			30))       // far-plane, 10M
+		{
+			printf("Failed!\n");
+			return -3;
+		}
+		else
+		{
+			printf("OK!\n");
+		}
 	}
 
 	printf("Allocating filter matrices...");
@@ -383,7 +386,10 @@ int senUpdate(sensors_t* sen)
 		ticks = 0;
 	}
 
-	scn_update(&SYS.sensors.scanner, m * .1f);
+	if(SYS.use_scanner)
+	{
+		scn_update(&SYS.sensors.scanner, m * .1f);
+	}
 
 	const float diameter = 0.1; // meters
 	float sign = ctrlGet(SERVO_THROTTLE) > 50 ? 1.f : -1.f;

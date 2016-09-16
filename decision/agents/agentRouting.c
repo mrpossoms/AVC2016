@@ -115,39 +115,35 @@ static void cost_routing()
 static int reroute(scn_t* scn, scn_obstacle_t* obs, gpsWaypointCont_t* before)
 {
 	const float car_width = mtodeg(0.4); // 40cm
-	float safe_rad = (obs->radius + car_width);
-	float inf_rad = safe_rad * 1;
-
+	float safe_rad = (obs->radius/4 + car_width);
 	
+	vec3f_t delta = {};
+	vec3Sub(
+		delta,
+		scn->readings[obs->right_i-1].location,
+		scn->readings[obs->left_i+1].location
+	);
 
 	// start from the current waypoint, walk through the obstacles
 	gpsWaypointCont_t* way = SYS.route.start;
 	for(; way; way = way->next)
 	{
-		vec3f_t delta = {};
-		//vec3f_t jitter = { .v = {RAND_F, RAND_F, 0 } };
-
-		vec3Sub(
-			delta,
-			scn->readings[obs->right_i-1].location,
-			scn->readings[obs->left_i+1].location
-		);
-		//vec3Add(delta, delta, jitter);		
-
 		float dist = vec3Dist(obs->centroid, way->self.location);
 		
 		assert(dist > 0);
 
-		if(dist <= inf_rad)
+		if(dist <= safe_rad)
 		{
 			vec3f_t n = {};
 			printf("%d(%f) - %d(%f)\n",
 			obs->left_i, scn->readings[obs->left_i+1].distance,
 			obs->right_i, scn->readings[obs->right_i-1].distance);
 
+			//delta.z = 0.0001;
+
 			// normalize
 			//vec3Scl(n, delta, 1 / dist);
-			vec3Scl(n, delta, .1);
+			vec3Scl(n, delta, .01);
 
 			// offset
 			vec3Add(way->self.location, way->self.location, n);	
@@ -181,7 +177,7 @@ static void* action(agent_t* lastState, void* args)
 		scn_obstacle_t* obs = NULL;
 		gpsWaypointCont_t* before_intersect = NULL;
 
-		//while(1)
+		if(SYS.use_scanner)
 		{
 			obs = obs_intersects_route(
 				SYS.sensors.scanner.obstacles,

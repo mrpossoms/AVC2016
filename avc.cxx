@@ -121,6 +121,11 @@ static void rc_opt(char* value, int present)
 		pthread_create(&RC_THREAD, NULL, RCHandler, NULL);
 	}
 }
+
+static void no_scanner_opt(char* value, int present)
+{
+	SYS.use_scanner = !present;
+}
 //------------------------------------------------------------------------------
 static void mark_process()
 {
@@ -235,6 +240,12 @@ int main(int argc, char* argv[])
 		"Causes a delay of N seconds after initialization",
 		1,
 		delay_opt
+	},
+	{
+		"--no-scanner",
+		"",
+		0,
+		no_scanner_opt
 	}
 	OPT_LIST_END(HEADER)
 
@@ -341,7 +352,9 @@ int main(int argc, char* argv[])
 				.index = last_wp_idx,
 			};
 
-			if(vec3Dist(wp.location, last_pos) > 0.000001){
+			float w = fabs(SYS.sensors.measured.gyro.z);
+			const float min_dist = mtodeg(1);
+			if(vec3Dist(wp.location, last_pos) > min_dist && w >= 0.08){
 				printf("Saving pos %f, %f\n", wp.location.x, wp.location.y);
 				write(MISSION_FD, &wp, sizeof(gpsWaypoint_t));
 				last_pos = wp.location;

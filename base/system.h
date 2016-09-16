@@ -77,6 +77,7 @@ typedef struct {
 	int magCal;
 	int maxSpeed;
 	int following;
+	int use_scanner;
 } system_t;
 
 typedef struct {
